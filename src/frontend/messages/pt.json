@@ -1,0 +1,35 @@
+{
+  "Auth": {
+    "login_title": "GoodFood",
+    "login_subtitle": "Acesse sua conta para gerenciar as refeições do seu pet.",
+    "email": "E-mail",
+    "password": "Senha",
+    "forgot_password": "Esqueceu a senha?",
+    "login_button": "Entrar",
+    "login_loading": "Entrando...",
+    "no_account": "Ainda não tem conta?",
+    "register_link": "Cadastre-se grátis",
+    "register_title": "Crie sua conta",
+    "register_subtitle": "E comece a personalizar as refeições do seu pet.",
+    "name": "Nome Completo",
+    "phone": "Telefone (WhatsApp)",
+    "password_confirmation": "Confirme a Senha",
+    "register_button": "Criar Conta",
+    "register_loading": "Cadastrando...",
+    "has_account": "Já possui conta?",
+    "login_link": "Fazer login",
+    "password_mismatch": "As senhas não coincidem.",
+    "login_error": "Falha ao realizar login. Verifique suas credenciais.",
+    "register_error": "Falha ao realizar cadastro. Verifique os dados informados."
+  },
+  "Navigation": {
+    "dashboard": "Dashboard",
+    "pets": "Meus Pets",
+    "subscriptions": "Assinaturas",
+    "orders": "Pedidos",
+    "catalog": "Catálogo",
+    "production": "Fila de Produção",
+    "deliveries": "Entregas",
+    "logout": "Sair"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "Auth": {
+    "login_title": "GoodFood",
+    "login_subtitle": "Accede a tu cuenta para gestionar las comidas de tu mascota.",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "forgot_password": "¿Olvidaste tu contraseña?",
+    "login_button": "Entrar",
+    "login_loading": "Entrando...",
+    "no_account": "¿Aún no tienes cuenta?",
+    "register_link": "Regístrate gratis",
+    "register_title": "Crea tu cuenta",
+    "register_subtitle": "Y empieza a personalizar las comidas de tu mascota.",
+    "name": "Nombre completo",
+    "phone": "Teléfono (WhatsApp)",
+    "password_confirmation": "Confirmar contraseña",
+    "register_button": "Crear cuenta",
+    "register_loading": "Registrando...",
+    "has_account": "¿Ya tienes una cuenta?",
+    "login_link": "Iniciar sesión",
+    "password_mismatch": "Las contraseñas no coinciden.",
+    "login_error": "Error al iniciar sesión. Verifica tus credenciales.",
+    "register_error": "Error al registrarse. Verifica tus datos."
+  },
+  "Navigation": {
+    "dashboard": "Dashboard",
+    "pets": "Mis Mascotas",
+    "subscriptions": "Suscripciones",
+    "orders": "Pedidos",
+    "catalog": "Catálogo",
+    "production": "Cola de Producción",
+    "deliveries": "Entregas",
+    "logout": "Salir"
+  }
+}
