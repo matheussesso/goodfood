@@ -70,4 +70,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(Pet::class);
     }
+
+    /**
+     * Get the user's subscriptions.
+     */
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    /**
+     * Get the user's orders.
+     */
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }

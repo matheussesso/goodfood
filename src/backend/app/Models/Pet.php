@@ -60,4 +60,14 @@ class Pet extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function subscriptions()
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }
