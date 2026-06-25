@@ -1,0 +1,68 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: goodfood_db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: goodfood
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: rootpassword
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    networks:
+      - goodfood_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: goodfood_backend
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./src/backend:/var/www/html
+      - ./docker/backend/php.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on:
+      - db
+    networks:
+      - goodfood_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: goodfood_nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./src/backend:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+    networks:
+      - goodfood_network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: goodfood_frontend
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src/frontend:/app
+    environment:
+      - NODE_ENV=development
+    networks:
+      - goodfood_network
+
+networks:
+  goodfood_network:
+    driver: bridge
+
+volumes:
+  dbdata:
+    driver: local

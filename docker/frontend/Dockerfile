@@ -1,0 +1,7 @@
+FROM node:20-alpine
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# O código e pacotes serão mapeados via volume no docker-compose
+CMD ["npm", "run", "dev"]
