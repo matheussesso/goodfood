@@ -55,6 +55,7 @@ class RecipeController extends Controller
             'ingredients.*.id' => 'required|exists:ingredients,id',
             'ingredients.*.quantity' => 'required|numeric|min:0',
             'ingredients.*.unit' => 'nullable|string',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
         if ($user->role !== 'admin') {
@@ -133,6 +134,7 @@ class RecipeController extends Controller
             'ingredients.*.id' => 'required|exists:ingredients,id',
             'ingredients.*.quantity' => 'required|numeric|min:0',
             'ingredients.*.unit' => 'nullable|string',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
         if ($user->role !== 'admin' && isset($validated['is_template'])) {

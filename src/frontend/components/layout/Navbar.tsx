@@ -206,8 +206,9 @@ export function Navbar({
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive =
-                  pathname === link.href ||
-                  pathname.startsWith(`${link.href}/`);
+                  (link.href === "/admin" || link.href === "/dashboard")
+                    ? pathname === link.href
+                    : pathname === link.href || pathname.startsWith(`${link.href}/`);
                 return (
                   <Link
                     key={link.href}

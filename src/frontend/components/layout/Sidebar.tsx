@@ -98,7 +98,10 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           <div className="space-y-1">
             {navLinks.map((link) => {
               const Icon = link.icon;
-              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+              const isActive =
+                (link.href === "/admin" || link.href === "/dashboard")
+                  ? pathname === link.href
+                  : pathname === link.href || pathname.startsWith(`${link.href}/`);
               
               return (
                 <Link

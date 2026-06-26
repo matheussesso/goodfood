@@ -24,6 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
         Route::get('/customers', [CustomerController::class, 'index']);
         Route::get('/customers/{id}', [CustomerController::class, 'show']);
+        Route::put('/customers/{id}', [CustomerController::class, 'update']);
         
         Route::get('/settings', [GeneralSettingController::class, 'index']);
         Route::put('/settings', [GeneralSettingController::class, 'update']);

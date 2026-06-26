@@ -4,25 +4,33 @@ import { Pet } from "./usePets";
 import { Order } from "./useOrders";
 import { Subscription } from "./useSubscriptions";
 
+import { Recipe } from "./useRecipes";
+
 export interface Customer {
   id: number;
   name: string;
   email: string;
   phone: string;
   role: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipcode?: string;
   created_at: string;
   pets_count?: number;
   orders_count?: number;
   pets?: Pet[];
   orders?: Order[];
   subscriptions?: Subscription[];
+  recipes?: Recipe[];
 }
 
-export function useCustomers() {
+export function useCustomers(search?: string) {
   const { data, isLoading, error } = useQuery({
-    queryKey: ["customers"],
+    queryKey: ["customers", search],
     queryFn: async () => {
-      const response = await apiClient.get<{ success: boolean; data: Customer[] }>("/customers");
+      const params = search ? { search } : {};
+      const response = await apiClient.get<{ success: boolean; data: Customer[] }>("/customers", { params });
       return response.data.data;
     },
   });
@@ -49,4 +57,19 @@ export function useCustomer(id: string) {
     isLoading,
     error,
   };
+}
+
+export function useUpdateCustomer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string | number; data: Partial<Customer> }) => {
+      const response = await apiClient.put<{ success: boolean; data: Customer }>(`/customers/${id}`, data);
+      return response.data.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["customer", String(data.id)] });
+    },
+  });
 }

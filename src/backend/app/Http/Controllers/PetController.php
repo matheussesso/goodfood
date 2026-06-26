@@ -42,9 +42,15 @@ class PetController extends Controller
             'restrictions' => 'nullable|string',
             'allergies' => 'nullable|string',
             'special_needs' => 'nullable|string',
+            'user_id' => 'nullable|exists:users,id',
         ]);
 
-        $pet = $request->user()->pets()->create($validated);
+        if ($request->user()->isAdmin() && isset($validated['user_id'])) {
+            $user = \App\Models\User::findOrFail($validated['user_id']);
+            $pet = $user->pets()->create($validated);
+        } else {
+            $pet = $request->user()->pets()->create($validated);
+        }
 
         return response()->json([
             'success' => true,
@@ -88,7 +94,12 @@ class PetController extends Controller
             'restrictions' => 'nullable|string',
             'allergies' => 'nullable|string',
             'special_needs' => 'nullable|string',
+            'user_id' => 'nullable|exists:users,id',
         ]);
+
+        if ($request->user()->isAdmin() && isset($validated['user_id'])) {
+            $pet->user_id = $validated['user_id'];
+        }
 
         $pet->update($validated);
 
