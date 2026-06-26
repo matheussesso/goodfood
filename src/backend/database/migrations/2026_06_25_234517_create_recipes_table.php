@@ -13,10 +13,17 @@ return new class extends Migration
     {
         Schema::create('recipes', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('pet_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('name');
             $table->text('description')->nullable();
-            $table->decimal('price', 8, 2); // Final price for customer
-            $table->decimal('weight_per_portion', 5, 2); // kg
+            $table->string('pet_type')->nullable(); // dog, cat, all
+            $table->integer('duration_days')->nullable();
+            $table->integer('daily_portions')->nullable();
+            $table->text('instructions')->nullable();
+            $table->boolean('is_template')->default(false);
+            $table->string('frequency')->nullable();
+            $table->decimal('base_cost', 10, 2)->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

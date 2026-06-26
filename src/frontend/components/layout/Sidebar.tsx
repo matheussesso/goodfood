@@ -14,7 +14,9 @@ import {
   Truck,
   LogOut,
   Menu,
-  X
+  X,
+  Users,
+  Settings2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,9 +40,12 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     links.push({ href: "/dashboard", label: t("dashboard"), icon: LayoutDashboard });
 
     if (role === "admin") {
+      links.push({ href: "/admin", label: t("dashboard_admin"), icon: LayoutDashboard });
+      links.push({ href: "/admin/customers", label: t("customers"), icon: Users });
       links.push({ href: "/admin/catalog", label: t("catalog"), icon: PackageSearch });
       links.push({ href: "/admin/orders", label: t("orders"), icon: ShoppingBag });
       links.push({ href: "/admin/subscriptions", label: t("subscriptions"), icon: CalendarCheck });
+      links.push({ href: "/admin/settings", label: t("settings"), icon: Settings2 });
     }
 
     if (role === "customer" || role === "admin") {

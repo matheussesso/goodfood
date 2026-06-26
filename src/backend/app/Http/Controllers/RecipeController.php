@@ -12,15 +12,22 @@ class RecipeController extends Controller
      */
     public function index(Request $request)
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $user = $request->user();
 
-        $recipes = Recipe::with('ingredients')->get();
+        $query = Recipe::with('ingredients');
+
+        if ($user->role === 'admin') {
+            // Admin sees all recipes
+            $recipes = $query->get();
+        } else {
+            // Customer sees templates OR their own recipes
+            $recipes = $query->where('is_template', true)
+                             ->orWhere('user_id', $user->id)
+                             ->get();
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Recipes fetched successfully',
             'data' => $recipes,
         ]);
     }
@@ -30,30 +37,46 @@ class RecipeController extends Controller
      */
     public function store(Request $request)
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $user = $request->user();
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'weight_per_portion' => 'required|numeric|min:0',
+            'pet_type' => 'nullable|string',
+            'duration_days' => 'nullable|integer|min:1',
+            'daily_portions' => 'nullable|integer|min:1',
+            'instructions' => 'nullable|string',
+            'is_template' => 'boolean',
+            'frequency' => 'nullable|string',
             'is_active' => 'boolean',
+            'pet_id' => 'nullable|exists:pets,id',
             'ingredients' => 'nullable|array',
             'ingredients.*.id' => 'required|exists:ingredients,id',
             'ingredients.*.quantity' => 'required|numeric|min:0',
+            'ingredients.*.unit' => 'nullable|string',
         ]);
+
+        if ($user->role !== 'admin') {
+            $validated['is_template'] = false;
+            $validated['user_id'] = $user->id;
+        } else {
+            $validated['user_id'] = $validated['user_id'] ?? $user->id;
+        }
 
         $recipe = Recipe::create($validated);
 
         if (!empty($validated['ingredients'])) {
             $syncData = [];
             foreach ($validated['ingredients'] as $ingredient) {
-                $syncData[$ingredient['id']] = ['quantity' => $ingredient['quantity']];
+                $syncData[$ingredient['id']] = [
+                    'quantity' => $ingredient['quantity'],
+                    'unit' => $ingredient['unit'] ?? 'kg'
+                ];
             }
             $recipe->ingredients()->sync($syncData);
         }
+
+        $recipe->updateBaseCost();
 
         return response()->json([
             'success' => true,
@@ -67,13 +90,14 @@ class RecipeController extends Controller
      */
     public function show(Request $request, Recipe $recipe)
     {
-        if (!$request->user()->isAdmin()) {
+        $user = $request->user();
+
+        if ($user->role !== 'admin' && !$recipe->is_template && $recipe->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Recipe fetched successfully',
             'data' => $recipe->load('ingredients'),
         ]);
     }
@@ -83,30 +107,51 @@ class RecipeController extends Controller
      */
     public function update(Request $request, Recipe $recipe)
     {
-        if (!$request->user()->isAdmin()) {
+        $user = $request->user();
+
+        if ($user->role !== 'admin' && $recipe->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($user->role !== 'admin' && $recipe->is_template) {
+             return response()->json(['message' => 'Cannot modify a template.'], 403);
         }
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
-            'price' => 'sometimes|required|numeric|min:0',
-            'weight_per_portion' => 'sometimes|required|numeric|min:0',
+            'pet_type' => 'nullable|string',
+            'duration_days' => 'nullable|integer|min:1',
+            'daily_portions' => 'nullable|integer|min:1',
+            'instructions' => 'nullable|string',
+            'is_template' => 'boolean',
+            'frequency' => 'nullable|string',
             'is_active' => 'boolean',
+            'pet_id' => 'nullable|exists:pets,id',
             'ingredients' => 'nullable|array',
             'ingredients.*.id' => 'required|exists:ingredients,id',
             'ingredients.*.quantity' => 'required|numeric|min:0',
+            'ingredients.*.unit' => 'nullable|string',
         ]);
+
+        if ($user->role !== 'admin' && isset($validated['is_template'])) {
+            unset($validated['is_template']); // Customers cannot change to template
+        }
 
         $recipe->update($validated);
 
         if (isset($validated['ingredients'])) {
             $syncData = [];
             foreach ($validated['ingredients'] as $ingredient) {
-                $syncData[$ingredient['id']] = ['quantity' => $ingredient['quantity']];
+                $syncData[$ingredient['id']] = [
+                    'quantity' => $ingredient['quantity'],
+                    'unit' => $ingredient['unit'] ?? 'kg'
+                ];
             }
             $recipe->ingredients()->sync($syncData);
         }
+
+        $recipe->updateBaseCost();
 
         return response()->json([
             'success' => true,
@@ -120,7 +165,9 @@ class RecipeController extends Controller
      */
     public function destroy(Request $request, Recipe $recipe)
     {
-        if (!$request->user()->isAdmin()) {
+        $user = $request->user();
+
+        if ($user->role !== 'admin' && $recipe->user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -129,7 +176,6 @@ class RecipeController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Recipe deleted successfully',
-            'data' => null,
         ]);
     }
 }

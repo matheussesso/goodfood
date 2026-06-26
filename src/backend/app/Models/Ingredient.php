@@ -14,15 +14,26 @@ class Ingredient extends Model
         'description',
         'unit',
         'unit_cost',
+        'cost_per_unit',
+        'loss_rate',
+        'difficulty_multiplier',
+        'category',
         'stock_quantity',
         'is_active',
     ];
 
-    protected $casts = [
-        'unit_cost' => 'decimal:2',
-        'stock_quantity' => 'integer',
-        'is_active' => 'boolean',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'unit_cost' => 'decimal:3',
+            'cost_per_unit' => 'decimal:3',
+            'loss_rate' => 'decimal:3',
+            'difficulty_multiplier' => 'decimal:3',
+            'is_active' => 'boolean',
+        ];
+    }
+
+
 
     public function recipes()
     {

@@ -24,31 +24,31 @@ class RecipeSeeder extends Seeder
         if ($ingFrango && $ingArroz && $ingCenoura && $ingOleo) {
             $recipeFrango = Recipe::firstOrCreate(['name' => 'Mix Frango e Legumes'], [
                 'description' => 'Dieta balanceada com base em frango, arroz e cenoura.',
-                'price' => 25.00,
-                'weight_per_portion' => 0.50, // 500g
+                'pet_type' => 'all',
+                'is_template' => true,
                 'is_active' => true,
             ]);
 
             $recipeFrango->ingredients()->syncWithoutDetaching([
-                $ingFrango->id => ['quantity' => 0.25],
-                $ingArroz->id => ['quantity' => 0.15],
-                $ingCenoura->id => ['quantity' => 0.08],
-                $ingOleo->id => ['quantity' => 0.02],
+                $ingFrango->id => ['quantity' => 0.25, 'unit' => 'kg'],
+                $ingArroz->id => ['quantity' => 0.15, 'unit' => 'kg'],
+                $ingCenoura->id => ['quantity' => 0.08, 'unit' => 'kg'],
+                $ingOleo->id => ['quantity' => 0.02, 'unit' => 'l'],
             ]);
         }
 
         if ($ingCarne && $ingBatata && $ingOleo) {
             $recipeCarne = Recipe::firstOrCreate(['name' => 'Mix Carne Premium'], [
                 'description' => 'Alta proteína com carne bovina e batata doce. Sem frango.',
-                'price' => 32.00,
-                'weight_per_portion' => 0.50, // 500g
+                'pet_type' => 'all',
+                'is_template' => true,
                 'is_active' => true,
             ]);
 
             $recipeCarne->ingredients()->syncWithoutDetaching([
-                $ingCarne->id => ['quantity' => 0.30],
-                $ingBatata->id => ['quantity' => 0.18],
-                $ingOleo->id => ['quantity' => 0.02],
+                $ingCarne->id => ['quantity' => 0.30, 'unit' => 'kg'],
+                $ingBatata->id => ['quantity' => 0.18, 'unit' => 'kg'],
+                $ingOleo->id => ['quantity' => 0.02, 'unit' => 'l'],
             ]);
         }
     }

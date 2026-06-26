@@ -15,8 +15,12 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->string('unit'); // kg, g, unit
-            $table->decimal('unit_cost', 8, 2);
+            $table->string('unit'); // kg, g, unit, l
+            $table->decimal('unit_cost', 8, 3)->default(0);
+            $table->decimal('cost_per_unit', 8, 3)->default(0); // Add cost_per_unit to match old system
+            $table->decimal('loss_rate', 8, 3)->default(1.0);
+            $table->decimal('difficulty_multiplier', 8, 3)->default(1.0);
+            $table->string('category')->nullable();
             $table->integer('stock_quantity')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();

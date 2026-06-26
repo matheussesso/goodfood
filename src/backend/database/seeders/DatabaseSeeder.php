@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             PetSeeder::class,
             IngredientSeeder::class,
+            GeneralSettingSeeder::class,
             RecipeSeeder::class,
             SubscriptionSeeder::class,
             OrderSeeder::class,
