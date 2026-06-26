@@ -16,7 +16,8 @@ import {
   Menu,
   X,
   Users,
-  Settings2
+  Settings2,
+  UtensilsCrossed
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -45,11 +46,11 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       links.push({ href: "/admin/catalog", label: t("catalog"), icon: PackageSearch });
       links.push({ href: "/admin/orders", label: t("orders"), icon: ShoppingBag });
       links.push({ href: "/admin/subscriptions", label: t("subscriptions"), icon: CalendarCheck });
-      links.push({ href: "/admin/settings", label: t("settings"), icon: Settings2 });
     }
 
     if (role === "customer" || role === "admin") {
       links.push({ href: "/pets", label: t("pets"), icon: Dog });
+      links.push({ href: "/recipes", label: t("recipes"), icon: UtensilsCrossed });
     }
 
     if (role === "producer" || role === "admin") {

@@ -4,10 +4,12 @@ import { apiClient } from "@/lib/api-client";
 export interface Ingredient {
   id: number;
   name: string;
+  category?: string;
   description?: string;
   unit: string;
-  unit_cost: number;
-  stock_quantity: number;
+  cost_per_unit: number;
+  loss_rate: number;
+  difficulty_multiplier: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;

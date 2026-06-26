@@ -33,11 +33,14 @@ class Pet extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'type',
         'breed',
         'weight',
         'age',
         'birth_date',
         'restrictions',
+        'allergies',
+        'special_needs',
     ];
 
     /**

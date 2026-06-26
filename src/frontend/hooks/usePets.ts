@@ -5,11 +5,14 @@ export interface Pet {
   id: number;
   user_id: number;
   name: string;
+  type?: "dog" | "cat";
   breed?: string;
   weight?: number;
   age?: number;
   birth_date?: string;
   restrictions?: string;
+  allergies?: string;
+  special_needs?: string;
   created_at: string;
   updated_at: string;
 }

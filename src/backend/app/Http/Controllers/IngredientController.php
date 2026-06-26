@@ -36,10 +36,12 @@ class IngredientController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'category' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'unit' => 'required|string|in:kg,g,unit,l,ml',
-            'unit_cost' => 'required|numeric|min:0',
-            'stock_quantity' => 'nullable|integer|min:0',
+            'unit' => 'required|string',
+            'cost_per_unit' => 'required|numeric|min:0',
+            'loss_rate' => 'nullable|numeric|min:0',
+            'difficulty_multiplier' => 'nullable|numeric|min:0',
             'is_active' => 'boolean',
         ]);
 
@@ -79,10 +81,12 @@ class IngredientController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
+            'category' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'unit' => 'sometimes|required|string|in:kg,g,unit,l,ml',
-            'unit_cost' => 'sometimes|required|numeric|min:0',
-            'stock_quantity' => 'nullable|integer|min:0',
+            'unit' => 'sometimes|required|string',
+            'cost_per_unit' => 'sometimes|required|numeric|min:0',
+            'loss_rate' => 'nullable|numeric|min:0',
+            'difficulty_multiplier' => 'nullable|numeric|min:0',
             'is_active' => 'boolean',
         ]);
 

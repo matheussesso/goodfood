@@ -34,11 +34,14 @@ class PetController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'type' => 'nullable|string|in:dog,cat',
             'breed' => 'nullable|string|max:255',
             'weight' => 'nullable|numeric|min:0',
             'age' => 'nullable|integer|min:0',
             'birth_date' => 'nullable|date',
             'restrictions' => 'nullable|string',
+            'allergies' => 'nullable|string',
+            'special_needs' => 'nullable|string',
         ]);
 
         $pet = $request->user()->pets()->create($validated);
@@ -77,11 +80,14 @@ class PetController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
+            'type' => 'nullable|string|in:dog,cat',
             'breed' => 'nullable|string|max:255',
             'weight' => 'nullable|numeric|min:0',
             'age' => 'nullable|integer|min:0',
             'birth_date' => 'nullable|date',
             'restrictions' => 'nullable|string',
+            'allergies' => 'nullable|string',
+            'special_needs' => 'nullable|string',
         ]);
 
         $pet->update($validated);

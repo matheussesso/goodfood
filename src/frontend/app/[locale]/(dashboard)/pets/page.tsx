@@ -18,10 +18,13 @@ export default function PetsPage() {
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
   const [formData, setFormData] = useState({
     name: "",
+    type: "dog",
     breed: "",
     weight: "",
     age: "",
     restrictions: "",
+    allergies: "",
+    special_needs: "",
   });
 
   const handleOpenModal = (pet?: Pet) => {
@@ -29,19 +32,25 @@ export default function PetsPage() {
       setEditingPet(pet);
       setFormData({
         name: pet.name,
+        type: pet.type || "dog",
         breed: pet.breed || "",
         weight: pet.weight ? pet.weight.toString() : "",
         age: pet.age ? pet.age.toString() : "",
         restrictions: pet.restrictions || "",
+        allergies: pet.allergies || "",
+        special_needs: pet.special_needs || "",
       });
     } else {
       setEditingPet(null);
       setFormData({
         name: "",
+        type: "dog",
         breed: "",
         weight: "",
         age: "",
         restrictions: "",
+        allergies: "",
+        special_needs: "",
       });
     }
     setIsModalOpen(true);
@@ -56,10 +65,13 @@ export default function PetsPage() {
     
     const data = {
       name: formData.name,
+      type: formData.type as "dog" | "cat",
       breed: formData.breed,
       weight: formData.weight ? parseFloat(formData.weight) : undefined,
       age: formData.age ? parseInt(formData.age, 10) : undefined,
       restrictions: formData.restrictions,
+      allergies: formData.allergies,
+      special_needs: formData.special_needs,
     };
 
     if (editingPet) {
@@ -159,22 +171,34 @@ export default function PetsPage() {
         title={editingPet ? "Editar Pet" : "Novo Pet"}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome *</Label>
-            <Input id="name" required value={formData.name} onChange={handleChange} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="breed">Raça</Label>
-            <Input id="breed" value={formData.breed} onChange={handleChange} />
-          </div>
-          
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome *</Label>
+              <Input id="name" required value={formData.name} onChange={handleChange} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="type">Espécie</Label>
+              <select 
+                id="type"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                value={formData.type} 
+                onChange={(e) => setFormData({...formData, type: e.target.value as "dog" | "cat"})}
+              >
+                <option value="dog">Cachorro</option>
+                <option value="cat">Gato</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="breed">Raça</Label>
+              <Input id="breed" value={formData.breed} onChange={handleChange} />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="age">Idade (meses)</Label>
               <Input id="age" type="number" min="0" value={formData.age} onChange={handleChange} />
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="weight">Peso (kg)</Label>
               <Input id="weight" type="number" step="0.1" min="0" value={formData.weight} onChange={handleChange} />
@@ -185,10 +209,32 @@ export default function PetsPage() {
             <Label htmlFor="restrictions">Restrições Alimentares</Label>
             <textarea 
               id="restrictions" 
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px]"
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px]"
               value={formData.restrictions} 
               onChange={handleChange} 
-              placeholder="Ex: Alergia a frango"
+              placeholder="Ex: Pancreatite, Renal crônico..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="allergies">Alergias</Label>
+            <textarea 
+              id="allergies" 
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px]"
+              value={formData.allergies} 
+              onChange={handleChange} 
+              placeholder="Ex: Alergia a frango, carne bovina..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="special_needs">Necessidades Especiais</Label>
+            <textarea 
+              id="special_needs" 
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px]"
+              value={formData.special_needs} 
+              onChange={handleChange} 
+              placeholder="Ex: Dificuldade de mastigação..."
             />
           </div>
           

@@ -32,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('pets', PetController::class);
     Route::apiResource('ingredients', IngredientController::class);
     Route::apiResource('recipes', RecipeController::class);
+    Route::post('recipes/calculate-cost', [RecipeController::class, 'calculateCost']);
     Route::apiResource('subscriptions', SubscriptionController::class);
     Route::apiResource('orders', OrderController::class);
 });

@@ -5,27 +5,35 @@ import { Ingredient } from "./useIngredients";
 export interface RecipeIngredient {
   id: number;
   quantity: number;
+  unit?: string;
 }
 
 export interface Recipe {
   id: number;
   name: string;
   description?: string;
-  price: number;
-  weight_per_portion: number;
+  pet_id?: number;
+  pet_type?: string;
+  duration_days?: number;
+  daily_portions?: number;
+  instructions?: string;
+  is_template: boolean;
+  frequency?: string;
+  base_cost: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  ingredients: (Ingredient & { pivot: { quantity: string } })[];
+  ingredients: (Ingredient & { pivot: { quantity: string; unit: string } })[];
 }
 
-export function useRecipes() {
+export function useRecipes(petId?: string) {
   const queryClient = useQueryClient();
 
   const { data: recipes, isLoading, error } = useQuery({
-    queryKey: ["recipes"],
+    queryKey: ["recipes", { petId }],
     queryFn: async () => {
-      const response = await apiClient.get("/recipes");
+      const url = petId ? `/recipes?pet_id=${petId}` : "/recipes";
+      const response = await apiClient.get(url);
       return response.data.data as Recipe[];
     },
   });
@@ -71,4 +79,30 @@ export function useRecipes() {
     deleteRecipe: deleteMutation.mutateAsync,
     isDeleting: deleteMutation.isPending,
   };
+}
+
+export function useRecipe(id: string) {
+  const { data: recipe, isLoading, error } = useQuery({
+    queryKey: ["recipe", id],
+    queryFn: async () => {
+      const response = await apiClient.get<{ success: boolean; data: Recipe }>(`/recipes/${id}`);
+      return response.data.data;
+    },
+    enabled: !!id,
+  });
+
+  return {
+    recipe,
+    isLoading,
+    error,
+  };
+}
+
+export async function calculateRecipeCost(data: {
+  ingredients: { ingredient_id: number; quantity: number; unit?: string }[];
+  duration_days?: number;
+  daily_portions?: number;
+}) {
+  const response = await apiClient.post("/recipes/calculate-cost", data);
+  return response.data.data;
 }

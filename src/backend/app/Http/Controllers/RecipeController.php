@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Recipe;
+use App\Services\RecipeCostCalculatorService;
 use Illuminate\Http\Request;
 
 class RecipeController extends Controller
@@ -176,6 +177,35 @@ class RecipeController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Recipe deleted successfully',
+        ]);
+    }
+
+    /**
+     * Calculate cost dynamically without saving the recipe.
+     */
+    public function calculateCost(Request $request, RecipeCostCalculatorService $calculator)
+    {
+        $validated = $request->validate([
+            'ingredients' => 'required|array',
+            'ingredients.*.ingredient_id' => 'required|exists:ingredients,id',
+            'ingredients.*.quantity' => 'required|numeric|min:0',
+            'ingredients.*.unit' => 'nullable|string',
+            'duration_days' => 'nullable|integer|min:1',
+            'daily_portions' => 'nullable|integer|min:1',
+        ]);
+
+        $durationDays = $validated['duration_days'] ?? 15;
+        $dailyPortions = $validated['daily_portions'] ?? 2;
+
+        $result = $calculator->calculateCost(
+            $validated['ingredients'],
+            $durationDays,
+            $dailyPortions
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $result
         ]);
     }
 }

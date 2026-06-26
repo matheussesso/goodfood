@@ -3,15 +3,17 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "./button";
+import { cn } from "@/lib/utils";
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  className?: string;
 }
 
-export function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, className }: ModalProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -31,7 +33,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         className="absolute inset-0 bg-background/80 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-50 w-full max-w-lg rounded-xl border bg-card shadow-lg flex flex-col max-h-[90vh]">
+      <div className={cn("relative z-50 w-full rounded-xl border bg-card shadow-lg flex flex-col max-h-[90vh]", className || "max-w-lg")}>
         <div className="flex items-center justify-between border-b p-4">
           <h3 className="font-semibold text-lg">{title}</h3>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">

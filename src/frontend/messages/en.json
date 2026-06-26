@@ -30,6 +30,7 @@
     "catalog": "Catalog",
     "production": "Production Queue",
     "deliveries": "Deliveries",
+    "recipes": "Recipes",
     "logout": "Sign out"
   }
 }
