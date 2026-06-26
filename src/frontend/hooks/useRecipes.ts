@@ -39,7 +39,7 @@ export function useRecipes(petId?: string) {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: Partial<Recipe> & { ingredients?: RecipeIngredient[] }) => {
+    mutationFn: async (data: Omit<Partial<Recipe>, 'ingredients'> & { ingredients?: RecipeIngredient[] }) => {
       const response = await apiClient.post("/recipes", data);
       return response.data;
     },
@@ -49,7 +49,7 @@ export function useRecipes(petId?: string) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...data }: Partial<Recipe> & { id: number; ingredients?: RecipeIngredient[] }) => {
+    mutationFn: async ({ id, ...data }: Omit<Partial<Recipe>, 'ingredients'> & { id: number; ingredients?: RecipeIngredient[] }) => {
       const response = await apiClient.put(`/recipes/${id}`, data);
       return response.data;
     },

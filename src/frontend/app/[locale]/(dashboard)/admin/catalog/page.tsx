@@ -17,7 +17,9 @@ import { useForm } from "react-hook-form";
 import { useEffect } from "react";
 
 export default function CatalogPage() {
-  const t = useTranslations("Navigation");
+  const tNav = useTranslations("Navigation");
+  const t = useTranslations("Catalog");
+  const tCommon = useTranslations("Common");
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"ingredients" | "recipes" | "settings">("ingredients");
 
@@ -32,9 +34,9 @@ export default function CatalogPage() {
   const onSettingsSubmit = async (data: GeneralSettings) => {
     try {
       await updateSettings(data);
-      alert("Configurações salvas com sucesso!");
+      alert(tCommon("success"));
     } catch (error) {
-      alert("Erro ao salvar configurações.");
+      alert(tCommon("error"));
     }
   };
 
@@ -159,7 +161,7 @@ export default function CatalogPage() {
   }, [recipeIngredients, recForm.duration_days, recForm.daily_portions, calculateRecipeCost]);
 
   if (user?.role !== "admin") {
-    return <div className="p-8 text-center text-destructive">Acesso negado. Apenas administradores.</div>;
+    return <div className="p-8 text-center text-destructive">{tCommon("access_denied")}</div>;
   }
 
   // --- Ingredients Handlers ---
@@ -193,7 +195,7 @@ export default function CatalogPage() {
   };
 
   const handleDeleteIng = async (id: number) => {
-    if (confirm("Tem certeza que deseja remover este ingrediente?")) await deleteIngredient(id);
+    if (confirm(tCommon("confirm_delete"))) await deleteIngredient(id);
   };
 
   // --- Recipes Handlers ---
@@ -201,14 +203,14 @@ export default function CatalogPage() {
     if (rec) {
       setEditingRec(rec);
       setRecForm({
-        name: rec.name, description: rec.description || "",
+        name: rec.name, description: rec.description || "", instructions: rec.instructions || "",
         pet_type: rec.pet_type || "dog", duration_days: rec.duration_days?.toString() || "15", 
         daily_portions: rec.daily_portions?.toString() || "2", is_active: rec.is_active
       });
       setRecipeIngredients(rec.ingredients.map(i => ({ id: i.id, quantity: i.pivot.quantity, unit: i.pivot.unit || i.unit })));
     } else {
       setEditingRec(null);
-      setRecForm({ name: "", description: "", pet_type: "dog", duration_days: "15", daily_portions: "2", is_active: true });
+      setRecForm({ name: "", description: "", instructions: "", pet_type: "dog", duration_days: "15", daily_portions: "2", is_active: true });
       setRecipeIngredients([]);
     }
     setIsRecModalOpen(true);
@@ -230,34 +232,34 @@ export default function CatalogPage() {
   };
 
   const handleDeleteRec = async (id: number) => {
-    if (confirm("Tem certeza que deseja remover esta receita (modelo global)?")) await deleteRecipe(id);
+    if (confirm(tCommon("confirm_delete"))) await deleteRecipe(id);
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("catalog")}</h1>
-          <p className="text-muted-foreground mt-1">Gerencie ingredientes e crie modelos de receitas.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{tNav("catalog")}</h1>
+          <p className="text-muted-foreground mt-1">{t("description")}</p>
         </div>
         <div className="flex bg-muted p-1 rounded-lg">
           <button 
             onClick={() => setActiveTab("ingredients")}
             className={cn("px-4 py-2 text-sm font-medium rounded-md transition-colors", activeTab === "ingredients" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
           >
-            <Apple className="inline-block w-4 h-4 mr-2" /> Ingredientes
+            <Apple className="inline-block w-4 h-4 mr-2" /> {t("ingredients")}
           </button>
           <button 
             onClick={() => setActiveTab("recipes")}
             className={cn("px-4 py-2 text-sm font-medium rounded-md transition-colors", activeTab === "recipes" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
           >
-            <BookOpen className="inline-block w-4 h-4 mr-2" /> Receitas Modelos
+            <BookOpen className="inline-block w-4 h-4 mr-2" /> {t("recipes")}
           </button>
           <button 
             onClick={() => setActiveTab("settings")}
             className={cn("px-4 py-2 text-sm font-medium rounded-md transition-colors", activeTab === "settings" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
           >
-            <Settings2 className="inline-block w-4 h-4 mr-2" /> Configurações
+            <Settings2 className="inline-block w-4 h-4 mr-2" /> {t("settings")}
           </button>
         </div>
       </div>
@@ -265,11 +267,11 @@ export default function CatalogPage() {
       {activeTab === "settings" && (
         <Card>
           <CardHeader>
-            <CardTitle>Configurações de Repasse e Custos</CardTitle>
+            <CardTitle>{t("settings_title")}</CardTitle>
             <CardDescription>
               <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-lg p-3 flex items-start gap-2 mt-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span className="text-sm">Alterar estes multiplicadores afetará o cálculo de preços de todas as novas receitas criadas.</span>
+                <span className="text-sm">{t("settings_warning")}</span>
               </div>
             </CardDescription>
           </CardHeader>
@@ -306,7 +308,7 @@ export default function CatalogPage() {
                 <div className="flex justify-end pt-4 border-t">
                   <Button type="submit" disabled={isUpdatingSettings}>
                     {isUpdatingSettings ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                    Salvar Configurações
+                    {t("save_settings")}
                   </Button>
                 </div>
               </form>
@@ -319,10 +321,10 @@ export default function CatalogPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Ingredientes</CardTitle>
-              <CardDescription>Gerencie custos e dados de ingredientes base.</CardDescription>
+              <CardTitle>{t("ingredients")}</CardTitle>
+              <CardDescription>{t("ingredients_desc")}</CardDescription>
             </div>
-            <Button onClick={() => handleOpenIngModal()}><Plus className="h-4 w-4 mr-2" /> Novo Ingrediente</Button>
+            <Button onClick={() => handleOpenIngModal()}><Plus className="h-4 w-4 mr-2" /> {t("new_ingredient")}</Button>
           </CardHeader>
           <CardContent>
             {isLoadingIng ? <div className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> : (
@@ -332,9 +334,9 @@ export default function CatalogPage() {
                     <div>
                       <h4 className="font-medium">{ing.name}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Custo: R$ {ing.cost_per_unit} / {ing.unit} | 
-                        Perda: {ing.loss_rate}% | 
-                        Dificuldade: x{ing.difficulty_multiplier}
+                        {t("cost")}: R$ {ing.cost_per_unit} / {ing.unit} | 
+                        {t("loss")}: {ing.loss_rate}% | 
+                        {t("difficulty")}: x{ing.difficulty_multiplier}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -343,7 +345,7 @@ export default function CatalogPage() {
                     </div>
                   </div>
                 ))}
-                {ingredients?.length === 0 && <div className="p-8 text-center text-muted-foreground">Nenhum ingrediente.</div>}
+                {ingredients?.length === 0 && <div className="p-8 text-center text-muted-foreground">{t("no_ingredients")}</div>}
               </div>
             )}
           </CardContent>
@@ -354,10 +356,10 @@ export default function CatalogPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Receitas (Modelos Globais)</CardTitle>
-              <CardDescription>Crie receitas modelos que clientes podem selecionar para seus pets.</CardDescription>
+              <CardTitle>{t("recipes")}</CardTitle>
+              <CardDescription>{t("recipes_desc")}</CardDescription>
             </div>
-            <Button onClick={() => handleOpenRecModal()}><Plus className="h-4 w-4 mr-2" /> Nova Receita Modelo</Button>
+            <Button onClick={() => handleOpenRecModal()}><Plus className="h-4 w-4 mr-2" /> {t("new_recipe")}</Button>
           </CardHeader>
           <CardContent>
             {isLoadingRec ? <div className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> : (
@@ -368,8 +370,8 @@ export default function CatalogPage() {
                       <div>
                         <CardTitle className="text-lg">{rec.name}</CardTitle>
                         <CardDescription>
-                          Duração: {rec.duration_days} dias | 
-                          Custo Base: R$ {rec.base_cost}
+                          {t("duration")}: {rec.duration_days} {t("days")} | 
+                          {t("base_cost")}: R$ {rec.base_cost}
                         </CardDescription>
                       </div>
                       <div className="flex gap-1">
@@ -378,7 +380,7 @@ export default function CatalogPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
-                      <p className="text-sm font-medium mb-2">Composição:</p>
+                      <p className="text-sm font-medium mb-2">{t("composition")}</p>
                       <ul className="text-sm text-muted-foreground list-disc list-inside">
                         {rec.ingredients?.map(i => (
                           <li key={i.id}>{i.name}: {i.pivot.quantity} {i.pivot.unit || i.unit}</li>
@@ -389,7 +391,7 @@ export default function CatalogPage() {
                 ))}
                 {recipes?.filter(r => r.is_template).length === 0 && (
                   <div className="col-span-2 p-8 text-center text-muted-foreground border rounded-md">
-                    Nenhuma receita modelo cadastrada.
+                    {t("no_recipes")}
                   </div>
                 )}
               </div>
@@ -399,69 +401,69 @@ export default function CatalogPage() {
       )}
 
       {/* Ingredient Modal */}
-      <Modal isOpen={isIngModalOpen} onClose={() => setIsIngModalOpen(false)} title={editingIng ? "Editar Ingrediente" : "Novo Ingrediente"}>
+      <Modal isOpen={isIngModalOpen} onClose={() => setIsIngModalOpen(false)} title={editingIng ? t("edit_ingredient") : t("new_ingredient")}>
         <form onSubmit={handleIngSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Nome</Label><Input required value={ingForm.name} onChange={e => setIngForm({...ingForm, name: e.target.value})} /></div>
+            <div className="space-y-2"><Label>{t("name")}</Label><Input required value={ingForm.name} onChange={e => setIngForm({...ingForm, name: e.target.value})} /></div>
             <div className="space-y-2">
-              <Label>Categoria</Label>
+              <Label>{t("category")}</Label>
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={ingForm.category} onChange={e => setIngForm({...ingForm, category: e.target.value})}>
-                <option value="Proteína">Proteína</option>
-                <option value="Carboidrato">Carboidrato</option>
-                <option value="Vegetal">Vegetal</option>
-                <option value="Suplemento">Suplemento</option>
-                <option value="Outro">Outro</option>
+                <option value="Proteína">{t("protein")}</option>
+                <option value="Carboidrato">{t("carb")}</option>
+                <option value="Vegetal">{t("vegetable")}</option>
+                <option value="Suplemento">{t("supplement")}</option>
+                <option value="Outro">{t("other")}</option>
               </select>
             </div>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Unidade de Compra</Label>
+              <Label>{t("unit")}</Label>
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={ingForm.unit} onChange={e => setIngForm({...ingForm, unit: e.target.value})}>
-                <option value="kg">Quilograma (kg)</option>
-                <option value="g">Grama (g)</option>
-                <option value="l">Litro (l)</option>
-                <option value="unit">Unidade (un)</option>
+                <option value="kg">{t("kg")}</option>
+                <option value="g">{t("g")}</option>
+                <option value="l">{t("l")}</option>
+                <option value="unit">{t("un")}</option>
               </select>
             </div>
-            <div className="space-y-2"><Label>Custo por Unidade (R$)</Label><Input type="number" step="0.01" required value={ingForm.cost_per_unit} onChange={e => setIngForm({...ingForm, cost_per_unit: e.target.value})} /></div>
+            <div className="space-y-2"><Label>{t("cost_per_unit")}</Label><Input type="number" step="0.01" required value={ingForm.cost_per_unit} onChange={e => setIngForm({...ingForm, cost_per_unit: e.target.value})} /></div>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Taxa de Perda (%)</Label><Input type="number" step="0.1" value={ingForm.loss_rate} onChange={e => setIngForm({...ingForm, loss_rate: e.target.value})} /></div>
-            <div className="space-y-2"><Label>Multiplicador de Dificuldade</Label><Input type="number" step="0.1" value={ingForm.difficulty_multiplier} onChange={e => setIngForm({...ingForm, difficulty_multiplier: e.target.value})} /></div>
+            <div className="space-y-2"><Label>{t("loss_rate")}</Label><Input type="number" step="0.1" value={ingForm.loss_rate} onChange={e => setIngForm({...ingForm, loss_rate: e.target.value})} /></div>
+            <div className="space-y-2"><Label>{t("difficulty_multiplier")}</Label><Input type="number" step="0.1" value={ingForm.difficulty_multiplier} onChange={e => setIngForm({...ingForm, difficulty_multiplier: e.target.value})} /></div>
           </div>
           
           <div className="pt-4 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsIngModalOpen(false)}>Cancelar</Button>
-            <Button type="submit" disabled={isCreatingIng || isUpdatingIng}>Salvar</Button>
+            <Button type="button" variant="outline" onClick={() => setIsIngModalOpen(false)}>{tCommon("cancel")}</Button>
+            <Button type="submit" disabled={isCreatingIng || isUpdatingIng}>{tCommon("save")}</Button>
           </div>
         </form>
       </Modal>
 
       {/* Recipe Modal */}
-      <Modal isOpen={isRecModalOpen} onClose={() => setIsRecModalOpen(false)} title={editingRec ? "Editar Receita Modelo" : "Nova Receita Modelo"} className="max-w-4xl">
+      <Modal isOpen={isRecModalOpen} onClose={() => setIsRecModalOpen(false)} title={editingRec ? t("edit_recipe") : t("new_recipe")} className="max-w-4xl">
         <form onSubmit={handleRecSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto px-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Nome do Modelo</Label><Input required value={recForm.name} onChange={e => setRecForm({...recForm, name: e.target.value})} /></div>
+            <div className="space-y-2"><Label>{t("recipe_name")}</Label><Input required value={recForm.name} onChange={e => setRecForm({...recForm, name: e.target.value})} /></div>
             <div className="space-y-2">
-              <Label>Espécie (Pet)</Label>
+              <Label>{t("pet_type")}</Label>
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={recForm.pet_type} onChange={e => setRecForm({...recForm, pet_type: e.target.value})}>
-                <option value="dog">Cão</option>
-                <option value="cat">Gato</option>
+                <option value="dog">{t("dog")}</option>
+                <option value="cat">{t("cat")}</option>
               </select>
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Duração (dias)</Label><Input type="number" required value={recForm.duration_days} onChange={e => setRecForm({...recForm, duration_days: e.target.value})} /></div>
-            <div className="space-y-2"><Label>Porções Diárias</Label><Input type="number" required value={recForm.daily_portions} onChange={e => setRecForm({...recForm, daily_portions: e.target.value})} /></div>
+            <div className="space-y-2"><Label>{t("duration")} ({t("days")})</Label><Input type="number" required value={recForm.duration_days} onChange={e => setRecForm({...recForm, duration_days: e.target.value})} /></div>
+            <div className="space-y-2"><Label>{t("daily_portions")}</Label><Input type="number" required value={recForm.daily_portions} onChange={e => setRecForm({...recForm, daily_portions: e.target.value})} /></div>
           </div>
 
-          <div className="space-y-2"><Label>Descrição</Label><Input value={recForm.description} onChange={e => setRecForm({...recForm, description: e.target.value})} /></div>
+          <div className="space-y-2"><Label>{t("description_label")}</Label><Input value={recForm.description} onChange={e => setRecForm({...recForm, description: e.target.value})} /></div>
           <div className="space-y-2">
-            <Label>Instruções/Observações</Label>
+            <Label>{t("instructions")}</Label>
             <textarea 
               className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
               value={recForm.instructions} 
@@ -472,14 +474,14 @@ export default function CatalogPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label>Ingredientes</Label>
+                <Label>{t("ingredients")}</Label>
                 <Button type="button" variant="outline" size="sm" onClick={() => setRecipeIngredients([...recipeIngredients, {id: 0, quantity: "", unit: "kg"}])}>
-                  <Plus className="h-3 w-3 mr-1" /> Adicionar
+                  <Plus className="h-3 w-3 mr-1" /> {tCommon("add")}
                 </Button>
               </div>
               <div className="mb-2">
                 <Input 
-                  placeholder="Pesquisar ingrediente..." 
+                  placeholder={t("search_ingredient")} 
                   value={ingredientSearch}
                   onChange={(e) => setIngredientSearch(e.target.value)}
                   className="h-8 text-xs"
@@ -494,7 +496,7 @@ export default function CatalogPage() {
                         const newArr = [...recipeIngredients]; newArr[idx].id = parseInt(e.target.value); setRecipeIngredients(newArr);
                       }}
                     >
-                      <option value={0} disabled>Selecione...</option>
+                      <option value={0} disabled>{tCommon("select")}</option>
                       {ingredients?.filter(ing => ing.name.toLowerCase().includes(ingredientSearch.toLowerCase())).map(ing => <option key={ing.id} value={ing.id}>{ing.name}</option>)}
                     </select>
                     <Input type="number" step="0.001" placeholder="Qtd" className="w-20 h-9 px-2 text-xs" value={item.quantity} onChange={e => {
@@ -516,12 +518,12 @@ export default function CatalogPage() {
                     </Button>
                   </div>
                 ))}
-                {recipeIngredients.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum ingrediente adicionado.</p>}
+                {recipeIngredients.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">{t("no_ingredients")}</p>}
               </div>
             </div>
             
             <div className="space-y-4">
-              <Label>Custo Estimado Base</Label>
+              <Label>{t("estimated_cost")}</Label>
               <div className="bg-primary/10 border border-primary/20 p-4 rounded-md">
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-sm font-medium">Total Estimado</span>
@@ -532,7 +534,7 @@ export default function CatalogPage() {
                 </div>
 
                 <div className="text-sm space-y-2 border-t border-primary/20 pt-4">
-                  <p className="font-medium text-foreground">Composição do Custo:</p>
+                  <p className="font-medium text-foreground">{t("cost_breakdown")}</p>
                   <ul className="space-y-1.5 text-muted-foreground text-xs">
                     {costBreakdown?.filter(item => item.is_supplement).map((item, idx) => (
                       <li key={idx} className="flex justify-between border-b border-primary/10 pb-1">
@@ -542,7 +544,7 @@ export default function CatalogPage() {
                     ))}
                     {(!costBreakdown || costBreakdown.length === 0) && (
                       <li className="text-center italic py-2">
-                        Adicione ingredientes para simular o custo.
+                        {t("add_ingredients_simulate")}
                       </li>
                     )}
                   </ul>
@@ -552,8 +554,8 @@ export default function CatalogPage() {
           </div>
 
           <div className="pt-4 flex justify-end gap-2 border-t mt-6">
-            <Button type="button" variant="outline" onClick={() => setIsRecModalOpen(false)}>Cancelar</Button>
-            <Button type="submit" disabled={isCreatingRec || isUpdatingRec || isCalculatingCost}>Salvar Modelo</Button>
+            <Button type="button" variant="outline" onClick={() => setIsRecModalOpen(false)}>{tCommon("cancel")}</Button>
+            <Button type="submit" disabled={isCreatingRec || isUpdatingRec || isCalculatingCost}>{t("save_model")}</Button>
           </div>
         </form>
       </Modal>

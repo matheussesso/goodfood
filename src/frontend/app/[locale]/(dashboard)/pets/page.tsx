@@ -11,7 +11,9 @@ import { Modal } from "@/components/ui/modal";
 import { Plus, Edit2, Trash2, Dog, Loader2 } from "lucide-react";
 
 export default function PetsPage() {
-  const t = useTranslations("Navigation");
+  const tNav = useTranslations("Navigation");
+  const t = useTranslations("Pets");
+  const tCommon = useTranslations("Common");
   const { pets, isLoading, createPet, updatePet, deletePet, isCreating, isUpdating, isDeleting } = usePets();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,7 +86,7 @@ export default function PetsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm("Tem certeza que deseja remover este pet?")) {
+    if (confirm(tCommon("confirm_delete_pet"))) {
       await deletePet(id);
     }
   };
@@ -94,15 +96,15 @@ export default function PetsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            {t("pets")}
+            {tNav("pets")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Cadastre e gerencie o perfil dos seus pets.
+            {t("pets_desc")}
           </p>
         </div>
         <Button onClick={() => handleOpenModal()}>
           <Plus className="mr-2 h-4 w-4" />
-          Novo Pet
+          {t("new_pet")}
         </Button>
       </div>
 
@@ -116,13 +118,13 @@ export default function PetsPage() {
             <div className="rounded-full bg-primary/10 p-4 text-primary">
               <Dog className="h-10 w-10" />
             </div>
-            <h3 className="text-lg font-semibold">Nenhum pet encontrado</h3>
+            <h3 className="text-lg font-semibold">{t("no_pets")}</h3>
             <p className="text-sm text-muted-foreground max-w-sm">
-              Você ainda não tem nenhum pet cadastrado. Adicione seu primeiro pet para montar as dietas ideais.
+              {t("no_pets_desc")}
             </p>
             <Button onClick={() => handleOpenModal()} className="mt-4">
               <Plus className="mr-2 h-4 w-4" />
-              Cadastrar Pet
+              {t("new_pet")}
             </Button>
           </CardContent>
         </Card>
@@ -134,7 +136,7 @@ export default function PetsPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle>{pet.name}</CardTitle>
-                    <CardDescription>{pet.breed || "Raça não informada"}</CardDescription>
+                    <CardDescription>{pet.breed || t("no_breed")}</CardDescription>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="ghost" size="icon" onClick={() => handleOpenModal(pet)}>
@@ -149,14 +151,14 @@ export default function PetsPage() {
               <CardContent className="flex-1">
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="font-medium">Idade:</span> {pet.age ? `${pet.age} meses` : "N/A"}
+                    <span className="font-medium">{t("age")}:</span> {pet.age ? `${pet.age} ${t("months")}` : "N/A"}
                   </div>
                   <div>
-                    <span className="font-medium">Peso:</span> {pet.weight ? `${pet.weight} kg` : "N/A"}
+                    <span className="font-medium">{t("weight")}:</span> {pet.weight ? `${pet.weight} kg` : "N/A"}
                   </div>
                   <div className="col-span-2 mt-2">
-                    <span className="font-medium">Restrições:</span>
-                    <p className="text-muted-foreground">{pet.restrictions || "Nenhuma"}</p>
+                    <span className="font-medium">{t("dietary_restrictions")}:</span>
+                    <p className="text-muted-foreground">{pet.restrictions || t("none")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -168,85 +170,85 @@ export default function PetsPage() {
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
-        title={editingPet ? "Editar Pet" : "Novo Pet"}
+        title={editingPet ? t("edit_pet") : t("new_pet")}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome *</Label>
+              <Label htmlFor="name">{t("name")} *</Label>
               <Input id="name" required value={formData.name} onChange={handleChange} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="type">Espécie</Label>
+              <Label htmlFor="type">{t("species")}</Label>
               <select 
                 id="type"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                 value={formData.type} 
                 onChange={(e) => setFormData({...formData, type: e.target.value as "dog" | "cat"})}
               >
-                <option value="dog">Cachorro</option>
-                <option value="cat">Gato</option>
+                <option value="dog">{t("dog")}</option>
+                <option value="cat">{t("cat")}</option>
               </select>
             </div>
           </div>
           
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="breed">Raça</Label>
+              <Label htmlFor="breed">{t("breed")}</Label>
               <Input id="breed" value={formData.breed} onChange={handleChange} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="age">Idade (meses)</Label>
+              <Label htmlFor="age">{t("age_months")}</Label>
               <Input id="age" type="number" min="0" value={formData.age} onChange={handleChange} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="weight">Peso (kg)</Label>
+              <Label htmlFor="weight">{t("weight_kg")}</Label>
               <Input id="weight" type="number" step="0.1" min="0" value={formData.weight} onChange={handleChange} />
             </div>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="restrictions">Restrições Alimentares</Label>
+            <Label htmlFor="restrictions">{t("dietary_restrictions")}</Label>
             <textarea 
               id="restrictions" 
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px]"
               value={formData.restrictions} 
               onChange={handleChange} 
-              placeholder="Ex: Pancreatite, Renal crônico..."
+              placeholder={t("restrictions_placeholder")}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="allergies">Alergias</Label>
+            <Label htmlFor="allergies">{t("allergies")}</Label>
             <textarea 
               id="allergies" 
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px]"
               value={formData.allergies} 
               onChange={handleChange} 
-              placeholder="Ex: Alergia a frango, carne bovina..."
+              placeholder={t("allergies_placeholder")}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="special_needs">Necessidades Especiais</Label>
+            <Label htmlFor="special_needs">{t("special_needs")}</Label>
             <textarea 
               id="special_needs" 
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px]"
               value={formData.special_needs} 
               onChange={handleChange} 
-              placeholder="Ex: Dificuldade de mastigação..."
+              placeholder={t("special_needs_placeholder")}
             />
           </div>
           
           <div className="pt-4 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
-              Cancelar
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={isCreating || isUpdating}>
               {(isCreating || isUpdating) ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}
-              Salvar
+              {tCommon("save")}
             </Button>
           </div>
         </form>

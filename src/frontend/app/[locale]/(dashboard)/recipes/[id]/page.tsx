@@ -7,18 +7,21 @@ import { useRecipe } from "@/hooks/useRecipes";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function RecipeDetailPage({ params }: { params: { id: string } }) {
-  const t = useTranslations("dashboard");
+  const tNav = useTranslations("Navigation");
+  const tCat = useTranslations("Catalog");
+  const tCommon = useTranslations("Common");
+  const t = useTranslations("Recipes");
   const router = useRouter();
   const { user } = useAuth();
   
   const { recipe, isLoading } = useRecipe(params.id);
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">{t("loading")}</div>;
+    return <div className="p-8 text-center text-muted-foreground">{tCommon("loading")}</div>;
   }
 
   if (!recipe) {
-    return <div className="p-8 text-center text-destructive">Receita não encontrada</div>;
+    return <div className="p-8 text-center text-destructive">404</div>; // Can just be 404 or add missing translation later
   }
 
   return (
@@ -36,12 +39,12 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
               {recipe.name}
               {recipe.is_template && (
                 <span className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary rounded-full">
-                  Modelo Global
+                  {t("use_template").split(" ")[0]} {tCat("recipe_name")} 
                 </span>
               )}
             </h1>
             <p className="text-muted-foreground mt-1 flex items-center gap-2">
-              <span className="capitalize">{recipe.pet_type || "Para todos"}</span>
+              <span className="capitalize">{recipe.pet_type || "Global"}</span>
               {recipe.pet_id && (
                 <>
                    <span>&bull;</span>
@@ -57,7 +60,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
             href={`/recipes/${recipe.id}/edit`}
             className="inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md font-medium text-sm transition-colors"
           >
-            <Edit className="w-4 h-4" /> Editar Receita
+            <Edit className="w-4 h-4" /> {tCommon("edit")}
           </Link>
         )}
       </div>
@@ -67,16 +70,16 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
           <div className="bg-card border rounded-xl p-6 shadow-sm">
             <h3 className="text-lg font-semibold mb-4 flex items-center border-b pb-2">
               <UtensilsCrossed className="w-5 h-5 mr-2 text-primary" />
-              Ingredientes
+              {t("ingredients")}
             </h3>
             
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b bg-muted/30 text-sm">
-                    <th className="py-3 px-4 font-medium text-muted-foreground">Ingrediente</th>
-                    <th className="py-3 px-4 font-medium text-muted-foreground">Categoria</th>
-                    <th className="py-3 px-4 font-medium text-muted-foreground text-right">Quantidade</th>
+                    <th className="py-3 px-4 font-medium text-muted-foreground">{tCat("ingredients")}</th>
+                    <th className="py-3 px-4 font-medium text-muted-foreground">{tCat("category")}</th>
+                    <th className="py-3 px-4 font-medium text-muted-foreground text-right">Qtd</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y text-sm">
@@ -92,7 +95,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
                   {recipe.ingredients.length === 0 && (
                     <tr>
                       <td colSpan={3} className="py-6 text-center text-muted-foreground">
-                        Nenhum ingrediente registrado.
+                        {t("no_ingredients")}
                       </td>
                     </tr>
                   )}
@@ -104,7 +107,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
           <div className="bg-card border rounded-xl p-6 shadow-sm">
             <h3 className="text-lg font-semibold mb-4 flex items-center border-b pb-2">
               <FileText className="w-5 h-5 mr-2 text-primary" />
-              Instruções de Preparo
+              {tCat("instructions")}
             </h3>
             {recipe.instructions ? (
               <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap">
@@ -112,7 +115,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
               </div>
             ) : (
               <p className="text-muted-foreground text-sm italic">
-                Nenhuma instrução adicional fornecida.
+                -
               </p>
             )}
           </div>
@@ -122,13 +125,13 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
           <div className="bg-card border rounded-xl p-6 shadow-sm">
             <h3 className="text-lg font-semibold mb-4 flex items-center border-b pb-2">
               <Info className="w-5 h-5 mr-2 text-primary" />
-              Resumo
+              {t("basic_details")}
             </h3>
             
             <div className="space-y-4">
               {recipe.description && (
                 <div>
-                  <p className="text-sm font-medium text-foreground">Descrição</p>
+                  <p className="text-sm font-medium text-foreground">{t("description")}</p>
                   <p className="text-sm text-muted-foreground">{recipe.description}</p>
                 </div>
               )}
@@ -136,15 +139,15 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
               <div className="flex justify-between items-center pb-2 border-b">
                 <div className="flex items-center text-muted-foreground gap-2">
                    <CalendarClock className="w-4 h-4" />
-                   <span className="text-sm">Duração</span>
+                   <span className="text-sm">{t("duration_days")}</span>
                 </div>
-                <span className="font-medium text-sm">{recipe.duration_days} dias</span>
+                <span className="font-medium text-sm">{recipe.duration_days} {tCat("days")}</span>
               </div>
               
               <div className="flex justify-between items-center pb-2 border-b">
                 <div className="flex items-center text-muted-foreground gap-2">
                    <Package className="w-4 h-4" />
-                   <span className="text-sm">Porções Diárias</span>
+                   <span className="text-sm">{t("daily_portions")}</span>
                 </div>
                 <span className="font-medium text-sm">{recipe.daily_portions}</span>
               </div>
@@ -165,7 +168,7 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
             </div>
 
             <div className="mt-6 p-4 bg-primary/10 rounded-lg border border-primary/20 text-center">
-              <p className="text-sm text-primary font-medium mb-1">Custo Estimado Base</p>
+              <p className="text-sm text-primary font-medium mb-1">{t("estimated_cost")}</p>
               <p className="text-3xl font-bold text-primary">
                 R$ {recipe.base_cost}
               </p>

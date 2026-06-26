@@ -111,7 +111,7 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
                       <p className="text-sm text-muted-foreground">{order.status}</p>
                     </div>
                     <div className="font-semibold text-primary">
-                      R$ {order.total_amount}
+                      R$ {order.total_price}
                     </div>
                   </div>
                 ))}

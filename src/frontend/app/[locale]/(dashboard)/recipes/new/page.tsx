@@ -29,7 +29,10 @@ interface RecipeFormData {
 }
 
 export default function NewRecipePage() {
-  const t = useTranslations("Navigation");
+  const tNav = useTranslations("Navigation");
+  const t = useTranslations("Recipes");
+  const tCommon = useTranslations("Common");
+  const tCat = useTranslations("Catalog");
   const router = useRouter();
   const searchParams = useSearchParams();
   const petId = searchParams.get("pet_id");
@@ -188,10 +191,10 @@ export default function NewRecipePage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
             <UtensilsCrossed className="w-7 h-7 text-primary" />
-            Nova Receita
+            {t("title")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {step === "choose_method" ? "Como você deseja iniciar a formulação?" : "Construa a receita e veja o custo em tempo real."}
+            {step === "choose_method" ? t("subtitle_method") : t("subtitle_builder")}
           </p>
         </div>
       </div>
@@ -206,22 +209,22 @@ export default function NewRecipePage() {
               <Plus className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="text-xl font-bold">Criar do Zero</h3>
-              <p className="text-muted-foreground mt-2">Inicie uma folha em branco e adicione ingredientes manualmente.</p>
+              <h3 className="text-xl font-bold">{t("create_scratch")}</h3>
+              <p className="text-muted-foreground mt-2">{t("create_scratch_desc")}</p>
             </div>
           </div>
 
           <div className="border border-border bg-card rounded-2xl p-6 flex flex-col h-64">
             <div className="flex items-center gap-3 mb-4">
               <FileText className="w-6 h-6 text-primary" />
-              <h3 className="text-xl font-bold">Usar um Modelo Global</h3>
+              <h3 className="text-xl font-bold">{t("use_template")}</h3>
             </div>
             <p className="text-muted-foreground text-sm mb-4">
-              Selecione uma receita pré-configurada pelo administrador.
+              {t("use_template_desc")}
             </p>
             <div className="flex-1 overflow-y-auto space-y-2 pr-2">
               {templates?.length === 0 && (
-                <div className="text-sm text-center p-4 bg-muted/30 rounded-lg">Nenhum modelo disponível.</div>
+                <div className="text-sm text-center p-4 bg-muted/30 rounded-lg">{t("no_templates")}</div>
               )}
               {templates?.map(t => (
                 <div 
@@ -245,20 +248,20 @@ export default function NewRecipePage() {
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             <div className="bg-card border rounded-xl p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2">Detalhes Básicos</h3>
+              <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2">{t("basic_details")}</h3>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Nome da Receita</label>
+                  <label className="block text-sm font-medium mb-1">{t("recipe_name")}</label>
                   <input
                     {...register("name", { required: true })}
                     className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
                   />
-                  {errors.name && <span className="text-xs text-destructive">Obrigatório</span>}
+                  {errors.name && <span className="text-xs text-destructive">{t("required")}</span>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Descrição</label>
+                  <label className="block text-sm font-medium mb-1">{t("description")}</label>
                   <textarea
                     {...register("description")}
                     rows={2}
@@ -268,17 +271,17 @@ export default function NewRecipePage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Espécie</label>
+                    <label className="block text-sm font-medium mb-1">{t("pet_type")}</label>
                     <select
                       {...register("pet_type")}
                       className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
                     >
-                      <option value="dog">Cão</option>
-                      <option value="cat">Gato</option>
+                      <option value="dog">{tCat("dog")}</option>
+                      <option value="cat">{tCat("cat")}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Duração (Dias)</label>
+                    <label className="block text-sm font-medium mb-1">{t("duration_days")}</label>
                     <input
                       type="number"
                       {...register("duration_days", { valueAsNumber: true })}
@@ -286,7 +289,7 @@ export default function NewRecipePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Porções Diárias</label>
+                    <label className="block text-sm font-medium mb-1">{t("daily_portions")}</label>
                     <input
                       type="number"
                       {...register("daily_portions", { valueAsNumber: true })}
@@ -299,13 +302,13 @@ export default function NewRecipePage() {
 
             <div className="bg-card border rounded-xl p-6 shadow-sm">
               <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2 flex justify-between items-center">
-                Ingredientes
+                {t("ingredients")}
                 <button
                   type="button"
                   onClick={() => append({ id: 0, quantity: 0, unit: "kg" })}
                   className="inline-flex items-center gap-1 px-3 py-1 bg-secondary text-secondary-foreground text-xs font-medium rounded hover:bg-secondary/80 transition-colors"
                 >
-                  <Plus className="w-3 h-3" /> Adicionar
+                  <Plus className="w-3 h-3" /> {t("add_ingredient")}
                 </button>
               </h3>
               
@@ -317,7 +320,7 @@ export default function NewRecipePage() {
                         {...register(`ingredients.${index}.id` as const, { valueAsNumber: true })}
                         className="w-full px-2 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
                       >
-                        <option value={0}>Selecione...</option>
+                        <option value={0}>{tCommon("select")}</option>
                         {ingredients?.map(ing => (
                           <option key={ing.id} value={ing.id}>{ing.name}</option>
                         ))}
@@ -355,7 +358,7 @@ export default function NewRecipePage() {
                 
                 {fields.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4 border rounded-md border-dashed">
-                    Nenhum ingrediente adicionado.
+                    {t("no_ingredients")}
                   </p>
                 )}
               </div>
@@ -365,7 +368,7 @@ export default function NewRecipePage() {
           <div className="lg:col-span-1">
             <div className="bg-card border rounded-xl p-6 shadow-sm sticky top-6">
               <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2 flex items-center gap-2">
-                Resumo de Custos
+                {t("cost_summary")}
                 {isCalculatingCost && <Loader2 className="w-4 h-4 animate-spin" />}
               </h3>
               
@@ -374,19 +377,19 @@ export default function NewRecipePage() {
                   <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-lg flex gap-2">
                     <Info className="w-5 h-5 flex-shrink-0" />
                     <span>
-                      O custo será calculado após adicionar no mínimo 1.5kg (1500g) de ingredientes.<br/>
-                      <strong>Peso atual:</strong> {(totalWeightKg * 1000).toFixed(0)}g
+                      {t("weight_warning")}<br/>
+                      <strong>{t("current_weight")}</strong> {(totalWeightKg * 1000).toFixed(0)}g
                     </span>
                   </div>
                 ) : (
                   <>
                     <div className="bg-muted/50 p-4 rounded-lg flex justify-between items-center">
-                      <span className="text-sm font-medium">Custo Estimado</span>
+                      <span className="text-sm font-medium">{t("estimated_cost")}</span>
                       <span className="text-2xl font-bold text-primary">R$ {estimatedCost.toFixed(2)}</span>
                     </div>
 
                     <div className="text-sm space-y-2">
-                      <p className="font-medium text-foreground">Composição do Custo:</p>
+                      <p className="font-medium text-foreground">{t("cost_breakdown")}</p>
                       <ul className="space-y-1.5 text-muted-foreground text-xs">
                         {costBreakdown?.filter(item => item.is_supplement).map((item, idx) => (
                           <li key={idx} className="flex justify-between border-b border-border/50 pb-1">
@@ -397,7 +400,7 @@ export default function NewRecipePage() {
                         {(!costBreakdown || costBreakdown.length === 0) && (
                           <li className="text-center italic py-2 flex items-center justify-center gap-2">
                             <Info className="w-3 h-3" />
-                            Adicione ingredientes para simular o custo.
+                            {t("add_ingredients_simulate")}
                           </li>
                         )}
                       </ul>
@@ -410,9 +413,9 @@ export default function NewRecipePage() {
                   disabled={createRecipe.isPending || isCalculatingCost || (user?.role === "customer" && totalWeightKg < 1.5)}
                   className="w-full mt-6 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 disabled:opacity-50"
                 >
-                  {createRecipe.isPending ? "Salvando..." : (
+                  {createRecipe.isPending ? t("saving") : (
                     <span className="flex items-center gap-2">
-                      <Save className="w-4 h-4" /> Salvar Receita Final
+                      <Save className="w-4 h-4" /> {t("save_final")}
                     </span>
                   )}
                 </button>
