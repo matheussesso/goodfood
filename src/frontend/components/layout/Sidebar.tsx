@@ -38,7 +38,9 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     const links = [];
     
     // Common links
-    links.push({ href: "/dashboard", label: t("dashboard"), icon: LayoutDashboard });
+    if (role !== "admin") {
+      links.push({ href: "/dashboard", label: t("dashboard"), icon: LayoutDashboard });
+    }
 
     if (role === "admin") {
       links.push({ href: "/admin", label: t("dashboard_admin"), icon: LayoutDashboard });
@@ -48,7 +50,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       links.push({ href: "/admin/subscriptions", label: t("subscriptions"), icon: CalendarCheck });
     }
 
-    if (role === "customer" || role === "admin") {
+    if (role === "customer") {
       links.push({ href: "/pets", label: t("pets"), icon: Dog });
       links.push({ href: "/recipes", label: t("recipes"), icon: UtensilsCrossed });
     }
