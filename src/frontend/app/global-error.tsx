@@ -1,12 +1,10 @@
 "use client";
 
-import Error from "next/error";
-
 export default function GlobalError({ error }: { error: Error }) {
   return (
     <html>
       <body>
-        <Error statusCode={500} title="Error" />
+        <h2>Something went wrong!</h2>
       </body>
     </html>
   );
