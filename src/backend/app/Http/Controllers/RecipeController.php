@@ -15,7 +15,7 @@ class RecipeController extends Controller
     {
         $user = $request->user();
 
-        $query = Recipe::with('ingredients');
+        $query = Recipe::with(['ingredients', 'pets']);
 
         if ($user->role === 'admin') {
             // Admin sees all recipes
@@ -51,6 +51,8 @@ class RecipeController extends Controller
             'frequency' => 'nullable|string',
             'is_active' => 'boolean',
             'pet_id' => 'nullable|exists:pets,id',
+            'pet_ids' => 'nullable|array',
+            'pet_ids.*' => 'exists:pets,id',
             'ingredients' => 'nullable|array',
             'ingredients.*.id' => 'required|exists:ingredients,id',
             'ingredients.*.quantity' => 'required|numeric|min:0',
@@ -78,12 +80,16 @@ class RecipeController extends Controller
             $recipe->ingredients()->sync($syncData);
         }
 
+        if (isset($validated['pet_ids'])) {
+            $recipe->pets()->sync($validated['pet_ids']);
+        }
+
         $recipe->updateBaseCost();
 
         return response()->json([
             'success' => true,
             'message' => 'Recipe created successfully',
-            'data' => $recipe->load('ingredients'),
+            'data' => $recipe->load(['ingredients', 'pets']),
         ], 201);
     }
 
@@ -100,7 +106,7 @@ class RecipeController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $recipe->load('ingredients'),
+            'data' => $recipe->load(['ingredients', 'pets']),
         ]);
     }
 
@@ -130,6 +136,8 @@ class RecipeController extends Controller
             'frequency' => 'nullable|string',
             'is_active' => 'boolean',
             'pet_id' => 'nullable|exists:pets,id',
+            'pet_ids' => 'nullable|array',
+            'pet_ids.*' => 'exists:pets,id',
             'ingredients' => 'nullable|array',
             'ingredients.*.id' => 'required|exists:ingredients,id',
             'ingredients.*.quantity' => 'required|numeric|min:0',
@@ -154,12 +162,16 @@ class RecipeController extends Controller
             $recipe->ingredients()->sync($syncData);
         }
 
+        if (isset($validated['pet_ids'])) {
+            $recipe->pets()->sync($validated['pet_ids']);
+        }
+
         $recipe->updateBaseCost();
 
         return response()->json([
             'success' => true,
             'message' => 'Recipe updated successfully',
-            'data' => $recipe->load('ingredients'),
+            'data' => $recipe->load(['ingredients', 'pets']),
         ]);
     }
 

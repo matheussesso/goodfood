@@ -23,6 +23,7 @@ export interface Recipe {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  pets?: { id: number; name: string; photo_url?: string }[];
   ingredients: (Ingredient & { pivot: { quantity: string; unit: string } })[];
 }
 
@@ -39,7 +40,7 @@ export function useRecipes(petId?: string) {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: Omit<Partial<Recipe>, 'ingredients'> & { ingredients?: RecipeIngredient[] }) => {
+    mutationFn: async (data: Omit<Partial<Recipe>, 'ingredients'|'pets'> & { ingredients?: RecipeIngredient[], pet_ids?: number[] }) => {
       const response = await apiClient.post("/recipes", data);
       return response.data;
     },
@@ -49,7 +50,7 @@ export function useRecipes(petId?: string) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...data }: Omit<Partial<Recipe>, 'ingredients'> & { id: number; ingredients?: RecipeIngredient[] }) => {
+    mutationFn: async ({ id, ...data }: Omit<Partial<Recipe>, 'ingredients'|'pets'> & { id: number; ingredients?: RecipeIngredient[], pet_ids?: number[] }) => {
       const response = await apiClient.put(`/recipes/${id}`, data);
       return response.data;
     },

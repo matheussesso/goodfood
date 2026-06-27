@@ -12,22 +12,25 @@ class GeneralSettingSeeder extends Seeder
      */
     public function run(): void
     {
-        \App\Models\GeneralSetting::create([
-            'ingredient_cost_days_division' => 30,
-            'production_fixed_value' => 15.00,
-            'production_days_division' => 30,
-            'production_weight_multiplier' => 2.000,
-            'logistics_fixed_multiplier' => 1.100,
-            'reserve_margin_fixed_value' => 5.00,
-            'reserve_margin_transfer_multiplier' => 1.050,
-            'gfp_mkt_fixed_value' => 0.00,
-            'gfp_mkt_fixed_multiplier' => 1.080,
-            'fiscal_fixed_multiplier' => 1.060,
-            'charge_fixed_value' => 0.00,
-            'charge_fixed_multiplier' => 1.200,
-            'schedule_fixed_value' => 0.00,
-            'schedule_fixed_multiplier' => 1.050,
-            'difficulty_fixed_value' => 0.00,
-        ]);
+        \App\Models\GeneralSetting::updateOrCreate(
+            ['id' => 1],
+            [
+                'ingredient_cost_days_division' => 2,
+                'production_fixed_value' => 45.00,
+                'production_days_division' => 2.5,
+                'production_weight_multiplier' => 9.000,
+                'logistics_fixed_multiplier' => 0.450,
+                'reserve_margin_fixed_value' => 3.00,
+                'reserve_margin_transfer_multiplier' => 0.030,
+                'gfp_mkt_fixed_value' => 5.00,
+                'gfp_mkt_fixed_multiplier' => 0.500,
+                'charge_fixed_value' => 10.00,
+                'charge_fixed_multiplier' => 1.100,
+                'fiscal_fixed_multiplier' => 0.075,
+                'schedule_fixed_value' => 2.00,
+                'schedule_fixed_multiplier' => 0.015,
+                'difficulty_fixed_value' => 0.00,
+            ]
+        );
     }
 }

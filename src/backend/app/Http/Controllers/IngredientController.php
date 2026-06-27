@@ -12,11 +12,13 @@ class IngredientController extends Controller
      */
     public function index(Request $request)
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $user = $request->user();
 
-        $ingredients = Ingredient::all();
+        if ($user->isAdmin()) {
+            $ingredients = Ingredient::all();
+        } else {
+            $ingredients = Ingredient::where('is_active', true)->get();
+        }
 
         return response()->json([
             'success' => true,

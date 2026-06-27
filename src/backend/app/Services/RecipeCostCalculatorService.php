@@ -37,7 +37,8 @@ class RecipeCostCalculatorService
             try {
                 $ingredient = Ingredient::findOrFail($item['ingredient_id']);
                 $quantity = floatval($item['quantity'] ?? 0);
-                $costPerDay = ($ingredient->cost_per_unit ?? 0) * $quantity * ($ingredient->loss_rate ?? 1.0);
+                $quantityInKg = $this->convertToKg($quantity, $ingredient->unit);
+                $costPerDay = ($ingredient->cost_per_unit ?? 0) * $quantityInKg * ($ingredient->loss_rate ?? 1.0);
                 $totalCost = $costPerDay * $durationDays;
 
                 $costBreakdown[] = [

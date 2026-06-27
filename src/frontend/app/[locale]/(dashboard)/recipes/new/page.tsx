@@ -9,8 +9,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { Ingredient } from "@/hooks/useIngredients";
 import { calculateRecipeCost, Recipe } from "@/hooks/useRecipes";
-import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info } from "lucide-react";
+import { usePets } from "@/hooks/usePets";
+import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Button } from "@/components/ui/button";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 interface RecipeFormData {
   name: string;
@@ -20,7 +26,7 @@ interface RecipeFormData {
   daily_portions: number;
   instructions: string;
   is_template: boolean;
-  pet_id?: number | null;
+  pet_ids: number[];
   ingredients: {
     id: number;
     quantity: number;
@@ -37,6 +43,7 @@ export default function NewRecipePage() {
   const searchParams = useSearchParams();
   const petId = searchParams.get("pet_id");
   const queryClient = useQueryClient();
+  const { pets, isLoading: loadingPets } = usePets();
 
   const [step, setStep] = useState<"choose_method" | "builder">("choose_method");
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
@@ -68,7 +75,7 @@ export default function NewRecipePage() {
       duration_days: 15,
       daily_portions: 2,
       is_template: false,
-      pet_id: petId ? parseInt(petId) : null,
+      pet_ids: petId ? [parseInt(petId)] : [],
       ingredients: [{ id: 0, quantity: 0, unit: "kg" }]
     }
   });
@@ -171,7 +178,7 @@ export default function NewRecipePage() {
   const handleStartScratch = () => {
     reset({
       name: "", description: "", pet_type: "dog", duration_days: 15, daily_portions: 2,
-      is_template: false, pet_id: petId ? parseInt(petId) : null,
+      is_template: false, pet_ids: petId ? [parseInt(petId)] : [],
       ingredients: [{ id: 0, quantity: 0, unit: "kg" }]
     });
     setStep("builder");
@@ -268,6 +275,33 @@ export default function NewRecipePage() {
                     className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
+                
+                {pets && pets.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium mb-3">Vincular a pets (opcional)</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {pets.map(pet => (
+                        <div key={pet.id} className="flex items-center space-x-2 border p-3 rounded-lg bg-background">
+                          <Checkbox
+                            id={`pet-${pet.id}`}
+                            checked={watchedValues.pet_ids?.includes(pet.id)}
+                            onCheckedChange={(checked) => {
+                              const current = watchedValues.pet_ids || [];
+                              if (checked) {
+                                setValue("pet_ids", [...current, pet.id]);
+                              } else {
+                                setValue("pet_ids", current.filter(id => id !== pet.id));
+                              }
+                            }}
+                          />
+                          <label htmlFor={`pet-${pet.id}`} className="text-sm font-medium cursor-pointer flex-1 line-clamp-1 text-ellipsis">
+                            {pet.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
@@ -315,35 +349,74 @@ export default function NewRecipePage() {
               <div className="space-y-3">
                 {fields.map((field, index) => (
                   <div key={field.id} className="flex gap-2 items-start">
-                    <div className="flex-1">
-                      <select
-                        {...register(`ingredients.${index}.id` as const, { valueAsNumber: true })}
-                        className="w-full px-2 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
-                      >
-                        <option value={0}>{tCommon("select")}</option>
-                        {ingredients?.map(ing => (
-                          <option key={ing.id} value={ing.id}>{ing.name}</option>
-                        ))}
-                      </select>
+                    <div className="flex-1 flex flex-col">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between px-3 font-normal"
+                          >
+                            <span className="truncate">
+                              {watchedValues.ingredients[index]?.id
+                                ? ingredients?.find((ing) => ing.id === watchedValues.ingredients[index].id)?.name
+                                : tCommon("select")}
+                            </span>
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar ingrediente..." />
+                            <CommandList>
+                              <CommandEmpty>Nenhum ingrediente encontrado.</CommandEmpty>
+                              <CommandGroup>
+                                {ingredients?.map((ing) => (
+                                  <CommandItem
+                                    key={ing.id}
+                                    value={ing.name}
+                                    onSelect={() => {
+                                      setValue(`ingredients.${index}.id`, ing.id);
+                                      setValue(`ingredients.${index}.unit`, ing.unit); // Auto select unit
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        watchedValues.ingredients[index]?.id === ing.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {ing.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                     <div className="w-24">
                       <input
                         type="number"
                         step="0.001"
-                        placeholder="Qtd"
+                        placeholder="Qtd/dia"
+                        title="Quantidade diária deste ingrediente"
                         {...register(`ingredients.${index}.quantity` as const, { valueAsNumber: true })}
                         className="w-full px-2 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
                       />
                     </div>
                     <div className="w-20">
                       <select
+                        disabled
+                        title="A unidade é definida pela configuração do ingrediente"
                         {...register(`ingredients.${index}.unit` as const)}
-                        className="w-full px-2 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+                        className="w-full px-2 py-2 bg-background border rounded-md text-sm disabled:opacity-50 disabled:bg-muted"
                       >
                         <option value="kg">kg</option>
                         <option value="g">g</option>
                         <option value="unit">un</option>
                         <option value="l">l</option>
+                        <option value="ml">ml</option>
                       </select>
                     </div>
                     <button
