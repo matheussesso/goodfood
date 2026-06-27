@@ -471,7 +471,6 @@ export default function CatalogPage() {
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-            <div className="space-y-2">
               <Label>Unidade de Compra</Label>
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={ingForm.unit} onChange={e => setIngForm({...ingForm, unit: e.target.value})}>
                 <option value="kg">Quilograma (kg)</option>
