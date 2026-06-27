@@ -427,7 +427,7 @@ export default function CatalogPage() {
                 <option value="unit">{t("un")}</option>
               </select>
             </div>
-            <div className="space-y-2"><Label>{t("cost_per_unit")}</Label><Input type="number" step="0.01" required value={ingForm.cost_per_unit} onChange={e => setIngForm({...ingForm, cost_per_unit: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Preço / {ingForm.unit}</Label><Input type="number" step="0.01" required value={ingForm.cost_per_unit} onChange={e => setIngForm({...ingForm, cost_per_unit: e.target.value})} /></div>
           </div>
           
           <div className="grid grid-cols-2 gap-4">

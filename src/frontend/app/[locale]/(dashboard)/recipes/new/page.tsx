@@ -79,7 +79,7 @@ export default function NewRecipePage() {
       daily_portions: 2,
       is_template: false,
       pet_ids: petId ? [parseInt(petId)] : [],
-      ingredients: [{ id: 0, quantity: 0, unit: "kg" }]
+      ingredients: []
     }
   });
 
@@ -184,7 +184,7 @@ export default function NewRecipePage() {
     reset({
       name: "", description: "", pet_type: "dog", duration_days: 15, daily_portions: 2,
       is_template: false, pet_ids: petId ? [parseInt(petId)] : [],
-      ingredients: [{ id: 0, quantity: 0, unit: "kg" }]
+      ingredients: []
     });
     setStep("builder");
   };
@@ -350,7 +350,7 @@ export default function NewRecipePage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[300px] overflow-y-auto pr-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
                   {ingredients?.filter(ing => {
                     const matchSearch = ing.name.toLowerCase().includes(searchIngredient.toLowerCase());
                     const matchCategory = categoryFilter === "Todos" || ing.category === categoryFilter;
@@ -369,15 +369,20 @@ export default function NewRecipePage() {
                           }
                         }}
                         className={cn(
-                          "border p-3 rounded-xl cursor-pointer transition-all flex flex-col gap-1",
-                          isSelected ? "border-primary bg-primary/5" : "hover:border-primary/50 hover:bg-muted/50"
+                          "border p-2 rounded-lg cursor-pointer transition-all flex flex-col justify-between min-h-[68px]",
+                          isSelected ? "border-primary bg-primary/5 shadow-sm" : "hover:border-primary/50 hover:bg-muted/50"
                         )}
                       >
-                        <div className="flex justify-between items-start">
-                          <span className="font-medium text-sm leading-tight">{ing.name}</span>
-                          {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
+                        <div className="flex justify-between items-start gap-1">
+                          <span className="font-semibold text-xs leading-tight line-clamp-2">{ing.name}</span>
+                          {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />}
                         </div>
-                        <span className="text-xs text-muted-foreground">{ing.unit}</span>
+                        <div className="flex justify-between items-end mt-1.5">
+                          <span className="text-[9px] uppercase tracking-wider text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-sm truncate max-w-[90px]">
+                            {ing.category || "Geral"}
+                          </span>
+                          <span className="text-[10px] font-medium text-muted-foreground bg-background/50 px-1 rounded">{ing.unit}</span>
+                        </div>
                       </div>
                     );
                   })}

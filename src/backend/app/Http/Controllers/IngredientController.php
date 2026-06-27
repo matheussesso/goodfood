@@ -47,6 +47,8 @@ class IngredientController extends Controller
             'is_active' => 'boolean',
         ]);
 
+        $validated['unit_cost'] = $validated['cost_per_unit'];
+
         $ingredient = Ingredient::create($validated);
 
         return response()->json([
@@ -91,6 +93,8 @@ class IngredientController extends Controller
             'difficulty_multiplier' => 'nullable|numeric|min:0',
             'is_active' => 'boolean',
         ]);
+
+        $validated['unit_cost'] = $validated['cost_per_unit'];
 
         $ingredient->update($validated);
 
