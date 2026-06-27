@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/settings', [GeneralSettingController::class, 'update']);
     });
     
+    Route::post('pets/upload-photo', [PetController::class, 'uploadPhoto']);
     Route::apiResource('pets', PetController::class);
     Route::apiResource('ingredients', IngredientController::class);
     Route::apiResource('recipes', RecipeController::class);

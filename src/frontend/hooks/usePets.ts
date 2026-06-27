@@ -1,5 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { Recipe } from "./useRecipes";
+import { Order } from "./useOrders";
+import { Subscription } from "./useSubscriptions";
 
 export interface Pet {
   id: number;
@@ -17,8 +20,12 @@ export interface Pet {
   restrictions?: string;
   allergies?: string;
   special_needs?: string;
+  photo_url?: string;
   created_at: string;
   updated_at: string;
+  recipes?: Recipe[];
+  orders?: Order[];
+  subscriptions?: Subscription[];
 }
 
 export function usePets() {
@@ -72,5 +79,22 @@ export function usePets() {
     isUpdating: updatePetMutation.isPending,
     deletePet: deletePetMutation.mutateAsync,
     isDeleting: deletePetMutation.isPending,
+  };
+}
+
+export function usePet(id: string) {
+  const { data: pet, isLoading, error } = useQuery({
+    queryKey: ["pet", id],
+    queryFn: async () => {
+      const response = await apiClient.get<{ success: boolean; data: Pet }>(`/pets/${id}`);
+      return response.data.data;
+    },
+    enabled: !!id,
+  });
+
+  return {
+    pet,
+    isLoading,
+    error,
   };
 }

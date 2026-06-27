@@ -42,6 +42,7 @@ class PetController extends Controller
             'restrictions' => 'nullable|string',
             'allergies' => 'nullable|string',
             'special_needs' => 'nullable|string',
+            'photo_url' => 'nullable|string',
             'user_id' => 'nullable|exists:users,id',
         ]);
 
@@ -71,7 +72,7 @@ class PetController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Pet fetched successfully',
-            'data' => $pet,
+            'data' => $pet->load(['recipes', 'orders', 'subscriptions']),
         ]);
     }
 
@@ -94,6 +95,7 @@ class PetController extends Controller
             'restrictions' => 'nullable|string',
             'allergies' => 'nullable|string',
             'special_needs' => 'nullable|string',
+            'photo_url' => 'nullable|string',
             'user_id' => 'nullable|exists:users,id',
         ]);
 
@@ -125,6 +127,23 @@ class PetController extends Controller
             'success' => true,
             'message' => 'Pet deleted successfully',
             'data' => null,
+        ]);
+    }
+
+    /**
+     * Upload a photo for a pet and return its URL.
+     */
+    public function uploadPhoto(Request $request)
+    {
+        $request->validate([
+            'photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
+        ]);
+
+        $path = $request->file('photo')->store('pets', 'public');
+
+        return response()->json([
+            'success' => true,
+            'photo_url' => url('storage/' . $path),
         ]);
     }
 }

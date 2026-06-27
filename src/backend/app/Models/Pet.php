@@ -41,6 +41,7 @@ class Pet extends Model
         'restrictions',
         'allergies',
         'special_needs',
+        'photo_url',
     ];
 
     /**
@@ -72,5 +73,10 @@ class Pet extends Model
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function recipes()
+    {
+        return $this->hasMany(Recipe::class);
     }
 }
