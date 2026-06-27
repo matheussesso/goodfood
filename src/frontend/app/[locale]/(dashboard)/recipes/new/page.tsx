@@ -47,8 +47,11 @@ export default function NewRecipePage() {
 
   const [step, setStep] = useState<"choose_method" | "builder">("choose_method");
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
+  const [costPerKg, setCostPerKg] = useState<number>(0);
   const [isCalculatingCost, setIsCalculatingCost] = useState(false);
   const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
+  const [searchIngredient, setSearchIngredient] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("Todos");
 
   // Fetch data
   const { data: ingredients, isLoading: loadingIngredients } = useQuery({
@@ -119,6 +122,7 @@ export default function NewRecipePage() {
             daily_portions: Number(watchedValues.daily_portions) || 2
           });
           setEstimatedCost(result.estimatedCost);
+          setCostPerKg(result.costPerKg || 0);
           setCostBreakdown(result.costBreakdown || []);
         } catch (e) {
           console.error(e);
@@ -127,6 +131,7 @@ export default function NewRecipePage() {
         }
       } else {
         setEstimatedCost(0);
+        setCostPerKg(0);
         setCostBreakdown([]);
       }
     };
@@ -253,7 +258,34 @@ export default function NewRecipePage() {
 
       {step === "builder" && (
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6">
+            {pets && pets.length > 0 && (
+              <div className="bg-card border rounded-xl p-6 shadow-sm">
+                <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2">Vincular a pets (opcional)</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {pets.map(pet => (
+                    <div key={pet.id} className="flex items-center space-x-2 border p-3 rounded-lg bg-background">
+                      <Checkbox
+                        id={`pet-${pet.id}`}
+                        checked={watchedValues.pet_ids?.includes(pet.id)}
+                        onCheckedChange={(checked) => {
+                          const current = watchedValues.pet_ids || [];
+                          if (checked) {
+                            setValue("pet_ids", [...current, pet.id]);
+                          } else {
+                            setValue("pet_ids", current.filter(id => id !== pet.id));
+                          }
+                        }}
+                      />
+                      <label htmlFor={`pet-${pet.id}`} className="text-sm font-medium cursor-pointer flex-1 line-clamp-1 text-ellipsis">
+                        {pet.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="bg-card border rounded-xl p-6 shadow-sm">
               <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2">{t("basic_details")}</h3>
               
@@ -276,34 +308,7 @@ export default function NewRecipePage() {
                   />
                 </div>
                 
-                {pets && pets.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium mb-3">Vincular a pets (opcional)</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {pets.map(pet => (
-                        <div key={pet.id} className="flex items-center space-x-2 border p-3 rounded-lg bg-background">
-                          <Checkbox
-                            id={`pet-${pet.id}`}
-                            checked={watchedValues.pet_ids?.includes(pet.id)}
-                            onCheckedChange={(checked) => {
-                              const current = watchedValues.pet_ids || [];
-                              if (checked) {
-                                setValue("pet_ids", [...current, pet.id]);
-                              } else {
-                                setValue("pet_ids", current.filter(id => id !== pet.id));
-                              }
-                            }}
-                          />
-                          <label htmlFor={`pet-${pet.id}`} className="text-sm font-medium cursor-pointer flex-1 line-clamp-1 text-ellipsis">
-                            {pet.name}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1">{t("pet_type")}</label>
                     <select
@@ -314,126 +319,153 @@ export default function NewRecipePage() {
                       <option value="cat">{tCat("cat")}</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">{t("duration_days")}</label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-card border rounded-xl p-6 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <input
-                      type="number"
-                      {...register("duration_days", { valueAsNumber: true })}
-                      className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+                      type="text"
+                      placeholder="Buscar ingrediente..."
+                      value={searchIngredient}
+                      onChange={(e) => setSearchIngredient(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">{t("daily_portions")}</label>
-                    <input
-                      type="number"
-                      {...register("daily_portions", { valueAsNumber: true })}
+                  <div className="w-full md:w-48">
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
                       className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
-                    />
+                    >
+                      <option value="Todos">Todos</option>
+                      {Array.from(new Set(ingredients?.map(i => i.category).filter(Boolean))).map(cat => (
+                        <option key={cat as string} value={cat as string}>{cat}</option>
+                      ))}
+                    </select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[300px] overflow-y-auto pr-2">
+                  {ingredients?.filter(ing => {
+                    const matchSearch = ing.name.toLowerCase().includes(searchIngredient.toLowerCase());
+                    const matchCategory = categoryFilter === "Todos" || ing.category === categoryFilter;
+                    return matchSearch && matchCategory;
+                  }).map(ing => {
+                    const isSelected = watchedValues.ingredients.some(f => f.id === ing.id);
+                    return (
+                      <div
+                        key={ing.id}
+                        onClick={() => {
+                          const index = watchedValues.ingredients.findIndex(f => f.id === ing.id);
+                          if (index >= 0) {
+                            remove(index);
+                          } else {
+                            append({ id: ing.id, quantity: 0, unit: ing.unit });
+                          }
+                        }}
+                        className={cn(
+                          "border p-3 rounded-xl cursor-pointer transition-all flex flex-col gap-1",
+                          isSelected ? "border-primary bg-primary/5" : "hover:border-primary/50 hover:bg-muted/50"
+                        )}
+                      >
+                        <div className="flex justify-between items-start">
+                          <span className="font-medium text-sm leading-tight">{ing.name}</span>
+                          {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
+                        </div>
+                        <span className="text-xs text-muted-foreground">{ing.unit}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-card border rounded-xl p-6 shadow-sm">
+                <h3 className="text-lg font-semibold mb-4 text-primary flex items-center gap-2 border-b pb-2">
+                  <UtensilsCrossed className="w-5 h-5" />
+                  {t("ingredients")}
+                </h3>
+                
+                <div className="bg-primary/10 border border-primary/20 text-primary text-sm p-3 rounded-lg flex gap-2 mb-4">
+                  <Info className="w-5 h-5 shrink-0" />
+                  <span><strong>Importante:</strong> As quantidades dos ingredientes são por dia (quantidade diária).</span>
+                </div>
+
+                <div className="space-y-3">
+                  {fields.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-8 border rounded-md border-dashed">
+                      Nenhum ingrediente selecionado. Clique nos itens acima para adicionar.
+                    </p>
+                  )}
+                  {fields.map((field, index) => {
+                    const ingId = watchedValues.ingredients[index]?.id;
+                    const ingName = ingredients?.find(i => i.id === ingId)?.name || "";
+                    return (
+                      <div key={field.id} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-3 border rounded-lg bg-background">
+                        <div className="flex-1 flex items-center gap-2 w-full">
+                          <Check className="w-4 h-4 text-primary shrink-0" />
+                          <span className="font-medium text-sm truncate">{ingName}</span>
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <div className="flex-1 sm:w-32">
+                            <label className="text-xs text-muted-foreground mb-1 block sm:hidden">Quantidade</label>
+                            <input
+                              type="number"
+                              step="0.001"
+                              placeholder="Qtd/dia"
+                              {...register(`ingredients.${index}.quantity` as const, { valueAsNumber: true })}
+                              className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+                            />
+                          </div>
+                          <div className="w-20 shrink-0">
+                            <label className="text-xs text-muted-foreground mb-1 block sm:hidden">Unidade</label>
+                            <input
+                              type="text"
+                              readOnly
+                              {...register(`ingredients.${index}.unit` as const)}
+                              className="w-full px-3 py-2 bg-muted border rounded-md text-sm text-center text-muted-foreground cursor-not-allowed"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => remove(index)}
+                            className="p-2 sm:mt-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors h-[38px] flex items-center justify-center self-end sm:self-auto"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
 
             <div className="bg-card border rounded-xl p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2 flex justify-between items-center">
-                {t("ingredients")}
-                <button
-                  type="button"
-                  onClick={() => append({ id: 0, quantity: 0, unit: "kg" })}
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-secondary text-secondary-foreground text-xs font-medium rounded hover:bg-secondary/80 transition-colors"
-                >
-                  <Plus className="w-3 h-3" /> {t("add_ingredient")}
-                </button>
-              </h3>
-              
-              <div className="space-y-3">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="flex gap-2 items-start">
-                    <div className="flex-1 flex flex-col">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className="w-full justify-between px-3 font-normal"
-                          >
-                            <span className="truncate">
-                              {watchedValues.ingredients[index]?.id
-                                ? ingredients?.find((ing) => ing.id === watchedValues.ingredients[index].id)?.name
-                                : tCommon("select")}
-                            </span>
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder="Buscar ingrediente..." />
-                            <CommandList>
-                              <CommandEmpty>Nenhum ingrediente encontrado.</CommandEmpty>
-                              <CommandGroup>
-                                {ingredients?.map((ing) => (
-                                  <CommandItem
-                                    key={ing.id}
-                                    value={ing.name}
-                                    onSelect={() => {
-                                      setValue(`ingredients.${index}.id`, ing.id);
-                                      setValue(`ingredients.${index}.unit`, ing.unit); // Auto select unit
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        watchedValues.ingredients[index]?.id === ing.id ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    {ing.name}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div className="w-24">
-                      <input
-                        type="number"
-                        step="0.001"
-                        placeholder="Qtd/dia"
-                        title="Quantidade diária deste ingrediente"
-                        {...register(`ingredients.${index}.quantity` as const, { valueAsNumber: true })}
-                        className="w-full px-2 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
-                      />
-                    </div>
-                    <div className="w-20">
-                      <select
-                        disabled
-                        title="A unidade é definida pela configuração do ingrediente"
-                        {...register(`ingredients.${index}.unit` as const)}
-                        className="w-full px-2 py-2 bg-background border rounded-md text-sm disabled:opacity-50 disabled:bg-muted"
-                      >
-                        <option value="kg">kg</option>
-                        <option value="g">g</option>
-                        <option value="unit">un</option>
-                        <option value="l">l</option>
-                        <option value="ml">ml</option>
-                      </select>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => remove(index)}
-                      className="p-2 mt-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                
-                {fields.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4 border rounded-md border-dashed">
-                    {t("no_ingredients")}
-                  </p>
-                )}
+              <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2">Planejamento e Porções</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">{t("duration_days")}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    {...register("duration_days", { valueAsNumber: true })}
+                    className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">{t("daily_portions")}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    {...register("daily_portions", { valueAsNumber: true })}
+                    className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -456,9 +488,15 @@ export default function NewRecipePage() {
                   </div>
                 ) : (
                   <>
-                    <div className="bg-muted/50 p-4 rounded-lg flex justify-between items-center">
-                      <span className="text-sm font-medium">{t("estimated_cost")}</span>
-                      <span className="text-2xl font-bold text-primary">R$ {estimatedCost.toFixed(2)}</span>
+                    <div className="bg-muted/50 p-4 rounded-lg flex flex-col gap-2 mb-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">{t("estimated_cost")}</span>
+                        <span className="text-2xl font-bold text-primary">R$ {estimatedCost.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs text-muted-foreground">
+                        <span>Baseado em {watchedValues.duration_days} dia(s)</span>
+                        <span>R$ {costPerKg.toFixed(2)}/kg ({(totalWeightKg).toFixed(3)} kg)</span>
+                      </div>
                     </div>
 
                     <div className="text-sm space-y-2">
