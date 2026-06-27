@@ -126,6 +126,8 @@ export default function CatalogPage() {
   });
   const [recipeIngredients, setRecipeIngredients] = useState<{id: number, quantity: string, unit: string}[]>([]);
   const [ingredientSearch, setIngredientSearch] = useState("");
+  const [adminIngSearch, setAdminIngSearch] = useState("");
+  const [adminIngCategory, setAdminIngCategory] = useState("all");
 
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
   const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
@@ -328,23 +330,73 @@ export default function CatalogPage() {
           </CardHeader>
           <CardContent>
             {isLoadingIng ? <div className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> : (
-              <div className="divide-y border rounded-md">
-                {ingredients?.map(ing => (
-                  <div key={ing.id} className="p-4 flex items-center justify-between hover:bg-muted/30">
-                    <div>
-                      <h4 className="font-medium">{ing.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {t("cost")}: R$ {ing.cost_per_unit} / {ing.unit} | 
-                        {t("loss")}: {ing.loss_rate}% | 
-                        {t("difficulty")}: x{ing.difficulty_multiplier}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenIngModal(ing)}><Edit2 className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteIng(ing.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                    </div>
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Buscar ingrediente..." 
+                      className="pl-9"
+                      value={adminIngSearch}
+                      onChange={e => setAdminIngSearch(e.target.value)}
+                    />
                   </div>
-                ))}
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <select 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      value={adminIngCategory}
+                      onChange={e => setAdminIngCategory(e.target.value)}
+                    >
+                      <option value="all">Todas as Categorias</option>
+                      <option value="Proteína">Proteína</option>
+                      <option value="Carboidrato">Carboidrato</option>
+                      <option value="Vegetal">Vegetal</option>
+                      <option value="Gordura">Gordura</option>
+                      <option value="Suplemento">Suplemento</option>
+                      <option value="Outro">Outro</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {ingredients?.filter(ing => {
+                    if (adminIngCategory !== "all" && ing.category !== adminIngCategory) return false;
+                    if (adminIngSearch && !ing.name.toLowerCase().includes(adminIngSearch.toLowerCase())) return false;
+                    return true;
+                  }).map(ing => (
+                    <Card key={ing.id} className="relative group hover:shadow-md transition-all border-l-4" style={{borderLeftColor: ing.category === 'Proteína' ? '#ef4444' : ing.category === 'Vegetal' ? '#22c55e' : ing.category === 'Carboidrato' ? '#eab308' : ing.category === 'Gordura' ? '#f97316' : '#64748b'}}>
+                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="secondary" size="icon" className="h-7 w-7 shadow-sm" onClick={() => handleOpenIngModal(ing)}><Edit2 className="h-3.5 w-3.5" /></Button>
+                        <Button variant="destructive" size="icon" className="h-7 w-7 shadow-sm" onClick={() => handleDeleteIng(ing.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </div>
+                      <CardContent className="p-4">
+                        <div className="mb-2">
+                          <h4 className="font-semibold text-base line-clamp-1 pr-14" title={ing.name}>{ing.name}</h4>
+                          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{ing.category || 'Sem Categoria'}</span>
+                        </div>
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex justify-between items-center bg-muted/30 p-1.5 rounded">
+                            <span className="text-muted-foreground">Preço / kg:</span>
+                            <span className="font-medium text-primary">R$ {ing.cost_per_unit}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Compra:</span>
+                            <span className="font-medium">{ing.unit === 'g' ? 'Grama (g)' : ing.unit === 'kg' ? 'Quilograma (kg)' : ing.unit === 'l' ? 'Litro (L)' : ing.unit}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Tx. Perda:</span>
+                            <span className="font-medium">{ing.loss_rate}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Dificuldade:</span>
+                            <span className="font-medium">x{ing.difficulty_multiplier}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
                 {ingredients?.length === 0 && <div className="p-8 text-center text-muted-foreground">{t("no_ingredients")}</div>}
               </div>
             )}
@@ -419,20 +471,31 @@ export default function CatalogPage() {
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>{t("unit")}</Label>
+            <div className="space-y-2">
+              <Label>Unidade de Compra</Label>
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={ingForm.unit} onChange={e => setIngForm({...ingForm, unit: e.target.value})}>
-                <option value="kg">{t("kg")}</option>
-                <option value="g">{t("g")}</option>
-                <option value="l">{t("l")}</option>
-                <option value="unit">{t("un")}</option>
+                <option value="kg">Quilograma (kg)</option>
+                <option value="g">Grama (g)</option>
+                <option value="l">Litro (L)</option>
+                <option value="ml">Mililitro (ml)</option>
+                <option value="unit">Unidade (un)</option>
               </select>
             </div>
-            <div className="space-y-2"><Label>Preço / {ingForm.unit}</Label><Input type="number" step="0.01" required value={ingForm.cost_per_unit} onChange={e => setIngForm({...ingForm, cost_per_unit: e.target.value})} /></div>
+            <div className="space-y-2">
+              <Label>Preço Base (por kg, L ou Unidade)</Label>
+              <Input type="number" step="0.01" required value={ingForm.cost_per_unit} onChange={e => setIngForm({...ingForm, cost_per_unit: e.target.value})} />
+            </div>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>{t("loss_rate")}</Label><Input type="number" step="0.1" value={ingForm.loss_rate} onChange={e => setIngForm({...ingForm, loss_rate: e.target.value})} /></div>
-            <div className="space-y-2"><Label>{t("difficulty_multiplier")}</Label><Input type="number" step="0.1" value={ingForm.difficulty_multiplier} onChange={e => setIngForm({...ingForm, difficulty_multiplier: e.target.value})} /></div>
+            <div className="space-y-2">
+              <Label>Taxa de Perda (%)</Label>
+              <Input type="number" step="0.01" required value={ingForm.loss_rate} onChange={e => setIngForm({...ingForm, loss_rate: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label>Multiplicador de Dificuldade</Label>
+              <Input type="number" step="0.01" required value={ingForm.difficulty_multiplier} onChange={e => setIngForm({...ingForm, difficulty_multiplier: e.target.value})} />
+            </div>
           </div>
           
           <div className="pt-4 flex justify-end gap-2">
