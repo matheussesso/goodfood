@@ -311,7 +311,7 @@ export default function CustomerDetailPage() {
           const label =
             tab === "overview" ? t("general") :
             tab === "pets" ? t("pets") :
-            tab === "recipes" ? tNav("recipes") : t("orders");
+            tab === "recipes" ? t("recipes") : t("orders");
           return (
             <button
               key={tab}

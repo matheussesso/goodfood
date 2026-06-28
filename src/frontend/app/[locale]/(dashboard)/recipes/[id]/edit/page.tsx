@@ -189,7 +189,7 @@ export default function EditRecipePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 mx-auto">
       <div className="flex items-center gap-4">
         <button
           onClick={() => router.push(`/recipes/${id}`)}

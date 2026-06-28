@@ -197,7 +197,7 @@ export default function NewRecipePage() {
   if (loadingIngredients || loadingTemplates) return <div className="p-8 text-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mx-auto" /></div>;
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 mx-auto">
       <div className="flex items-center gap-4">
         <button
           onClick={() => step === "builder" ? setStep("choose_method") : router.back()}
