@@ -20,7 +20,46 @@ export default function CatalogPage() {
   const tNav = useTranslations("Navigation");
   const t = useTranslations("Catalog");
   const tCommon = useTranslations("Common");
+  const tRec = useTranslations("Recipes");
   const { user } = useAuth();
+
+  const translateCategory = (cat?: string) => {
+    if (!cat) return t("other");
+    switch (cat) {
+      case 'Proteína': return t("protein");
+      case 'Carboidrato': return t("carb");
+      case 'Vegetal': return t("vegetable");
+      case 'Gordura': return t("fat");
+      case 'Suplemento': return t("supplement");
+      case 'Outro': return t("other");
+      default: return cat;
+    }
+  };
+
+  const translateBreakdownName = (name: string) => {
+    switch (name) {
+      case 'Custo de Insumos Adicional':
+        return t("additional_ingredient_cost") || name;
+      case 'Repasse Produção (Cozinha)':
+        return `${t("production_transfer")} (${t("kitchen") || "Cozinha"})`;
+      case 'Repasse Logística':
+        return t("logistics_transfer");
+      case 'Margem Reserva':
+        return t("reserve_margin");
+      case 'Custo GFP+MKT':
+        return t("gfp_mkt");
+      case 'Fiscal/Tributário':
+        return t("fiscal_tax");
+      case 'Agenda':
+        return t("schedule");
+      case 'Cobrar':
+        return t("charge");
+      case 'Resultado (Lucro Mínimo)':
+        return `${t("result") || "Resultado"} (${t("min_profit") || "Lucro Mínimo"})`;
+      default:
+        return name;
+    }
+  };
   const [activeTab, setActiveTab] = useState<"ingredients" | "recipes" | "settings">("ingredients");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -43,58 +82,58 @@ export default function CatalogPage() {
 
   const settingsSections = [
     {
-      title: "Repasse Produção",
+      title: t("production_transfer"),
       fields: [
-        { name: "production_fixed_value", label: "Valor Fixo", type: "number", step: "0.01" },
-        { name: "production_days_division", label: "Divisão Dias", type: "number", step: "1" },
-        { name: "production_weight_multiplier", label: "Multiplicador Peso", type: "number", step: "0.001" },
+        { name: "production_fixed_value", label: t("fixed_value"), type: "number", step: "0.01" },
+        { name: "production_days_division", label: t("days_division"), type: "number", step: "1" },
+        { name: "production_weight_multiplier", label: t("weight_multiplier"), type: "number", step: "0.001" },
       ]
     },
     {
-      title: "Repasse Logística",
+      title: t("logistics_transfer"),
       fields: [
-        { name: "logistics_fixed_multiplier", label: "Multiplicador Fixo", type: "number", step: "0.001" },
+        { name: "logistics_fixed_multiplier", label: t("fixed_multiplier"), type: "number", step: "0.001" },
       ]
     },
     {
-      title: "Margem Reserva",
+      title: t("reserve_margin"),
       fields: [
-        { name: "reserve_margin_fixed_value", label: "Valor Fixo", type: "number", step: "0.01" },
-        { name: "reserve_margin_transfer_multiplier", label: "Multiplicador Repasse", type: "number", step: "0.001" },
+        { name: "reserve_margin_fixed_value", label: t("fixed_value"), type: "number", step: "0.01" },
+        { name: "reserve_margin_transfer_multiplier", label: t("transfer_multiplier"), type: "number", step: "0.001" },
       ]
     },
     {
-      title: "GFP + MKT",
+      title: t("gfp_mkt"),
       fields: [
-        { name: "gfp_mkt_fixed_value", label: "Valor Fixo", type: "number", step: "0.01" },
-        { name: "gfp_mkt_fixed_multiplier", label: "Multiplicador Fixo", type: "number", step: "0.001" },
+        { name: "gfp_mkt_fixed_value", label: t("fixed_value"), type: "number", step: "0.01" },
+        { name: "gfp_mkt_fixed_multiplier", label: t("fixed_multiplier"), type: "number", step: "0.001" },
       ]
     },
     {
-      title: "Fiscal / Tributário",
+      title: t("fiscal_tax"),
       fields: [
-        { name: "fiscal_fixed_multiplier", label: "Multiplicador Fixo", type: "number", step: "0.001" },
+        { name: "fiscal_fixed_multiplier", label: t("fixed_multiplier"), type: "number", step: "0.001" },
       ]
     },
     {
-      title: "Cobrar",
+      title: t("charge"),
       fields: [
-        { name: "charge_fixed_value", label: "Valor Fixo", type: "number", step: "0.01" },
-        { name: "charge_fixed_multiplier", label: "Multiplicador Fixo", type: "number", step: "0.001" },
+        { name: "charge_fixed_value", label: t("fixed_value"), type: "number", step: "0.01" },
+        { name: "charge_fixed_multiplier", label: t("fixed_multiplier"), type: "number", step: "0.001" },
       ]
     },
     {
-      title: "Agenda",
+      title: t("schedule"),
       fields: [
-        { name: "schedule_fixed_value", label: "Valor Fixo", type: "number", step: "0.01" },
-        { name: "schedule_fixed_multiplier", label: "Multiplicador Fixo", type: "number", step: "0.001" },
+        { name: "schedule_fixed_value", label: t("fixed_value"), type: "number", step: "0.01" },
+        { name: "schedule_fixed_multiplier", label: t("fixed_multiplier"), type: "number", step: "0.001" },
       ]
     },
     {
-      title: "Dificuldade & Insumos",
+      title: t("difficulty_ingredients"),
       fields: [
-        { name: "difficulty_fixed_value", label: "Dificuldade Valor Fixo", type: "number", step: "0.01" },
-        { name: "ingredient_cost_days_division", label: "Custo Insumos Divisão Dias", type: "number", step: "1" },
+        { name: "difficulty_fixed_value", label: t("difficulty_fixed_value"), type: "number", step: "0.01" },
+        { name: "ingredient_cost_days_division", label: t("ingredient_cost_days_division"), type: "number", step: "1" },
       ]
     }
   ];
@@ -299,7 +338,7 @@ export default function CatalogPage() {
           <div className="bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 rounded-xl p-4 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-sm">Atenção: Configurações de Precificação</p>
+              <p className="font-semibold text-sm">{t("pricing_warning_title")}</p>
               <p className="text-sm mt-0.5 text-amber-600 dark:text-amber-500">{t("settings_warning")}</p>
             </div>
           </div>
@@ -331,7 +370,7 @@ export default function CatalogPage() {
                               {...registerSettings(field.name as keyof GeneralSettings, { valueAsNumber: true })}
                             />
                             {settingsErrors[field.name as keyof GeneralSettings] && (
-                              <span className="text-xs text-destructive">Inválido</span>
+                              <span className="text-xs text-destructive">{t("invalid")}</span>
                             )}
                           </div>
                         ))}
@@ -370,13 +409,13 @@ export default function CatalogPage() {
                 value={adminIngCategory}
                 onChange={e => setAdminIngCategory(e.target.value)}
               >
-                <option value="all">Todas as Categorias</option>
-                <option value="Proteína">Proteína</option>
-                <option value="Carboidrato">Carboidrato</option>
-                <option value="Vegetal">Vegetal</option>
-                <option value="Gordura">Gordura</option>
-                <option value="Suplemento">Suplemento</option>
-                <option value="Outro">Outro</option>
+                <option value="all">{tCommon("all")}</option>
+                <option value="Proteína">{t("protein")}</option>
+                <option value="Carboidrato">{t("carb")}</option>
+                <option value="Vegetal">{t("vegetable")}</option>
+                <option value="Gordura">{t("fat")}</option>
+                <option value="Suplemento">{t("supplement")}</option>
+                <option value="Outro">{t("other")}</option>
               </select>
               <div className="hidden md:flex border rounded-md">
                 <Button variant={viewMode === "grid" ? "secondary" : "ghost"} size="icon" className="h-10 w-10 rounded-r-none" onClick={() => setViewMode("grid")}><LayoutGrid className="h-4 w-4" /></Button>
@@ -408,7 +447,7 @@ export default function CatalogPage() {
                           ing.category === 'Gordura' ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" :
                           ing.category === 'Suplemento' ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
                           "bg-muted text-muted-foreground"
-                        )}>{ing.category || 'Geral'}</span>
+                        )}>{translateCategory(ing.category) || t("other")}</span>
                       </div>
                       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenIngModal(ing)}><Edit2 className="h-3.5 w-3.5" /></Button>
@@ -417,7 +456,7 @@ export default function CatalogPage() {
                     </div>
                     <div className="grid grid-cols-3 divide-x divide-border/50 bg-muted/30 rounded-lg">
                       <div className="px-2 py-2 text-center">
-                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">Preço</span>
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("cost")}</span>
                         <span className="font-semibold text-xs text-primary">R$ {Number(ing.cost_per_unit).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                         <span className="block text-[9px] text-muted-foreground">/{ing.unit === 'g' || ing.unit === 'kg' ? 'kg' : ing.unit === 'l' || ing.unit === 'ml' ? 'L' : 'un'}</span>
                       </div>
@@ -449,12 +488,12 @@ export default function CatalogPage() {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-muted-foreground bg-muted/50 uppercase">
                   <tr>
-                    <th className="px-6 py-3 font-medium">Nome / Categoria</th>
-                    <th className="px-6 py-3 font-medium text-center">Unidade</th>
-                    <th className="px-6 py-3 font-medium text-right">Preço Base</th>
-                    <th className="px-6 py-3 font-medium text-center">Taxa de Perda</th>
-                    <th className="px-6 py-3 font-medium text-center">Dificuldade</th>
-                    <th className="px-6 py-3 font-medium text-right">Ações</th>
+                    <th className="px-6 py-3 font-medium">{t("name")} / {t("category")}</th>
+                    <th className="px-6 py-3 font-medium text-center">{t("unit")}</th>
+                    <th className="px-6 py-3 font-medium text-right">{t("base_price_table_header")}</th>
+                    <th className="px-6 py-3 font-medium text-center">{t("loss_rate")}</th>
+                    <th className="px-6 py-3 font-medium text-center">{t("difficulty_multiplier")}</th>
+                    <th className="px-6 py-3 font-medium text-right">{tCommon("actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -506,9 +545,9 @@ export default function CatalogPage() {
                 value={adminRecPetFilter}
                 onChange={e => setAdminRecPetFilter(e.target.value)}
               >
-                <option value="all">Todas as Espécies</option>
-                <option value="dog">Cachorro</option>
-                <option value="cat">Gato</option>
+                <option value="all">{t("all_species_admin")}</option>
+                <option value="dog">{t("dog")}</option>
+                <option value="cat">{t("cat")}</option>
               </select>
               <div className="hidden md:flex border rounded-md">
                 <Button variant={recipesViewMode === "grid" ? "secondary" : "ghost"} size="icon" className="h-10 w-10 rounded-r-none" onClick={() => setRecipesViewMode("grid")}><LayoutGrid className="h-4 w-4" /></Button>
@@ -532,7 +571,7 @@ export default function CatalogPage() {
                   <div className="p-4 pb-3 border-b bg-muted/20 flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-base line-clamp-1">{rec.name}</h4>
-                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1 min-h-[1.25rem]">{rec.description || "Sem descrição."}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1 min-h-[1.25rem]">{rec.description || tRec("no_description")}</p>
                     </div>
                     <div className="flex gap-0.5 shrink-0">
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => handleOpenRecModal(rec, "template")}><Edit2 className="h-4 w-4" /></Button>
@@ -542,25 +581,25 @@ export default function CatalogPage() {
                   <CardContent className="pt-4 flex-1 flex flex-col">
                     <div className="grid grid-cols-4 gap-x-2 gap-y-3 text-sm">
                       <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Espécie</span>
-                        <span className="font-medium text-xs">{rec.pet_type === 'cat' ? 'Gato' : rec.pet_type === 'dog' ? 'Cão' : 'Geral'}</span>
+                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{tRec("pet_type")}</span>
+                        <span className="font-medium text-xs">{rec.pet_type === 'cat' ? t("cat") : rec.pet_type === 'dog' ? t("dog") : t("general")}</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Duração</span>
+                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{t("duration")}</span>
                         <span className="font-medium text-xs">{rec.duration_days}d</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Porções</span>
+                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{tRec("portions_per_day_caps").split("/")[0]}</span>
                         <span className="font-medium text-xs">{rec.daily_portions}/dia</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Custo Base</span>
+                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{t("base_cost")}</span>
                         <span className="font-semibold text-xs text-amber-600 dark:text-amber-400">R$ {Number(rec.ingredient_cost ?? 0).toFixed(2)}</span>
                       </div>
                     </div>
                     {rec.ingredients && rec.ingredients.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-border/50 flex-1">
-                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Composição</p>
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">{tRec("recipe_composition")}</p>
                         <ul className="space-y-1">
                           {rec.ingredients.slice(0, 3).map(i => (
                             <li key={i.id} className="flex items-center justify-between text-xs">
@@ -589,13 +628,13 @@ export default function CatalogPage() {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-muted-foreground bg-muted/50 uppercase">
                   <tr>
-                    <th className="px-6 py-3 font-medium">Nome</th>
-                    <th className="px-6 py-3 font-medium text-center">Espécie</th>
-                    <th className="px-6 py-3 font-medium text-center">Duração</th>
-                    <th className="px-6 py-3 font-medium text-center">Porções/dia</th>
-                    <th className="px-6 py-3 font-medium text-center">Ingredientes</th>
-                    <th className="px-6 py-3 font-medium text-right">Custo Base</th>
-                    <th className="px-6 py-3 font-medium text-right">Ações</th>
+                    <th className="px-6 py-3 font-medium">{t("name")}</th>
+                    <th className="px-6 py-3 font-medium text-center">{tRec("pet_type")}</th>
+                    <th className="px-6 py-3 font-medium text-center">{t("duration")}</th>
+                    <th className="px-6 py-3 font-medium text-center">{tRec("portions_per_day_caps")}</th>
+                    <th className="px-6 py-3 font-medium text-center">{tRec("ingredients")}</th>
+                    <th className="px-6 py-3 font-medium text-right">{t("base_price_table_header")}</th>
+                    <th className="px-6 py-3 font-medium text-right">{tCommon("actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -659,7 +698,7 @@ export default function CatalogPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label>Preço Base (por kg, L ou Unidade)</Label>
+              <Label>{t("base_price_label")}</Label>
               <Input type="number" step="0.01" required value={ingForm.cost_per_unit} onChange={e => setIngForm({...ingForm, cost_per_unit: e.target.value})} />
             </div>
           </div>
@@ -716,7 +755,7 @@ export default function CatalogPage() {
             <Label>{t("ingredients")}</Label>
             <div className="bg-primary/10 border border-primary/20 text-primary text-xs p-2.5 rounded-lg flex gap-2">
               <Info className="w-4 h-4 shrink-0" />
-              <span><strong>Importante:</strong> As quantidades são por dia (quantidade diária por porção).</span>
+              <span><strong>{tCommon("error") === "Erro!" ? "Importante:" : tCommon("error") === "Error!" ? "Important:" : "Importante:"}</strong> {tRec("important_daily_qty")}</span>
             </div>
 
             {/* Search + category filter */}
@@ -869,19 +908,19 @@ export default function CatalogPage() {
               {recipeDetailOpen && (
                 <div className="py-3 space-y-3 border-b border-primary/10">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Duração total:</span>
-                    <span className="font-semibold">{recForm.duration_days} dias</span>
+                    <span className="text-muted-foreground">{tRec("total_duration")}</span>
+                    <span className="font-semibold">{recForm.duration_days} {t("days")}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Porções diárias:</span>
-                    <span className="font-semibold">{recForm.daily_portions} porção(ões)</span>
+                    <span className="text-muted-foreground">{tRec("daily_portions_label")}</span>
+                    <span className="font-semibold">{recForm.daily_portions} {tRec("portions_per_day_plural")}</span>
                   </div>
                   {recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).length > 0 && (
                     <div>
                       <div className="grid grid-cols-3 text-xs text-muted-foreground mb-1.5 px-1 font-medium">
-                        <span>Ingrediente</span>
-                        <span className="text-right">Total/dia</span>
-                        <span className="text-right">Por porção</span>
+                        <span>{tCommon("ingredient")}</span>
+                        <span className="text-right">{tRec("qty_per_day")}</span>
+                        <span className="text-right">{tRec("per_portion")}</span>
                       </div>
                       <ul className="space-y-1.5">
                         {recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).map((item, idx) => {
@@ -919,7 +958,7 @@ export default function CatalogPage() {
                   <ul className="space-y-1 text-xs mt-3">
                     {costBreakdown.filter(i => !i.is_supplement).length > 0 && (
                       <li className="flex justify-between pb-1.5 mb-0.5 border-b-2 border-primary/30 font-semibold text-foreground text-xs">
-                        <span>Custo Base (ingredientes)</span>
+                        <span>{tRec("base_cost")} ({tRec("ingredients").toLowerCase()})</span>
                         <span>R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toFixed(2)}</span>
                       </li>
                     )}
@@ -944,7 +983,7 @@ export default function CatalogPage() {
                                   : "text-muted-foreground border-b border-border/30"
                             )}
                           >
-                            <span>{item.name}</span>
+                            <span>{translateBreakdownName(item.name)}</span>
                             <span>R$ {Number(item.total_cost).toFixed(2)}</span>
                           </li>
                         );

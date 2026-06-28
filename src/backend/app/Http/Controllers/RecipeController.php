@@ -21,9 +21,14 @@ class RecipeController extends Controller
             // Admin sees all recipes
             $recipes = $query->get();
         } else {
-            // Customer sees templates OR their own recipes
+            // Customer sees templates, their own recipes, or recipes linked to their pets.
+            $userPetIds = $user->pets()->pluck('id');
             $recipes = $query->where('is_template', true)
                              ->orWhere('user_id', $user->id)
+                             ->orWhereHas('pets', function ($q) use ($userPetIds) {
+                                 $q->whereIn('pets.id', $userPetIds);
+                             })
+                             ->distinct()
                              ->get();
         }
 
@@ -101,7 +106,12 @@ class RecipeController extends Controller
         $user = $request->user();
 
         if ($user->role !== 'admin' && !$recipe->is_template && $recipe->user_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            // Also allow if the recipe is linked to one of the user's pets.
+            $recipe->loadMissing('pets');
+            $userPetIds = $user->pets()->pluck('id');
+            if ($recipe->pets->pluck('id')->intersect($userPetIds)->isEmpty()) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
         }
 
         return response()->json([

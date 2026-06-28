@@ -16,6 +16,7 @@ export default function PetsPage() {
   const tNav = useTranslations("Navigation");
   const t = useTranslations("Pets");
   const tCommon = useTranslations("Common");
+  const tCat = useTranslations("Catalog");
   const { pets, isLoading, createPet, updatePet, deletePet, isCreating, isUpdating } = usePets();
   
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -179,9 +180,9 @@ export default function PetsPage() {
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as "all" | "dog" | "cat")}
             >
-              <option value="all">Todas as espécies</option>
-              <option value="dog">{t("dog")}</option>
-              <option value="cat">{t("cat")}</option>
+              <option value="all">{tCommon("all_species")}</option>
+              <option value="dog">{tCat("dog")}</option>
+              <option value="cat">{tCat("cat")}</option>
             </select>
 
             <div className="flex border rounded-md h-10 shrink-0 hidden sm:flex">
@@ -195,8 +196,8 @@ export default function PetsPage() {
       {/* Mobile view toggle */}
       {pets && pets.length > 0 && (
         <div className="flex border rounded-md shrink-0 sm:hidden w-full h-10">
-          <button onClick={() => setViewMode('grid')} className={`flex-1 flex justify-center items-center transition-colors ${viewMode === 'grid' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}><LayoutGrid className="w-4 h-4 mr-2" /> Cards</button>
-          <button onClick={() => setViewMode('list')} className={`flex-1 flex justify-center items-center transition-colors ${viewMode === 'list' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}><ListIcon className="w-4 h-4 mr-2" /> Lista</button>
+          <button onClick={() => setViewMode('grid')} className={`flex-1 flex justify-center items-center transition-colors ${viewMode === 'grid' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}><LayoutGrid className="w-4 h-4 mr-2" /> {tCommon("grid")}</button>
+          <button onClick={() => setViewMode('list')} className={`flex-1 flex justify-center items-center transition-colors ${viewMode === 'list' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}><ListIcon className="w-4 h-4 mr-2" /> {tCommon("list")}</button>
         </div>
       )}
 
@@ -226,12 +227,12 @@ export default function PetsPage() {
             <div className="rounded-full bg-muted p-4 text-muted-foreground">
               <FilterX className="h-10 w-10" />
             </div>
-            <h3 className="text-lg font-semibold">Nenhum pet encontrado</h3>
+            <h3 className="text-lg font-semibold">{tCommon("no_results")}</h3>
             <p className="text-sm text-muted-foreground max-w-sm">
-              Tente ajustar os filtros ou os termos da busca.
+              {tCommon("adjust_filters")}
             </p>
             <Button variant="outline" onClick={() => { setSearchQuery(""); setFilterType("all"); }} className="mt-4">
-              Limpar Filtros
+              {tCommon("clear_filters")}
             </Button>
           </CardContent>
         </Card>
@@ -267,7 +268,7 @@ export default function PetsPage() {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
                     <div>
                       <span className="font-medium text-foreground block text-[10px] uppercase tracking-wider mb-0.5">{t("species")}</span>
-                      <span className="capitalize">{pet.type === 'cat' ? t("cat") : t("dog")}</span>
+                      <span className="capitalize">{pet.type === 'cat' ? tCat("cat") : tCat("dog")}</span>
                     </div>
                     <div>
                       <span className="font-medium text-foreground block text-[10px] uppercase tracking-wider mb-0.5">{t("weight_kg")}</span>
@@ -303,12 +304,12 @@ export default function PetsPage() {
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-muted-foreground bg-muted/50 uppercase">
                 <tr>
-                  <th className="px-6 py-3 font-medium">Pet</th>
-                  <th className="px-6 py-3 font-medium text-center">Espécie</th>
-                  <th className="px-6 py-3 font-medium text-center">Peso</th>
-                  <th className="px-6 py-3 font-medium text-center">Idade</th>
+                  <th className="px-6 py-3 font-medium">{t("name").split(" ")[0]}</th>
+                  <th className="px-6 py-3 font-medium text-center">{t("species")}</th>
+                  <th className="px-6 py-3 font-medium text-center">{t("weight_kg").split(" ")[0]}</th>
+                  <th className="px-6 py-3 font-medium text-center">{t("age_months").split(" ")[0]}</th>
                   <th className="px-6 py-3 font-medium">{t("health_alerts")}</th>
-                  <th className="px-6 py-3 font-medium text-right">Ações</th>
+                  <th className="px-6 py-3 font-medium text-right">{tCommon("actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -327,7 +328,7 @@ export default function PetsPage() {
                         <div className="text-xs text-muted-foreground mt-0.5">{pet.breed || t("no_breed")}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center capitalize">{pet.type === 'cat' ? t("cat") : t("dog")}</td>
+                    <td className="px-6 py-4 text-center capitalize">{pet.type === 'cat' ? tCat("cat") : tCat("dog")}</td>
                     <td className="px-6 py-4 text-center">{pet.weight ? `${pet.weight} kg` : '-'}</td>
                     <td className="px-6 py-4 text-center">{pet.age ? `${pet.age} m` : '-'}</td>
                     <td className="px-6 py-4">

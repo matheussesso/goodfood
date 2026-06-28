@@ -18,10 +18,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "GoodFood System",
-  description: "Sistema de gestão de alimentação natural para pets",
-};
+import { getTranslations } from "next-intl/server";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Metadata" });
+  return {
+    title: "GoodFood System",
+    description: t("description"),
+  };
+}
 
 export default async function RootLayout({
   children,

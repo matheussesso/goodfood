@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function DashboardPage() {
   const t = useTranslations("Navigation");
+  const tDash = useTranslations("Dashboard");
   const { user } = useAuth();
 
   return (
@@ -15,28 +16,28 @@ export default function DashboardPage() {
           {t("dashboard")}
         </h1>
         <p className="text-muted-foreground mt-1">
-          Bem-vindo de volta, {user?.name}!
+          {tDash("welcome_back", { name: user?.name })}
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Meus Pets</CardTitle>
-            <CardDescription>Gerencie seus pets e suas dietas.</CardDescription>
+            <CardTitle>{t("pets")}</CardTitle>
+            <CardDescription>{tDash("manage_pets_desc")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">Você possui 0 pets cadastrados.</p>
+            <p className="text-sm text-muted-foreground">{tDash("no_pets_registered")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Assinaturas Ativas</CardTitle>
-            <CardDescription>Visualize suas assinaturas.</CardDescription>
+            <CardTitle>{t("subscriptions")}</CardTitle>
+            <CardDescription>{tDash("view_subscriptions_desc")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">Você não possui assinaturas ativas.</p>
+            <p className="text-sm text-muted-foreground">{tDash("no_active_subscriptions")}</p>
           </CardContent>
         </Card>
       </div>

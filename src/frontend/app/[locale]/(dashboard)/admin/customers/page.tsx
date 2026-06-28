@@ -186,7 +186,7 @@ export default function CustomersPage() {
               size="icon"
               className="h-10 w-10 rounded-r-none"
               onClick={() => setViewMode("grid")}
-              title="Visualização em grade"
+              title={t("view_grid")}
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
@@ -195,7 +195,7 @@ export default function CustomersPage() {
               size="icon"
               className="h-10 w-10 rounded-l-none"
               onClick={() => setViewMode("list")}
-              title="Visualização em lista"
+              title={t("view_list")}
             >
               <ListIcon className="h-4 w-4" />
             </Button>
@@ -218,8 +218,8 @@ export default function CustomersPage() {
             <p className="font-medium text-foreground">{t("no_customers_found")}</p>
             <p className="text-sm text-muted-foreground mt-1">
               {searchTerm
-                ? "Nenhum cliente corresponde à busca."
-                : "Ainda não há clientes cadastrados."}
+                ? t("no_customers_found")
+                : t("no_customers_yet")}
             </p>
           </div>
         </div>
@@ -310,22 +310,22 @@ export default function CustomersPage() {
               <thead>
                 <tr className="border-b bg-muted/40 text-xs">
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider">
-                    Cliente
+                    {t("name")}
                   </th>
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">
-                    Contato
+                    {t("contact")}
                   </th>
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-center">
-                    Pets
+                    {t("pets")}
                   </th>
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-center hidden sm:table-cell">
-                    Pedidos
+                    {t("orders")}
                   </th>
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">
-                    Cadastro
+                    {t("registered_at")}
                   </th>
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-right">
-                    Ações
+                    {t("actions")}
                   </th>
                 </tr>
               </thead>

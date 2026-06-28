@@ -18,6 +18,7 @@ export default function PetProfilePage() {
   const tNav = useTranslations("Navigation");
   const tCommon = useTranslations("Common");
   const tCat = useTranslations("Catalog");
+  const tRec = useTranslations("Recipes");
   
   const { pet, isLoading } = usePet(id);
   
@@ -28,7 +29,7 @@ export default function PetProfilePage() {
   }
 
   if (!pet) {
-    return <div className="p-8 text-center text-destructive">Pet não encontrado</div>;
+    return <div className="p-8 text-center text-destructive">{t("pet_not_found")}</div>;
   }
 
   return (
@@ -120,15 +121,15 @@ export default function PetProfilePage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <span className="text-sm font-medium text-foreground block">{t("dietary_restrictions")}</span>
-                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">{pet.restrictions || "Nenhuma restrição registrada."}</p>
+                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">{pet.restrictions || t("no_restrictions_registered")}</p>
                   </div>
                   <div className="space-y-2">
                     <span className="text-sm font-medium text-foreground block">{t("allergies")}</span>
-                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">{pet.allergies || "Nenhuma alergia registrada."}</p>
+                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">{pet.allergies || t("no_allergies_registered")}</p>
                   </div>
                   <div className="space-y-2">
                     <span className="text-sm font-medium text-foreground block">{t("special_needs")}</span>
-                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">{pet.special_needs || "Nenhuma necessidade especial registrada."}</p>
+                    <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md">{pet.special_needs || t("no_special_needs_registered")}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -144,7 +145,7 @@ export default function PetProfilePage() {
                 </h3>
                 <Link href="/recipes/new">
                   <Button size="sm" variant="outline" className="gap-1.5 text-xs">
-                    <UtensilsCrossed className="w-3.5 h-3.5" /> Nova Receita
+                    <UtensilsCrossed className="w-3.5 h-3.5" /> {tRec("title")}
                   </Button>
                 </Link>
               </div>
@@ -159,7 +160,7 @@ export default function PetProfilePage() {
                             <Link href={`/recipes/${recipe.id}`} className="hover:text-primary transition-colors">
                               <h4 className="font-semibold text-base line-clamp-1">{recipe.name}</h4>
                             </Link>
-                            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 min-h-[2.5rem]">{recipe.description || "Sem descrição."}</p>
+                            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 min-h-[2.5rem]">{recipe.description || tRec("no_description")}</p>
                           </div>
                           {recipe.is_template && (
                             <span className="text-[10px] font-medium px-1.5 py-0.5 bg-muted text-muted-foreground rounded-sm shrink-0">Modelo</span>
@@ -169,32 +170,32 @@ export default function PetProfilePage() {
                       <CardContent className="pt-4 flex-1 flex flex-col justify-between">
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-3 gap-x-2 text-sm">
                           <div>
-                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Espécie</span>
-                            <span className="font-medium">{recipe.pet_type === 'cat' ? 'Gato' : recipe.pet_type === 'dog' ? 'Cachorro' : 'Geral'}</span>
+                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{t("species")}</span>
+                            <span className="font-medium">{recipe.pet_type === 'cat' ? tCat("cat") : recipe.pet_type === 'dog' ? tCat("dog") : tCommon("all")}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Duração</span>
-                            <span className="font-medium">{recipe.duration_days ?? '-'} dias</span>
+                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{tCat("duration")}</span>
+                            <span className="font-medium">{recipe.duration_days ?? '-'} {tCat("days")}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Ingredientes</span>
-                            <span className="font-medium">{recipe.ingredients?.length ?? 0} itens</span>
+                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{tRec("ingredients")}</span>
+                            <span className="font-medium">{recipe.ingredients?.length ?? 0} {recipe.ingredients?.length === 1 ? tCommon("ingredient").toLowerCase() : tRec("ingredients").toLowerCase()}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Custo Base</span>
-                            <span className="font-semibold text-amber-600 dark:text-amber-400">R$ {Number((recipe as any).ingredient_cost ?? 0).toFixed(2)}</span>
+                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{tRec("cost_summary")}</span>
+                            <span className="font-semibold text-amber-600 dark:text-amber-400">R$ {Number((recipe as any).base_cost ?? 0).toFixed(2)}</span>
                           </div>
                         </div>
                         <div className="flex gap-2 mt-4 pt-3 border-t border-border/50">
                           <Link href={`/recipes/${recipe.id}`} className="flex-1">
                             <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
-                              <Eye className="w-3.5 h-3.5" /> Visualizar
+                              <Eye className="w-3.5 h-3.5" /> {tCommon("view")}
                             </Button>
                           </Link>
                           {!recipe.is_template && (
                             <Link href={`/recipes/${recipe.id}/edit`} className="flex-1">
                               <Button variant="secondary" size="sm" className="w-full gap-1.5 text-xs">
-                                <Edit2 className="w-3.5 h-3.5" /> Editar
+                                <Edit2 className="w-3.5 h-3.5" /> {tCommon("edit")}
                               </Button>
                             </Link>
                           )}
@@ -206,9 +207,9 @@ export default function PetProfilePage() {
               ) : (
                 <div className="text-center py-12 bg-muted/20 border rounded-lg">
                   <UtensilsCrossed className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
-                  <p className="text-muted-foreground mb-3">Seu pet ainda não tem receitas vinculadas.</p>
+                  <p className="text-muted-foreground mb-3">{t("no_recipes_linked")}</p>
                   <Link href="/recipes/new">
-                    <Button size="sm" variant="outline">Criar Receita</Button>
+                    <Button size="sm" variant="outline">{tRec("title")}</Button>
                   </Link>
                 </div>
               )}

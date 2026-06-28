@@ -36,7 +36,35 @@ export default function CustomerDetailPage() {
   
   const t = useTranslations("admin");
   const tCommon = useTranslations("Common");
+  const tCat = useTranslations("Catalog");
+  const tPets = useTranslations("Pets");
+  const tRec = useTranslations("Recipes");
   const queryClient = useQueryClient();
+
+  const translateBreakdownName = (name: string) => {
+    switch (name) {
+      case 'Custo de Insumos Adicional':
+        return tCat("additional_ingredient_cost") || name;
+      case 'Repasse Produção (Cozinha)':
+        return `${tCat("production_transfer")} (${tCat("kitchen") || "Cozinha"})`;
+      case 'Repasse Logística':
+        return tCat("logistics_transfer");
+      case 'Margem Reserva':
+        return tCat("reserve_margin");
+      case 'Custo GFP+MKT':
+        return tCat("gfp_mkt");
+      case 'Fiscal/Tributário':
+        return tCat("fiscal_tax");
+      case 'Agenda':
+        return tCat("schedule");
+      case 'Cobrar':
+        return tCat("charge");
+      case 'Resultado (Lucro Mínimo)':
+        return `${tCat("result") || "Resultado"} (${tCat("min_profit") || "Lucro Mínimo"})`;
+      default:
+        return name;
+    }
+  };
   
   const { customer, isLoading } = useCustomer(id);
   const { mutateAsync: updateCustomer, isPending: isUpdatingCustomer } = useUpdateCustomer();
@@ -67,6 +95,7 @@ export default function CustomerDetailPage() {
   const [editingRec, setEditingRec] = useState<any>(null);
   const [recForm, setRecForm] = useState({ name: "", description: "", pet_type: "dog", duration_days: "15", daily_portions: "2", is_active: true, instructions: "" });
   const [recipeIngredients, setRecipeIngredients] = useState<{id: number, quantity: string, unit: string}[]>([]);
+  const [selectedPetIds, setSelectedPetIds] = useState<number[]>([]);
   const [ingredientSearch, setIngredientSearch] = useState("");
   const [recCategoryFilter, setRecCategoryFilter] = useState("Todos");
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
@@ -189,6 +218,7 @@ export default function CustomerDetailPage() {
       daily_portions: rec.daily_portions?.toString() || "2", is_active: rec.is_active
     });
     setRecipeIngredients(rec.ingredients?.map((i: any) => ({ id: i.id, quantity: i.pivot.quantity, unit: i.pivot.unit || i.unit })) || []);
+    setSelectedPetIds(rec.pets?.map((p: any) => p.id) || []);
     setIsRecEditModalOpen(true);
   };
 
@@ -200,7 +230,8 @@ export default function CustomerDetailPage() {
       name: recForm.name, description: recForm.description,
       pet_type: recForm.pet_type, duration_days: parseInt(recForm.duration_days), daily_portions: parseInt(recForm.daily_portions),
       is_template: false, is_active: recForm.is_active, instructions: recForm.instructions,
-      ingredients: recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).map(i => ({ id: i.id, quantity: parseFloat(i.quantity), unit: i.unit }))
+      ingredients: recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).map(i => ({ id: i.id, quantity: parseFloat(i.quantity), unit: i.unit })),
+      pet_ids: selectedPetIds
     });
     queryClient.invalidateQueries({ queryKey: ["customer", String(customer.id)] });
     setIsRecEditModalOpen(false);
@@ -262,7 +293,7 @@ export default function CustomerDetailPage() {
               </div>
               <div className="flex flex-col items-center px-4 py-2 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 rounded-xl">
                 <span className="font-bold text-xl leading-none">{customer.orders?.length ?? customer.orders_count ?? 0}</span>
-                <span className="text-[10px] uppercase tracking-wider mt-0.5">Pedidos</span>
+                <span className="text-[10px] uppercase tracking-wider mt-0.5">{t("orders")}</span>
               </div>
             </div>
           </div>
@@ -278,9 +309,9 @@ export default function CustomerDetailPage() {
             orders: customer.orders?.length,
           };
           const label =
-            tab === "overview" ? "Visão Geral" :
-            tab === "pets" ? "Pets" :
-            tab === "recipes" ? "Receitas" : "Pedidos";
+            tab === "overview" ? t("general") :
+            tab === "pets" ? t("pets") :
+            tab === "recipes" ? tNav("recipes") : t("orders");
           return (
             <button
               key={tab}
@@ -340,30 +371,30 @@ export default function CustomerDetailPage() {
             <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
               <div className="flex items-center px-5 py-4 border-b bg-muted/20">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-primary" /> Endereço
+                  <MapPin className="w-4 h-4 text-primary" /> {t("address_title")}
                 </h3>
               </div>
               {customer.address || customer.city || customer.state || customer.zipcode ? (
                 <div className="px-5 py-4 space-y-3">
                   {customer.address && (
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Logradouro</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("street")}</p>
                       <p className="text-sm font-medium text-foreground">{customer.address}</p>
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Cidade</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("city_label")}</p>
                       <p className="text-sm font-medium text-foreground">{customer.city || "—"}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Estado</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("state_label")}</p>
                       <p className="text-sm font-medium text-foreground">{customer.state || "—"}</p>
                     </div>
                   </div>
                   {customer.zipcode && (
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">CEP</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("zipcode")}</p>
                       <p className="text-sm font-medium text-foreground">{customer.zipcode}</p>
                     </div>
                   )}
@@ -371,9 +402,9 @@ export default function CustomerDetailPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
                   <MapPin className="w-8 h-8 opacity-30" />
-                  <p className="text-sm">Endereço não cadastrado.</p>
+                  <p className="text-sm">{t("no_address_registered")}</p>
                   <Button variant="outline" size="sm" onClick={handleOpenEditCustomer} className="mt-1 text-xs gap-1.5 h-8">
-                    <Plus className="w-3.5 h-3.5" /> Adicionar endereço
+                    <Plus className="w-3.5 h-3.5" /> {t("add_address")}
                   </Button>
                 </div>
               )}
@@ -423,7 +454,7 @@ export default function CustomerDetailPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-foreground truncate">{pet.name}</p>
-                          <p className="text-xs text-muted-foreground">{pet.breed || "Sem raça"}</p>
+                          <p className="text-xs text-muted-foreground">{pet.breed || t("no_breed_admin")}</p>
                         </div>
                         <Button
                           variant="ghost"
@@ -438,15 +469,15 @@ export default function CustomerDetailPage() {
                       {/* Pet stats */}
                       <div className="flex divide-x divide-border/50 border-b border-border/50">
                         <div className="flex-1 py-3 flex flex-col items-center gap-0.5">
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Espécie</span>
-                          <span className="text-sm font-semibold text-foreground">{pet.type === "cat" ? "Gato" : "Cão"}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{tPets("species")}</span>
+                          <span className="text-sm font-semibold text-foreground">{pet.type === "cat" ? tCat("cat") : tCat("dog")}</span>
                         </div>
                         <div className="flex-1 py-3 flex flex-col items-center gap-0.5">
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Peso</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{tPets("weight").split(" ")[0]}</span>
                           <span className="text-sm font-semibold text-foreground">{pet.weight ? `${pet.weight} kg` : "—"}</span>
                         </div>
                         <div className="flex-1 py-3 flex flex-col items-center gap-0.5">
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Idade</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{tPets("age")}</span>
                           <span className="text-sm font-semibold text-foreground">{pet.age ? `${pet.age}m` : "—"}</span>
                         </div>
                       </div>
@@ -457,22 +488,22 @@ export default function CustomerDetailPage() {
                           <div className="flex flex-wrap gap-1.5">
                             {pet.allergies && (
                               <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full font-medium border border-red-200 dark:border-red-800">
-                                Alergias
+                                {tPets("badge_allergies")}
                               </span>
                             )}
                             {pet.restrictions && (
                               <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full font-medium border border-amber-200 dark:border-amber-800">
-                                Restrições
+                                {tPets("badge_restrictions")}
                               </span>
                             )}
                             {pet.special_needs && (
                               <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium border border-blue-200 dark:border-blue-800">
-                                Necessidades
+                                {tPets("badge_special_needs")}
                               </span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground">Sem alertas de saúde</span>
+                          <span className="text-xs text-muted-foreground">{tPets("no_health_alerts")}</span>
                         )}
                       </div>
                     </div>
@@ -604,8 +635,8 @@ export default function CustomerDetailPage() {
                             <span className="font-medium">{recipe.ingredients?.length ?? 0} itens</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Custo Base</span>
-                            <span className="font-semibold text-amber-600 dark:text-amber-400">R$ {Number((recipe as any).ingredient_cost ?? 0).toFixed(2)}</span>
+                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Custo Est.</span>
+                            <span className="font-semibold text-amber-600 dark:text-amber-400">R$ {Number((recipe as any).base_cost ?? 0).toFixed(2)}</span>
                           </div>
                         </div>
                         {recipe.pets && (recipe.pets as any[]).length > 0 && (
@@ -764,6 +795,41 @@ export default function CustomerDetailPage() {
               </select>
             </div>
           </div>
+
+          {/* Pet linking — shown at top for quick context */}
+          {customer.pets && customer.pets.length > 0 && (
+            <div className="space-y-2">
+              <Label>Vincular ao(s) pet(s)</Label>
+              <div className="flex flex-wrap gap-2 p-3 border rounded-lg bg-muted/20">
+                {customer.pets.map((pet) => {
+                  const selected = selectedPetIds.includes(pet.id);
+                  return (
+                    <button
+                      key={pet.id}
+                      type="button"
+                      onClick={() =>
+                        setSelectedPetIds(
+                          selected
+                            ? selectedPetIds.filter((id) => id !== pet.id)
+                            : [...selectedPetIds, pet.id]
+                        )
+                      }
+                      className={cn(
+                        "flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full border font-medium transition-all",
+                        selected
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-foreground border-border hover:border-primary/50"
+                      )}
+                    >
+                      <Dog className="w-3.5 h-3.5" />
+                      {pet.name}
+                      {selected && <Check className="w-3 h-3" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Duração (dias)</Label><Input type="number" required value={recForm.duration_days} onChange={e => setRecForm({...recForm, duration_days: e.target.value})} /></div>
@@ -985,7 +1051,7 @@ export default function CustomerDetailPage() {
                   <ul className="space-y-1 text-xs mt-3">
                     {costBreakdown.filter(i => !i.is_supplement).length > 0 && (
                       <li className="flex justify-between pb-1.5 mb-0.5 border-b-2 border-primary/30 font-semibold text-foreground text-xs">
-                        <span>Custo Base (ingredientes)</span>
+                        <span>{tRec("base_cost")} ({tRec("ingredients").toLowerCase()})</span>
                         <span>R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toFixed(2)}</span>
                       </li>
                     )}
@@ -1010,7 +1076,7 @@ export default function CustomerDetailPage() {
                                   : "text-muted-foreground border-b border-border/30"
                             )}
                           >
-                            <span>{item.name}</span>
+                            <span>{translateBreakdownName(item.name)}</span>
                             <span>R$ {Number(item.total_cost).toFixed(2)}</span>
                           </li>
                         );

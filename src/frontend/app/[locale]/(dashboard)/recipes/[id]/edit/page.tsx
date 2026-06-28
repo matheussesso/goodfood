@@ -181,11 +181,11 @@ export default function EditRecipePage() {
   }
 
   if (!recipe) {
-    return <div className="p-8 text-center text-destructive">Receita não encontrada</div>;
+    return <div className="p-8 text-center text-destructive">{t("recipe_not_found")}</div>;
   }
 
   if (recipe.is_template && user?.role !== "admin") {
-    return <div className="p-8 text-center text-destructive">Não é possível editar uma receita modelo.</div>;
+    return <div className="p-8 text-center text-destructive">{t("cannot_edit_template")}</div>;
   }
 
   return (
@@ -271,7 +271,7 @@ export default function EditRecipePage() {
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Buscar ingrediente..."
+                    placeholder={tCat("search_ingredient")}
                     value={searchIngredient}
                     onChange={(e) => setSearchIngredient(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
@@ -283,7 +283,7 @@ export default function EditRecipePage() {
                     onChange={(e) => setCategoryFilter(e.target.value)}
                     className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
                   >
-                    <option value="Todos">Todos</option>
+                    <option value="Todos">{tCommon("all")}</option>
                     {Array.from(new Set(ingredients?.map(i => i.category).filter(Boolean))).map(cat => (
                       <option key={cat as string} value={cat as string}>{cat}</option>
                     ))}
@@ -334,12 +334,12 @@ export default function EditRecipePage() {
               </h3>
               <div className="bg-primary/10 border border-primary/20 text-primary text-sm p-3 rounded-lg flex gap-2 mb-4">
                 <Info className="w-5 h-5 shrink-0" />
-                <span><strong>Importante:</strong> As quantidades dos ingredientes são por dia (quantidade diária).</span>
+                <span><strong>{tCommon("error") === "Erro!" ? "Importante:" : tCommon("error") === "Error!" ? "Important:" : "Importante:"}</strong> {t("important_daily_qty")}</span>
               </div>
               <div className="space-y-3">
                 {fields.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-8 border rounded-md border-dashed">
-                    Nenhum ingrediente selecionado. Clique nos itens acima para adicionar.
+                    {t("no_ingredients")}
                   </p>
                 )}
                 {fields.map((field, index) => {
@@ -356,7 +356,7 @@ export default function EditRecipePage() {
                           <input
                             type="number"
                             step="0.001"
-                            placeholder="Qtd/dia"
+                            placeholder={t("qty_per_day")}
                             {...register(`ingredients.${index}.quantity` as const, { valueAsNumber: true })}
                             className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
                           />
@@ -385,7 +385,7 @@ export default function EditRecipePage() {
           </div>
 
           <div className="bg-card border rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2">Planejamento e Porções</h3>
+            <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2">{t("planning_and_portions")}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">{t("duration_days")}</label>
@@ -437,7 +437,7 @@ export default function EditRecipePage() {
                     </div>
                     {costPerKg > 0 && (
                       <div className="flex justify-between items-center text-xs text-muted-foreground mt-1">
-                        <span>Baseado em {watchedValues.duration_days} dia(s)</span>
+                        <span>{t("duration_days")}: {watchedValues.duration_days} {tCat("days")}</span>
                         <span>R$ {costPerKg.toFixed(2)}/kg</span>
                       </div>
                     )}
@@ -456,25 +456,25 @@ export default function EditRecipePage() {
                         onClick={() => setRecipeDetailOpen(v => !v)}
                         className="w-full flex items-center justify-between py-3 border-b text-sm font-medium text-primary hover:text-primary/80 transition-colors"
                       >
-                        <span className="flex items-center gap-2"><FileText className="w-4 h-4" /> Ver detalhamento da receita</span>
+                        <span className="flex items-center gap-2"><FileText className="w-4 h-4" /> {t("recipe_composition")}</span>
                         {recipeDetailOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </button>
 
                       {recipeDetailOpen && (
                         <div className="py-3 space-y-3 border-b">
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Duração total:</span>
-                            <span className="font-semibold">{watchedValues.duration_days} dias</span>
+                            <span className="text-muted-foreground">{t("total_duration")}</span>
+                            <span className="font-semibold">{watchedValues.duration_days} {tCat("days")}</span>
                           </div>
                           <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Porções diárias:</span>
-                            <span className="font-semibold">{watchedValues.daily_portions} porção(ões)</span>
+                            <span className="text-muted-foreground">{t("daily_portions_label")}</span>
+                            <span className="font-semibold">{watchedValues.daily_portions} {t("portions_per_day_plural")}</span>
                           </div>
                           <div>
                             <div className="grid grid-cols-3 text-xs text-muted-foreground mb-1.5 px-1 font-medium">
-                              <span>Ingrediente</span>
-                              <span className="text-right">Total/dia</span>
-                              <span className="text-right">Por porção</span>
+                              <span>{tCommon("ingredient")}</span>
+                              <span className="text-right">{t("qty_per_day")}</span>
+                              <span className="text-right">{t("per_portion")}</span>
                             </div>
                             <ul className="space-y-1.5">
                               {validIngredients.map((item, idx) => {
@@ -511,9 +511,9 @@ export default function EditRecipePage() {
                 disabled={updateRecipe.isPending || isCalculatingCost || (user?.role === "customer" && totalWeightAcrossDays < 1.5)}
                 className="w-full mt-6 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 disabled:opacity-50"
               >
-                {updateRecipe.isPending ? "Salvando..." : (
+                {updateRecipe.isPending ? t("saving") : (
                   <span className="flex items-center gap-2">
-                    <Save className="w-4 h-4" /> Salvar Alterações
+                    <Save className="w-4 h-4" /> {t("save_changes")}
                   </span>
                 )}
               </button>
