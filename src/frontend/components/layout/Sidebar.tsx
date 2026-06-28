@@ -53,6 +53,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     if (role === "customer") {
       links.push({ href: "/pets", label: t("pets"), icon: Dog });
       links.push({ href: "/recipes", label: t("recipes"), icon: UtensilsCrossed });
+      links.push({ href: "/orders", label: t("orders"), icon: ShoppingBag });
     }
 
     if (role === "producer" || role === "admin") {

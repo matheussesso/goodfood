@@ -1,14 +1,32 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Represents a customer order, which may contain one or more recipe items.
+ *
+ * @property int $id
+ * @property int $user_id
+ * @property int|null $pet_id
+ * @property int|null $recipe_id
+ * @property int|null $subscription_id
+ * @property float $total_price
+ * @property string $status
+ * @property string|null $delivery_address
+ * @property string|null $delivery_date
+ */
 class Order extends Model
 {
     use HasFactory;
 
+    /** @var array<int, string> */
     protected $fillable = [
         'user_id',
         'pet_id',
@@ -20,28 +38,39 @@ class Order extends Model
         'delivery_date',
     ];
 
+    /** @var array<string, string> */
     protected $casts = [
         'total_price' => 'decimal:2',
         'delivery_date' => 'date',
     ];
 
-    public function user()
+    /** @return BelongsTo<User, $this> */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function pet()
+    /** @return BelongsTo<Pet, $this> */
+    public function pet(): BelongsTo
     {
         return $this->belongsTo(Pet::class);
     }
 
-    public function recipe()
+    /** @return BelongsTo<Recipe, $this> */
+    public function recipe(): BelongsTo
     {
         return $this->belongsTo(Recipe::class);
     }
 
-    public function subscription()
+    /** @return BelongsTo<Subscription, $this> */
+    public function subscription(): BelongsTo
     {
         return $this->belongsTo(Subscription::class);
+    }
+
+    /** @return HasMany<OrderItem, $this> */
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
     }
 }

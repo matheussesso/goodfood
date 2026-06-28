@@ -92,6 +92,11 @@ export function Navbar({
         label: t("recipes"),
         icon: UtensilsCrossed,
       });
+      links.push({
+        href: "/orders",
+        label: t("orders"),
+        icon: ShoppingBag,
+      });
     }
 
     if (role === "producer" || role === "admin") {
