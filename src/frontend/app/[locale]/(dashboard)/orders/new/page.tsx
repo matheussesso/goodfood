@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { Link } from "@/i18n/routing";
 import { useOrders, CreateOrderPayload } from "@/hooks/useOrders";
@@ -29,9 +30,14 @@ import { cn } from "@/lib/utils";
  * Dedicated page for creating a new order.
  * Lets the customer select recipes from one or more pets in a single order.
  *
- * @returns The new order page element.
+ * @returns The new order creation page element.
  */
 export default function NewOrderPage() {
+  const t = useTranslations("Orders");
+  const tPets = useTranslations("Pets");
+  const tRec = useTranslations("Recipes");
+  const tCat = useTranslations("Catalog");
+
   const router = useRouter();
   const { pets, isLoading: petsLoading } = usePets();
   const { createOrder, isCreating } = useOrders();
@@ -93,8 +99,7 @@ export default function NewOrderPage() {
 
   /** Returns the pet name for a given recipe id (first pet that has it). */
   function petNameForRecipe(recipeId: number): string {
-    const pet = pets?.find((p) => p.recipes?.some((r) => r.id === recipeId));
-    return pet?.name ?? "";
+    return pets?.find((p) => p.recipes?.some((r) => r.id === recipeId))?.name ?? "";
   }
 
   return (
@@ -110,11 +115,9 @@ export default function NewOrderPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
             <ShoppingBag className="w-6 h-6 text-primary" />
-            Novo Pedido
+            {t("new_order")}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Selecione as receitas dos seus pets para o pedido.
-          </p>
+          <p className="text-sm text-muted-foreground mt-0.5">{t("new_order_desc")}</p>
         </div>
       </div>
 
@@ -124,14 +127,14 @@ export default function NewOrderPage() {
           {petsLoading ? (
             <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground bg-card border rounded-xl">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              <span className="text-sm">Carregando pets...</span>
+              <span className="text-sm">{t("loading_pets")}</span>
             </div>
           ) : !pets || pets.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-xl gap-3 text-muted-foreground text-center">
               <Dog className="w-10 h-10 opacity-30" />
-              <p className="text-sm">Nenhum pet cadastrado.</p>
+              <p className="text-sm">{tPets("no_pets")}</p>
               <Link href="/pets">
-                <Button variant="outline" size="sm">Cadastrar pet</Button>
+                <Button variant="outline" size="sm">{t("register_pet")}</Button>
               </Link>
             </div>
           ) : (
@@ -140,10 +143,11 @@ export default function NewOrderPage() {
               const isExpanded = expandedPets.includes(pet.id);
               const petRecipes = (pet.recipes ?? []).filter((r) => !r.is_template);
               const selectedCount = petRecipes.filter((r) => selectedRecipeIds.includes(r.id)).length;
+              const speciesLabel = pet.type === "cat" ? tPets("cat") : tPets("dog");
 
               return (
                 <div key={pet.id} className="bg-card border rounded-xl shadow-sm overflow-hidden">
-                  {/* Pet header — click to expand */}
+                  {/* Pet accordion header */}
                   <button
                     type="button"
                     onClick={() => togglePet(pet.id)}
@@ -157,13 +161,13 @@ export default function NewOrderPage() {
                         <span className="font-semibold text-foreground">{pet.name}</span>
                         {selectedCount > 0 && (
                           <span className="text-xs font-semibold px-2 py-0.5 bg-primary/15 text-primary rounded-full">
-                            {selectedCount} selecionada{selectedCount > 1 ? "s" : ""}
+                            {selectedCount} {selectedCount === 1 ? t("selected_singular") : t("selected_plural")}
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground capitalize">
-                        {pet.breed || (pet.type === "cat" ? "Gato" : "Cachorro")} ·{" "}
-                        {petRecipes.length} receita{petRecipes.length !== 1 ? "s" : ""}
+                        {pet.breed || speciesLabel} · {petRecipes.length}{" "}
+                        {petRecipes.length === 1 ? t("items_count") : t("items_count_plural")}
                       </p>
                     </div>
                     {isExpanded ? (
@@ -178,7 +182,7 @@ export default function NewOrderPage() {
                     <div className="border-t divide-y divide-border/50">
                       {petRecipes.length === 0 ? (
                         <p className="px-4 py-4 text-sm text-muted-foreground text-center">
-                          {pet.name} não tem receitas vinculadas.
+                          {t("no_recipes_for_pet", { name: pet.name })}
                         </p>
                       ) : (
                         petRecipes.map((recipe) => {
@@ -190,17 +194,13 @@ export default function NewOrderPage() {
                               onClick={() => toggleRecipe(recipe.id)}
                               className={cn(
                                 "w-full flex items-center gap-4 px-4 py-3.5 text-left transition-colors",
-                                isSelected
-                                  ? "bg-primary/5"
-                                  : "hover:bg-muted/20"
+                                isSelected ? "bg-primary/5" : "hover:bg-muted/20"
                               )}
                             >
                               {/* Checkbox visual */}
                               <div className={cn(
                                 "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
-                                isSelected
-                                  ? "bg-primary border-primary"
-                                  : "border-border"
+                                isSelected ? "bg-primary border-primary" : "border-border"
                               )}>
                                 {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white fill-white" />}
                               </div>
@@ -214,7 +214,7 @@ export default function NewOrderPage() {
                                   {recipe.name}
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                  {recipe.duration_days}d · {recipe.ingredients?.length ?? 0} ingredientes
+                                  {recipe.duration_days}{tCat("days")[0]} · {recipe.ingredients?.length ?? 0} {tRec("ingredients").toLowerCase()}
                                 </p>
                               </div>
 
@@ -235,15 +235,16 @@ export default function NewOrderPage() {
 
         {/* ── Right: Order summary (sticky) ──────────────────────── */}
         <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-6">
+          {/* Recipe list summary */}
           <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b bg-muted/20">
-              <h2 className="font-semibold text-foreground">Resumo do Pedido</h2>
+              <h2 className="font-semibold text-foreground">{t("order_summary")}</h2>
             </div>
 
             {selectedRecipes.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground text-center px-4">
                 <UtensilsCrossed className="w-8 h-8 opacity-30" />
-                <p className="text-sm">Selecione receitas ao lado.</p>
+                <p className="text-sm">{t("select_recipes_hint")}</p>
               </div>
             ) : (
               <div className="divide-y divide-border/50">
@@ -270,7 +271,7 @@ export default function NewOrderPage() {
 
             {/* Total */}
             <div className="px-5 py-4 border-t bg-muted/10 flex items-center justify-between">
-              <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total</span>
+              <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("total")}</span>
               <span className="text-2xl font-bold text-primary">R$ {total.toFixed(2)}</span>
             </div>
           </div>
@@ -278,12 +279,12 @@ export default function NewOrderPage() {
           {/* Delivery details */}
           <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b bg-muted/20">
-              <h2 className="font-semibold text-foreground">Entrega (opcional)</h2>
+              <h2 className="font-semibold text-foreground">{t("delivery_optional")}</h2>
             </div>
             <div className="px-5 py-4 space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="delivery_date" className="text-sm flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" /> Data de entrega
+                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" /> {t("delivery_date_label")}
                 </Label>
                 <Input
                   id="delivery_date"
@@ -294,11 +295,11 @@ export default function NewOrderPage() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="delivery_address" className="text-sm flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-muted-foreground" /> Endereço
+                  <MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {t("delivery_address_label")}
                 </Label>
                 <Input
                   id="delivery_address"
-                  placeholder="Rua, número — Cidade/UF"
+                  placeholder={t("delivery_address_placeholder")}
                   value={deliveryAddress}
                   onChange={(e) => setDeliveryAddress(e.target.value)}
                 />
@@ -318,7 +319,9 @@ export default function NewOrderPage() {
             ) : (
               <ShoppingBag className="w-5 h-5" />
             )}
-            {isCreating ? "Criando pedido..." : `Confirmar Pedido${selectedRecipes.length > 0 ? ` (${selectedRecipes.length})` : ""}`}
+            {isCreating
+              ? t("creating")
+              : `${t("confirm_order")}${selectedRecipes.length > 0 ? ` (${selectedRecipes.length})` : ""}`}
           </Button>
         </div>
       </div>
