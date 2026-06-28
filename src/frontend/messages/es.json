@@ -400,6 +400,31 @@
     "state_label": "Estado",
     "zipcode": "Código Postal"
   },
+  "Production": {
+    "title": "Producción",
+    "description": "Gestiona el ciclo de producción de los pedidos.",
+    "cycle_phase": "Fase del Ciclo",
+    "phase_order_placed": "Pedido Realizado",
+    "phase_reposicao": "Reposición de Stock",
+    "phase_producao": "En Producción",
+    "phase_entrega": "Entrega",
+    "orders_this_month_singular": "pedido este mes",
+    "orders_this_month_plural": "pedidos este mes",
+    "no_orders_month": "No hay pedidos este mes.",
+    "order_detail_title": "Detalles del Pedido",
+    "close": "Cerrar",
+    "observations": "Observaciones",
+    "no_observations": "Sin observaciones.",
+    "items_label": "Ítems",
+    "view_recipe_btn": "Ver receta",
+    "calendar_view": "Calendario",
+    "list_view": "Lista",
+    "customer": "Cliente",
+    "reposicao_date": "Fecha de Reposición",
+    "producao_date": "Inicio de Producción",
+    "entrega_date": "Fecha de Entrega",
+    "placed_date": "Fecha del Pedido"
+  },
   "Metadata": {
     "description": "Sistema de gestión de alimentación natural para mascotas"
   },

@@ -400,6 +400,31 @@
     "state_label": "State",
     "zipcode": "ZIP Code"
   },
+  "Production": {
+    "title": "Production",
+    "description": "Manage the production cycle for orders.",
+    "cycle_phase": "Cycle Phase",
+    "phase_order_placed": "Order Placed",
+    "phase_reposicao": "Stock Replenishment",
+    "phase_producao": "In Production",
+    "phase_entrega": "Delivery",
+    "orders_this_month_singular": "order this month",
+    "orders_this_month_plural": "orders this month",
+    "no_orders_month": "No orders this month.",
+    "order_detail_title": "Order Details",
+    "close": "Close",
+    "observations": "Notes",
+    "no_observations": "No notes.",
+    "items_label": "Items",
+    "view_recipe_btn": "View recipe",
+    "calendar_view": "Calendar",
+    "list_view": "List",
+    "customer": "Customer",
+    "reposicao_date": "Replenishment Date",
+    "producao_date": "Production Start",
+    "entrega_date": "Delivery Date",
+    "placed_date": "Order Date"
+  },
   "Metadata": {
     "description": "Natural pet food management system"
   },
