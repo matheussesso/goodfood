@@ -72,7 +72,7 @@
     "recipes": "Recipe Templates",
     "settings": "Settings",
     "settings_title": "Markup and Cost Settings",
-    "settings_warning": "Changing these multipliers will affect price calculations for all new recipes.",
+    "settings_warning": "The base cost is calculated automatically from the ingredients. Adjust ingredients to change the cost.",
     "save_settings": "Save Settings",
     "new_ingredient": "New Ingredient",
     "edit_ingredient": "Edit Ingredient",
@@ -137,7 +137,8 @@
     "result": "Result",
     "min_profit": "Minimum Profit",
     "base_price_label": "Base Price ($)",
-    "all_species_admin": "All Species"
+    "all_species_admin": "All Species",
+    "pricing_warning_title": "Base Cost Notice"
   },
   "Recipes": {
     "title": "New Recipe",

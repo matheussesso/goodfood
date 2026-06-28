@@ -72,7 +72,7 @@
     "recipes": "Receitas Modelos",
     "settings": "Configurações",
     "settings_title": "Configurações de Repasse e Custos",
-    "settings_warning": "Alterar estes multiplicadores afetará o cálculo de preços de todas as novas receitas criadas.",
+    "settings_warning": "O custo base é calculado automaticamente a partir dos ingredientes. Ajuste os ingredientes para alterar o custo.",
     "save_settings": "Salvar Configurações",
     "new_ingredient": "Novo Ingrediente",
     "edit_ingredient": "Editar Ingrediente",
@@ -137,7 +137,8 @@
     "result": "Resultado",
     "min_profit": "Lucro Mínimo",
     "base_price_label": "Preço Base (R$)",
-    "all_species_admin": "Todas as Espécies"
+    "all_species_admin": "Todas as Espécies",
+    "pricing_warning_title": "Atenção ao Custo Base"
   },
   "Recipes": {
     "title": "Nova Receita",

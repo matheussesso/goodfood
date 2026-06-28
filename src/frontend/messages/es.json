@@ -72,7 +72,7 @@
     "recipes": "Plantillas de Recetas",
     "settings": "Configuraciones",
     "settings_title": "Configuración de Costes y Recargos",
-    "settings_warning": "Cambiar estos multiplicadores afectará el cálculo de precios para todas las nuevas recetas.",
+    "settings_warning": "El coste base se calcula automáticamente a partir de los ingredientes. Ajuste los ingredientes para cambiar el coste.",
     "save_settings": "Guardar Configuraciones",
     "new_ingredient": "Nuevo Ingrediente",
     "edit_ingredient": "Editar Ingrediente",
@@ -137,7 +137,8 @@
     "result": "Resultado",
     "min_profit": "Beneficio Mínimo",
     "base_price_label": "Precio Base ($)",
-    "all_species_admin": "Todas las Especies"
+    "all_species_admin": "Todas las Especies",
+    "pricing_warning_title": "Aviso de Coste Base"
   },
   "Recipes": {
     "title": "Nueva Receta",
