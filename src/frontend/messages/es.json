@@ -222,7 +222,8 @@
     "total_duration": "Duración total:",
     "daily_portions_label": "Porciones diarias:",
     "save_changes": "Guardar Cambios",
-    "copy_suffix": " (Copia)"
+    "copy_suffix": " (Copia)",
+    "base_cost": "Coste Base"
   },
   "Pets": {
     "title": "Mis Mascotas",

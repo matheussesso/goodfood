@@ -222,7 +222,8 @@
     "total_duration": "Total duration:",
     "daily_portions_label": "Daily portions:",
     "save_changes": "Save Changes",
-    "copy_suffix": " (Copy)"
+    "copy_suffix": " (Copy)",
+    "base_cost": "Base Cost"
   },
   "Pets": {
     "title": "My Pets",

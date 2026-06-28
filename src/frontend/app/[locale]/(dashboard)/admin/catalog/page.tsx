@@ -15,6 +15,12 @@ import { cn } from "@/lib/utils";
 import { useSettings, GeneralSettings } from "@/hooks/useSettings";
 import { useForm } from "react-hook-form";
 
+/** ATM-style currency mask: raw digit string (cents) → "R$ X.XXX,XX" */
+function formatCurrencyMask(digits: string): string {
+  const num = parseInt(digits || "0", 10) || 0;
+  return "R$ " + (num / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export default function CatalogPage() {
   const tNav = useTranslations("Navigation");
   const t = useTranslations("Catalog");
@@ -268,12 +274,14 @@ export default function CatalogPage() {
       setEditingIng(ing);
       setIngForm({
         name: ing.name, category: ing.category || "Outro", description: ing.description || "", unit: ing.unit,
-        cost_per_unit: ing.cost_per_unit.toString(), loss_rate: ing.loss_rate.toString(), 
-        difficulty_multiplier: ing.difficulty_multiplier.toString(), is_active: ing.is_active
+        cost_per_unit: Math.round((ing.cost_per_unit ?? 0) * 100).toString(),
+        loss_rate: Number(ing.loss_rate).toFixed(2),
+        difficulty_multiplier: Number(ing.difficulty_multiplier).toFixed(2),
+        is_active: ing.is_active,
       });
     } else {
       setEditingIng(null);
-      setIngForm({ name: "", category: "Outro", description: "", unit: "kg", cost_per_unit: "", loss_rate: "0", difficulty_multiplier: "1.0", is_active: true });
+      setIngForm({ name: "", category: "Outro", description: "", unit: "kg", cost_per_unit: "", loss_rate: "0.00", difficulty_multiplier: "1.00", is_active: true });
     }
     setIsIngModalOpen(true);
   };
@@ -283,8 +291,10 @@ export default function CatalogPage() {
 
     const errors: Record<string, string> = {};
     if (!ingForm.name.trim()) errors.name = t("validation_required");
-    const cost = parseFloat(ingForm.cost_per_unit);
-    if (!ingForm.cost_per_unit || isNaN(cost) || cost < 0) errors.cost_per_unit = t("validation_positive_number");
+    // cost_per_unit stored as raw digits (cents); convert back to decimal
+    const costCents = parseInt(ingForm.cost_per_unit || "0", 10) || 0;
+    const cost = costCents / 100;
+    if (costCents <= 0) errors.cost_per_unit = t("validation_positive_number");
     const loss = parseFloat(ingForm.loss_rate);
     if (isNaN(loss) || loss < 0) errors.loss_rate = t("validation_non_negative");
     const diff = parseFloat(ingForm.difficulty_multiplier);
@@ -835,9 +845,14 @@ export default function CatalogPage() {
             <div className="space-y-1.5">
               <Label>{t("base_price_label")}</Label>
               <Input
-                type="number" step="0.01" min="0"
-                value={ingForm.cost_per_unit}
-                onChange={e => { setIngForm({...ingForm, cost_per_unit: e.target.value}); setIngFormErrors(p => ({...p, cost_per_unit: ""})); }}
+                type="text"
+                inputMode="numeric"
+                value={formatCurrencyMask(ingForm.cost_per_unit)}
+                onChange={e => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  setIngForm({...ingForm, cost_per_unit: digits});
+                  setIngFormErrors(p => ({...p, cost_per_unit: ""}));
+                }}
                 className={ingFormErrors.cost_per_unit ? "border-destructive" : ""}
               />
               {ingFormErrors.cost_per_unit && <p className="text-xs text-destructive">{ingFormErrors.cost_per_unit}</p>}
@@ -848,9 +863,18 @@ export default function CatalogPage() {
             <div className="space-y-1.5">
               <Label>{t("loss_rate_label")}</Label>
               <Input
-                type="number" step="0.01" min="0"
+                type="text"
+                inputMode="decimal"
                 value={ingForm.loss_rate}
-                onChange={e => { setIngForm({...ingForm, loss_rate: e.target.value}); setIngFormErrors(p => ({...p, loss_rate: ""})); }}
+                onChange={e => {
+                  const v = e.target.value.replace(/[^0-9.]/g, "").replace(/^(\d*\.?\d*).*/, "$1");
+                  setIngForm({...ingForm, loss_rate: v});
+                  setIngFormErrors(p => ({...p, loss_rate: ""}));
+                }}
+                onBlur={() => {
+                  const n = parseFloat(ingForm.loss_rate);
+                  if (!isNaN(n)) setIngForm(f => ({...f, loss_rate: n.toFixed(2)}));
+                }}
                 className={ingFormErrors.loss_rate ? "border-destructive" : ""}
               />
               {ingFormErrors.loss_rate && <p className="text-xs text-destructive">{ingFormErrors.loss_rate}</p>}
@@ -858,9 +882,18 @@ export default function CatalogPage() {
             <div className="space-y-1.5">
               <Label>{t("difficulty_multiplier_label")}</Label>
               <Input
-                type="number" step="0.01" min="0.01"
+                type="text"
+                inputMode="decimal"
                 value={ingForm.difficulty_multiplier}
-                onChange={e => { setIngForm({...ingForm, difficulty_multiplier: e.target.value}); setIngFormErrors(p => ({...p, difficulty_multiplier: ""})); }}
+                onChange={e => {
+                  const v = e.target.value.replace(/[^0-9.]/g, "").replace(/^(\d*\.?\d*).*/, "$1");
+                  setIngForm({...ingForm, difficulty_multiplier: v});
+                  setIngFormErrors(p => ({...p, difficulty_multiplier: ""}));
+                }}
+                onBlur={() => {
+                  const n = parseFloat(ingForm.difficulty_multiplier);
+                  if (!isNaN(n)) setIngForm(f => ({...f, difficulty_multiplier: n.toFixed(2)}));
+                }}
                 className={ingFormErrors.difficulty_multiplier ? "border-destructive" : ""}
               />
               {ingFormErrors.difficulty_multiplier && <p className="text-xs text-destructive">{ingFormErrors.difficulty_multiplier}</p>}
