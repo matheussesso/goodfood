@@ -109,7 +109,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Order fetched successfully',
-            'data'    => $order->load(['user', 'pet', 'items.recipe', 'subscription']),
+            'data'    => $order->load(['user', 'pet', 'items.recipe.ingredients', 'items.pet', 'subscription']),
         ]);
     }
 

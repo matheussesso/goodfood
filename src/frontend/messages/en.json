@@ -342,7 +342,13 @@
     "order_date": "Placed on",
     "order_items_label": "Order recipes",
     "per_pet": "for {pet}",
-    "delivery_address_detail": "Delivery address"
+    "delivery_address_detail": "Delivery address",
+    "order_not_found": "Order not found",
+    "order_not_found_desc": "This order does not exist or you do not have permission to view it.",
+    "order_status_section": "Order Progress",
+    "no_delivery_address": "No address provided",
+    "view_detail": "View Details",
+    "order_customer_section": "Customer Info"
   },
   "admin": {
     "dashboard": "Admin Dashboard",

@@ -50,6 +50,44 @@ export interface CreateOrderPayload {
 }
 
 /**
+ * Fetches a single order by ID with full relations (items, recipe ingredients, pet).
+ *
+ * @param id - The order ID to fetch.
+ * @returns The order, loading state, error, and an update mutator.
+ */
+export function useOrder(id: string | number) {
+  const queryClient = useQueryClient();
+
+  const { data: order, isLoading, error } = useQuery({
+    queryKey: ["orders", String(id)],
+    queryFn: async () => {
+      const response = await apiClient.get(`/orders/${id}`);
+      return response.data.data as Order;
+    },
+    enabled: !!id,
+  });
+
+  const updateOrder = useMutation({
+    mutationFn: async (data: Partial<Order>) => {
+      const response = await apiClient.put(`/orders/${id}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders", String(id)] });
+    },
+  });
+
+  return {
+    order,
+    isLoading,
+    error,
+    updateOrder: updateOrder.mutateAsync,
+    isUpdating: updateOrder.isPending,
+  };
+}
+
+/**
  * Provides order data and mutations for the current user (or all users for admins).
  *
  * @returns Orders list, loading state, and create/update mutators.

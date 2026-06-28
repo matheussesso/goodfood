@@ -25,6 +25,7 @@ import {
   Filter,
   ExternalLink,
   Salad,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -233,15 +234,20 @@ function OrderCard({ order, t }: { order: Order; t: ReturnType<typeof useTransla
         }
       </div>
 
-      {/* ── Address footer ─────────────────────────────────── */}
-      {order.delivery_address && (
-        <div className="px-4 py-3 border-t bg-muted/10 mt-auto">
-          <p className="text-xs text-muted-foreground flex items-start gap-1.5 line-clamp-2">
+      {/* ── Footer: address + view link ─────────────────────────────── */}
+      <div className="px-4 pb-4 mt-auto space-y-2">
+        {order.delivery_address && (
+          <p className="text-xs text-muted-foreground flex items-start gap-1.5 pt-3 border-t line-clamp-2">
             <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/60" />
             {order.delivery_address}
           </p>
-        </div>
-      )}
+        )}
+        <Link href={`/orders/${order.id}`} className={order.delivery_address ? "" : "block pt-3 border-t"}>
+          <Button variant="ghost" size="sm" className="w-full text-xs gap-1 h-8">
+            {t("view_detail")} <ChevronRight className="w-3 h-3" />
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -278,10 +284,17 @@ function OrderRow({ order, t }: { order: Order; t: ReturnType<typeof useTranslat
 
         <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1.5 shrink-0">
           <p className="text-lg font-bold text-primary">R$ {Number(order.total_price).toFixed(2)}</p>
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
-            {new Date(order.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <Calendar className="w-3 h-3" />
+              {new Date(order.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
+            </p>
+            <Link href={`/orders/${order.id}`}>
+              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 px-2.5">
+                {t("view_detail")} <ChevronRight className="w-3 h-3" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 

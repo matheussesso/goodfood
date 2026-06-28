@@ -24,7 +24,7 @@
   },
   "Navigation": {
     "dashboard": "Dashboard",
-    "dashboard_admin": "Dashboard Admin",
+    "dashboard_admin": "Dashboard",
     "customers": "Clientes",
     "pets": "Mis Mascotas",
     "subscriptions": "Suscripciones",
@@ -342,7 +342,13 @@
     "order_date": "Realizado el",
     "order_items_label": "Recetas del pedido",
     "per_pet": "para {pet}",
-    "delivery_address_detail": "Dirección de entrega"
+    "delivery_address_detail": "Dirección de entrega",
+    "order_not_found": "Pedido no encontrado",
+    "order_not_found_desc": "Este pedido no existe o no tienes permiso para verlo.",
+    "order_status_section": "Seguimiento del Pedido",
+    "no_delivery_address": "Dirección no informada",
+    "view_detail": "Ver Detalles",
+    "order_customer_section": "Datos del Cliente"
   },
   "admin": {
     "dashboard": "Panel de Administración",
