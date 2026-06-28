@@ -131,6 +131,9 @@ export default function CatalogPage() {
   const [adminIngCategory, setAdminIngCategory] = useState("all");
 
   const [adminRecCategoryFilter, setAdminRecCategoryFilter] = useState("Todos");
+  const [adminRecSearch, setAdminRecSearch] = useState("");
+  const [adminRecPetFilter, setAdminRecPetFilter] = useState("all");
+  const [recipesViewMode, setRecipesViewMode] = useState<"grid" | "list">("grid");
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
   const [recCostPerKg, setRecCostPerKg] = useState<number>(0);
   const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
@@ -292,244 +295,339 @@ export default function CatalogPage() {
       </div>
 
       {activeTab === "settings" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("settings_title")}</CardTitle>
-            <CardDescription>
-              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-lg p-3 flex items-start gap-2 mt-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span className="text-sm">{t("settings_warning")}</span>
-              </div>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingSettings ? <div className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> : (
-              <form onSubmit={handleSettingsSubmit(onSettingsSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {settingsSections.map((section, idx) => (
-                    <div key={idx} className="bg-card border rounded-xl p-4 shadow-sm">
-                      <h3 className="text-md font-semibold mb-3 text-primary border-b pb-1">
-                        {section.title}
-                      </h3>
-                      <div className="space-y-3">
+        <div className="space-y-6">
+          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 rounded-xl p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-sm">Atenção: Configurações de Precificação</p>
+              <p className="text-sm mt-0.5 text-amber-600 dark:text-amber-500">{t("settings_warning")}</p>
+            </div>
+          </div>
+
+          {isLoadingSettings ? (
+            <div className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
+          ) : (
+            <form onSubmit={handleSettingsSubmit(onSettingsSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {settingsSections.map((section, idx) => (
+                  <div key={idx} className="bg-card border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    <div className="h-1 bg-gradient-to-r from-primary to-primary/20" />
+                    <div className="p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                          <Settings2 className="w-3.5 h-3.5 text-primary" />
+                        </div>
+                        <h3 className="font-semibold text-sm text-foreground">{section.title}</h3>
+                      </div>
+                      <div className={cn("gap-4", section.fields.length > 1 ? "grid grid-cols-1 sm:grid-cols-2" : "flex flex-col")}>
                         {section.fields.map((field) => (
-                          <div key={field.name}>
-                            <label className="block text-xs font-medium text-foreground mb-1">
+                          <div key={field.name} className="space-y-1.5">
+                            <label className="block text-xs font-medium text-muted-foreground">
                               {field.label}
                             </label>
-                            <input
+                            <Input
                               type={field.type}
                               step={field.step}
                               {...registerSettings(field.name as keyof GeneralSettings, { valueAsNumber: true })}
-                              className="w-full px-2 py-1.5 bg-background border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                             />
                             {settingsErrors[field.name as keyof GeneralSettings] && (
-                              <span className="text-xs text-destructive mt-1">Inválido</span>
+                              <span className="text-xs text-destructive">Inválido</span>
                             )}
                           </div>
                         ))}
                       </div>
                     </div>
-                  ))}
-                </div>
-                <div className="flex justify-end pt-4 border-t">
-                  <Button type="submit" disabled={isUpdatingSettings}>
-                    {isUpdatingSettings ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                    {t("save_settings")}
-                  </Button>
-                </div>
-              </form>
-            )}
-          </CardContent>
-        </Card>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button type="submit" size="lg" disabled={isUpdatingSettings} className="shadow-md min-w-[180px]">
+                  {isUpdatingSettings ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                  {t("save_settings")}
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
       )}
 
       {activeTab === "ingredients" && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>{t("ingredients")}</CardTitle>
-              <CardDescription>{t("ingredients_desc")}</CardDescription>
+        <div className="space-y-4">
+          {/* Filter bar */}
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center bg-card p-4 rounded-xl border shadow-sm">
+            <div className="relative flex-1 w-full min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar ingrediente..."
+                className="pl-9 h-10 w-full"
+                value={adminIngSearch}
+                onChange={e => setAdminIngSearch(e.target.value)}
+              />
             </div>
-            <Button onClick={() => handleOpenIngModal()}><Plus className="h-4 w-4 mr-2" /> {t("new_ingredient")}</Button>
-          </CardHeader>
-          <CardContent>
-            {isLoadingIng ? <div className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> : (
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      placeholder="Buscar ingrediente..." 
-                      className="pl-9"
-                      value={adminIngSearch}
-                      onChange={e => setAdminIngSearch(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-muted-foreground" />
-                    <select 
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={adminIngCategory}
-                      onChange={e => setAdminIngCategory(e.target.value)}
-                    >
-                      <option value="all">Todas as Categorias</option>
-                      <option value="Proteína">Proteína</option>
-                      <option value="Carboidrato">Carboidrato</option>
-                      <option value="Vegetal">Vegetal</option>
-                      <option value="Gordura">Gordura</option>
-                      <option value="Suplemento">Suplemento</option>
-                      <option value="Outro">Outro</option>
-                    </select>
-                    <div className="flex items-center border rounded-md p-1 bg-muted/30 ml-2">
-                      <Button 
-                        variant={viewMode === "grid" ? "secondary" : "ghost"} 
-                        size="icon" 
-                        className="h-8 w-8" 
-                        onClick={() => setViewMode("grid")}
-                        title="Visualização em Cards"
-                      >
-                        <LayoutGrid className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant={viewMode === "list" ? "secondary" : "ghost"} 
-                        size="icon" 
-                        className="h-8 w-8" 
-                        onClick={() => setViewMode("list")}
-                        title="Visualização em Lista"
-                      >
-                        <List className="h-4 w-4" />
-                      </Button>
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <select
+                className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm min-w-[180px]"
+                value={adminIngCategory}
+                onChange={e => setAdminIngCategory(e.target.value)}
+              >
+                <option value="all">Todas as Categorias</option>
+                <option value="Proteína">Proteína</option>
+                <option value="Carboidrato">Carboidrato</option>
+                <option value="Vegetal">Vegetal</option>
+                <option value="Gordura">Gordura</option>
+                <option value="Suplemento">Suplemento</option>
+                <option value="Outro">Outro</option>
+              </select>
+              <div className="hidden md:flex border rounded-md">
+                <Button variant={viewMode === "grid" ? "secondary" : "ghost"} size="icon" className="h-10 w-10 rounded-r-none" onClick={() => setViewMode("grid")}><LayoutGrid className="h-4 w-4" /></Button>
+                <Button variant={viewMode === "list" ? "secondary" : "ghost"} size="icon" className="h-10 w-10 rounded-l-none" onClick={() => setViewMode("list")}><List className="h-4 w-4" /></Button>
+              </div>
+              <Button onClick={() => handleOpenIngModal()}><Plus className="h-4 w-4 mr-2" /> {t("new_ingredient")}</Button>
+            </div>
+          </div>
+
+          {isLoadingIng ? (
+            <div className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
+          ) : viewMode === "grid" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {ingredients?.filter(ing => {
+                if (adminIngCategory !== "all" && ing.category !== adminIngCategory) return false;
+                if (adminIngSearch && !ing.name.toLowerCase().includes(adminIngSearch.toLowerCase())) return false;
+                return true;
+              }).map(ing => (
+                <Card key={ing.id} className="group hover:shadow-md hover:border-primary/30 transition-all overflow-hidden">
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="min-w-0">
+                        <h4 className="font-semibold text-sm line-clamp-1" title={ing.name}>{ing.name}</h4>
+                        <span className={cn(
+                          "inline-block text-[10px] font-medium px-2 py-0.5 rounded-full mt-1",
+                          ing.category === 'Proteína' ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                          ing.category === 'Carboidrato' ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                          ing.category === 'Vegetal' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                          ing.category === 'Gordura' ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" :
+                          ing.category === 'Suplemento' ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                          "bg-muted text-muted-foreground"
+                        )}>{ing.category || 'Geral'}</span>
+                      </div>
+                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenIngModal(ing)}><Edit2 className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteIng(ing.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 divide-x divide-border/50 bg-muted/30 rounded-lg">
+                      <div className="px-2 py-2 text-center">
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">Preço</span>
+                        <span className="font-semibold text-xs text-primary">R$ {Number(ing.cost_per_unit).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                        <span className="block text-[9px] text-muted-foreground">/{ing.unit === 'g' || ing.unit === 'kg' ? 'kg' : ing.unit === 'l' || ing.unit === 'ml' ? 'L' : 'un'}</span>
+                      </div>
+                      <div className="px-2 py-2 text-center">
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">Perda</span>
+                        <span className="font-medium text-xs">{ing.loss_rate}x</span>
+                      </div>
+                      <div className="px-2 py-2 text-center">
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">Dific.</span>
+                        <span className="font-medium text-xs">x{ing.difficulty_multiplier}</span>
+                      </div>
                     </div>
                   </div>
+                </Card>
+              ))}
+              {ingredients?.filter(ing => {
+                if (adminIngCategory !== "all" && ing.category !== adminIngCategory) return false;
+                if (adminIngSearch && !ing.name.toLowerCase().includes(adminIngSearch.toLowerCase())) return false;
+                return true;
+              }).length === 0 && (
+                <div className="col-span-4 p-12 text-center text-muted-foreground border rounded-lg border-dashed">
+                  <Apple className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
+                  <p>{t("no_ingredients")}</p>
                 </div>
-
-                <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "flex flex-col gap-2"}>
+              )}
+            </div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden bg-card">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-muted-foreground bg-muted/50 uppercase">
+                  <tr>
+                    <th className="px-6 py-3 font-medium">Nome / Categoria</th>
+                    <th className="px-6 py-3 font-medium text-center">Unidade</th>
+                    <th className="px-6 py-3 font-medium text-right">Preço Base</th>
+                    <th className="px-6 py-3 font-medium text-center">Taxa de Perda</th>
+                    <th className="px-6 py-3 font-medium text-center">Dificuldade</th>
+                    <th className="px-6 py-3 font-medium text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
                   {ingredients?.filter(ing => {
                     if (adminIngCategory !== "all" && ing.category !== adminIngCategory) return false;
                     if (adminIngSearch && !ing.name.toLowerCase().includes(adminIngSearch.toLowerCase())) return false;
                     return true;
                   }).map(ing => (
-                    viewMode === "grid" ? (
-                      <Card key={ing.id} className="relative group hover:shadow-md transition-all overflow-hidden flex flex-col h-full">
-                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-background/80 backdrop-blur-sm rounded-md p-0.5">
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenIngModal(ing)}><Edit2 className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteIng(ing.id)}><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                        <div className="p-4 border-b bg-muted/10">
-                          <h4 className="font-semibold text-sm line-clamp-1 pr-12 mb-1" title={ing.name}>{ing.name}</h4>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground">
-                            {ing.category || 'Sem Categoria'}
-                          </span>
-                        </div>
-                        <div className="p-4 text-sm flex-1 flex flex-col justify-center space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Preço:</span>
-                            <span className="font-semibold text-primary">R$ {ing.cost_per_unit} <span className="text-xs text-muted-foreground font-normal">/ {ing.unit === 'g' || ing.unit === 'kg' ? 'kg' : ing.unit === 'l' ? 'L' : 'un'}</span></span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Perda:</span>
-                            <span className="font-medium">{ing.loss_rate}%</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Dificuldade:</span>
-                            <span className="font-medium">x{ing.difficulty_multiplier}</span>
-                          </div>
-                        </div>
-                      </Card>
-                    ) : (
-                      <div key={ing.id} className="flex items-center justify-between p-3 border rounded-md hover:bg-muted/30 transition-colors group bg-card">
-                        <div className="flex-1 grid grid-cols-12 gap-4 items-center">
-                          <div className="col-span-12 sm:col-span-5 lg:col-span-4">
-                            <h4 className="font-semibold text-sm line-clamp-1 mb-0.5" title={ing.name}>{ing.name}</h4>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground">
-                              {ing.category || 'Sem Categoria'}
-                            </span>
-                          </div>
-                          <div className="hidden sm:flex col-span-3 lg:col-span-3 flex-col text-sm">
-                            <span className="text-muted-foreground text-[10px] uppercase">Preço</span>
-                            <span className="font-medium text-primary">R$ {ing.cost_per_unit} <span className="text-xs text-muted-foreground font-normal">/ {ing.unit === 'g' || ing.unit === 'kg' ? 'kg' : ing.unit === 'l' ? 'L' : 'un'}</span></span>
-                          </div>
-                          <div className="hidden lg:flex col-span-2 flex-col text-sm">
-                            <span className="text-muted-foreground text-[10px] uppercase">Perda</span>
-                            <span className="font-medium">{ing.loss_rate}%</span>
-                          </div>
-                          <div className="hidden lg:flex col-span-2 flex-col text-sm">
-                            <span className="text-muted-foreground text-[10px] uppercase">Dificuldade</span>
-                            <span className="font-medium">x{ing.difficulty_multiplier}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
+                    <tr key={ing.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-3">
+                        <div className="font-semibold">{ing.name}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{ing.category || 'Sem Categoria'}</div>
+                      </td>
+                      <td className="px-6 py-3 text-center uppercase text-xs font-medium">{ing.unit}</td>
+                      <td className="px-6 py-3 text-right font-semibold text-primary">R$ {Number(ing.cost_per_unit).toFixed(2)}</td>
+                      <td className="px-6 py-3 text-center">{ing.loss_rate}x</td>
+                      <td className="px-6 py-3 text-center">x{ing.difficulty_multiplier}</td>
+                      <td className="px-6 py-3 text-right">
+                        <div className="flex gap-1 justify-end">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => handleOpenIngModal(ing)}><Edit2 className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteIng(ing.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
-                      </div>
-                    )
+                      </td>
+                    </tr>
                   ))}
-                </div>
-                {ingredients?.length === 0 && <div className="p-8 text-center text-muted-foreground">{t("no_ingredients")}</div>}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
 
       {activeTab === "recipes" && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>{t("recipes")}</CardTitle>
-              <CardDescription>{t("recipes_desc")}</CardDescription>
+        <div className="space-y-4">
+          {/* Filter bar */}
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center bg-card p-4 rounded-xl border shadow-sm">
+            <div className="relative flex-1 w-full min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar receita modelo..."
+                className="pl-9 h-10 w-full"
+                value={adminRecSearch}
+                onChange={e => setAdminRecSearch(e.target.value)}
+              />
             </div>
-            <Button onClick={() => handleOpenRecModal()}><Plus className="h-4 w-4 mr-2" /> {t("new_recipe")}</Button>
-          </CardHeader>
-          <CardContent>
-            {isLoadingRec ? <div className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {recipes?.filter(r => r.is_template).map(rec => (
-                  <Card key={rec.id} className="bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <CardHeader className="p-4 flex flex-row items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg">{rec.name}</CardTitle>
-                        <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
-                          <span>{t("duration")}: <strong className="text-foreground">{rec.duration_days} {t("days")}</strong></span>
-                          <span>{rec.daily_portions} porções/dia</span>
-                          <span className="text-primary font-semibold">R$ {Number(rec.base_cost).toFixed(2)}</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenRecModal(rec, "template")}><Edit2 className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteRec(rec.id)}><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t("composition")}</p>
-                      <ul className="space-y-1 text-sm">
-                        {rec.ingredients?.map(i => {
-                          const qty = parseFloat(i.pivot.quantity);
-                          const unit = i.pivot.unit || i.unit;
-                          const costPerDay = (i.cost_per_unit ?? 0) * qty * (i.loss_rate ?? 1);
-                          const totalCost = costPerDay * (rec.duration_days ?? 15);
-                          return (
-                            <li key={i.id} className="flex justify-between items-center text-muted-foreground border-b border-border/30 pb-1 last:border-0">
-                              <span className="truncate flex-1 mr-2">{i.name} <span className="text-xs opacity-70">{qty} {unit}/dia</span></span>
-                              <span className="shrink-0 text-xs font-medium text-foreground">R$ {totalCost.toFixed(2)}</span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                ))}
-                {recipes?.filter(r => r.is_template).length === 0 && (
-                  <div className="col-span-2 p-8 text-center text-muted-foreground border rounded-md">
-                    {t("no_recipes")}
-                  </div>
-                )}
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <select
+                className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm min-w-[160px]"
+                value={adminRecPetFilter}
+                onChange={e => setAdminRecPetFilter(e.target.value)}
+              >
+                <option value="all">Todas as Espécies</option>
+                <option value="dog">Cachorro</option>
+                <option value="cat">Gato</option>
+              </select>
+              <div className="hidden md:flex border rounded-md">
+                <Button variant={recipesViewMode === "grid" ? "secondary" : "ghost"} size="icon" className="h-10 w-10 rounded-r-none" onClick={() => setRecipesViewMode("grid")}><LayoutGrid className="h-4 w-4" /></Button>
+                <Button variant={recipesViewMode === "list" ? "secondary" : "ghost"} size="icon" className="h-10 w-10 rounded-l-none" onClick={() => setRecipesViewMode("list")}><List className="h-4 w-4" /></Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <Button onClick={() => handleOpenRecModal()}><Plus className="h-4 w-4 mr-2" /> {t("new_recipe")}</Button>
+            </div>
+          </div>
+
+          {isLoadingRec ? (
+            <div className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
+          ) : recipesViewMode === "grid" ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {recipes?.filter(r => {
+                if (!r.is_template) return false;
+                if (adminRecSearch && !r.name.toLowerCase().includes(adminRecSearch.toLowerCase())) return false;
+                if (adminRecPetFilter !== "all" && r.pet_type !== adminRecPetFilter) return false;
+                return true;
+              }).map(rec => (
+                <Card key={rec.id} className="flex flex-col overflow-hidden hover:border-primary/30 hover:shadow-md transition-all">
+                  <div className="p-4 pb-3 border-b bg-muted/20 flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-base line-clamp-1">{rec.name}</h4>
+                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1 min-h-[1.25rem]">{rec.description || "Sem descrição."}</p>
+                    </div>
+                    <div className="flex gap-0.5 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => handleOpenRecModal(rec, "template")}><Edit2 className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRec(rec.id)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  </div>
+                  <CardContent className="pt-4 flex-1 flex flex-col">
+                    <div className="grid grid-cols-4 gap-x-2 gap-y-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Espécie</span>
+                        <span className="font-medium text-xs">{rec.pet_type === 'cat' ? 'Gato' : rec.pet_type === 'dog' ? 'Cão' : 'Geral'}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Duração</span>
+                        <span className="font-medium text-xs">{rec.duration_days}d</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Porções</span>
+                        <span className="font-medium text-xs">{rec.daily_portions}/dia</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Custo Base</span>
+                        <span className="font-semibold text-xs text-amber-600 dark:text-amber-400">R$ {Number(rec.ingredient_cost ?? 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                    {rec.ingredients && rec.ingredients.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border/50 flex-1">
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Composição</p>
+                        <ul className="space-y-1">
+                          {rec.ingredients.slice(0, 3).map(i => (
+                            <li key={i.id} className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground truncate flex-1 mr-2">{i.name}</span>
+                              <span className="font-medium shrink-0 text-[10px] bg-muted px-1.5 py-0.5 rounded">{i.pivot.quantity} {i.pivot.unit || i.unit}/dia</span>
+                            </li>
+                          ))}
+                          {rec.ingredients.length > 3 && (
+                            <li className="text-[10px] text-muted-foreground">+{rec.ingredients.length - 3} ingrediente(s)</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+              {recipes?.filter(r => r.is_template && (adminRecSearch ? r.name.toLowerCase().includes(adminRecSearch.toLowerCase()) : true) && (adminRecPetFilter !== "all" ? r.pet_type === adminRecPetFilter : true)).length === 0 && (
+                <div className="col-span-3 p-12 text-center text-muted-foreground border rounded-lg border-dashed">
+                  <BookOpen className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
+                  <p>{t("no_recipes")}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden bg-card">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-muted-foreground bg-muted/50 uppercase">
+                  <tr>
+                    <th className="px-6 py-3 font-medium">Nome</th>
+                    <th className="px-6 py-3 font-medium text-center">Espécie</th>
+                    <th className="px-6 py-3 font-medium text-center">Duração</th>
+                    <th className="px-6 py-3 font-medium text-center">Porções/dia</th>
+                    <th className="px-6 py-3 font-medium text-center">Ingredientes</th>
+                    <th className="px-6 py-3 font-medium text-right">Custo Base</th>
+                    <th className="px-6 py-3 font-medium text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {recipes?.filter(r => {
+                    if (!r.is_template) return false;
+                    if (adminRecSearch && !r.name.toLowerCase().includes(adminRecSearch.toLowerCase())) return false;
+                    if (adminRecPetFilter !== "all" && r.pet_type !== adminRecPetFilter) return false;
+                    return true;
+                  }).map(rec => (
+                    <tr key={rec.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-semibold">{rec.name}</div>
+                        <div className="text-xs text-muted-foreground line-clamp-1 max-w-[220px] mt-0.5">{rec.description}</div>
+                      </td>
+                      <td className="px-6 py-4 text-center">{rec.pet_type === 'cat' ? 'Gato' : rec.pet_type === 'dog' ? 'Cachorro' : 'Geral'}</td>
+                      <td className="px-6 py-4 text-center">{rec.duration_days} dias</td>
+                      <td className="px-6 py-4 text-center">{rec.daily_portions}</td>
+                      <td className="px-6 py-4 text-center">{rec.ingredients?.length ?? 0}</td>
+                      <td className="px-6 py-4 text-right font-semibold text-amber-600 dark:text-amber-400">R$ {Number(rec.ingredient_cost ?? 0).toFixed(2)}</td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex gap-1 justify-end">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenRecModal(rec, "template")}><Edit2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRec(rec.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Ingredient Modal */}

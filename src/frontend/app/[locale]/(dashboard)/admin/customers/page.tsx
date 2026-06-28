@@ -1,138 +1,399 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { useCustomers } from "@/hooks/useCustomers";
-import { Users, Search, ChevronRight, Activity, CalendarDays } from "lucide-react";
+import {
+  Users,
+  Search,
+  ChevronRight,
+  CalendarDays,
+  LayoutGrid,
+  List as ListIcon,
+  Mail,
+  Phone,
+  PawPrint,
+  ShoppingBag,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// Hook for debounce
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-  return debouncedValue;
+/** Returns two uppercase initials from a full name. */
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
 }
 
+/**
+ * Generates a deterministic HSL color from a string for avatar backgrounds.
+ * @param str - Input string (typically user name).
+ * @returns HSL color string.
+ */
+function nameToHsl(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 60%, 42%)`;
+}
+
+/** Generic debounce hook. */
+function useDebounce<T>(value: T, delay: number): T {
+  const [dv, setDv] = useState<T>(value);
+  useEffect(() => {
+    const h = setTimeout(() => setDv(value), delay);
+    return () => clearTimeout(h);
+  }, [value, delay]);
+  return dv;
+}
+
+type SortKey = "date" | "name" | "pets" | "orders";
+
+/**
+ * Admin customers listing page with grid/list views, search, and sort.
+ *
+ * @returns The admin customers management page element.
+ */
 export default function CustomersPage() {
   const t = useTranslations("admin");
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearch = useDebounce(searchTerm, 500);
+  const debouncedSearch = useDebounce(searchTerm, 400);
   const { customers, isLoading } = useCustomers(debouncedSearch);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+
+  const sorted = useMemo(() => {
+    const copy = [...customers];
+    if (sortKey === "name") copy.sort((a, b) => a.name.localeCompare(b.name));
+    else if (sortKey === "pets")
+      copy.sort((a, b) => (b.pets_count ?? 0) - (a.pets_count ?? 0));
+    else if (sortKey === "orders")
+      copy.sort((a, b) => (b.orders_count ?? 0) - (a.orders_count ?? 0));
+    else
+      copy.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    return copy;
+  }, [customers, sortKey]);
+
+  const totalPets = customers.reduce((s, c) => s + (c.pets_count ?? 0), 0);
+  const totalOrders = customers.reduce((s, c) => s + (c.orders_count ?? 0), 0);
 
   return (
     <div className="space-y-6">
+      {/* Page header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+            <Users className="w-8 h-8 text-primary" />
             {t("customers")}
           </h1>
-          <p className="text-muted-foreground mt-1">
-            {t("customers_desc")}
-          </p>
+          <p className="text-muted-foreground mt-1">{t("customers_desc")}</p>
         </div>
       </div>
 
-      {/* Stats/Summary could go here */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-         <div className="bg-card border rounded-xl p-6 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-lg text-primary">
-                <Users className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground font-medium">{t("total_customers")}</p>
-                <h3 className="text-2xl font-bold text-foreground">{customers.length}</h3>
-              </div>
-            </div>
+      {/* Summary stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-card border rounded-xl p-5 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-primary/10 text-primary shrink-0">
+            <Users className="w-5 h-5" />
           </div>
-      </div>
-
-      <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4 border-b flex items-center justify-between bg-muted/30">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t("search_customers")}
-              className="w-full pl-9 pr-4 py-2 bg-background border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
-            />
+          <div>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              {t("total_customers")}
+            </p>
+            <p className="text-2xl font-bold text-foreground">
+              {isLoading ? "—" : customers.length}
+            </p>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b bg-muted/50 text-sm">
-                <th className="py-4 px-6 font-medium text-muted-foreground">{t("name")}</th>
-                <th className="py-4 px-6 font-medium text-muted-foreground">{t("contact")}</th>
-                <th className="py-4 px-6 font-medium text-muted-foreground">{t("registered_at")}</th>
-                <th className="py-4 px-6 font-medium text-muted-foreground text-center">{t("pets")}</th>
-                <th className="py-4 px-6 font-medium text-muted-foreground text-center">{t("orders")}</th>
-                <th className="py-4 px-6 font-medium text-muted-foreground text-right">{t("actions")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y text-sm">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                    {t("loading")}
-                  </td>
-                </tr>
-              ) : customers.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                    {t("no_customers_found")}
-                  </td>
-                </tr>
-              ) : (
-                customers.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-muted/30 transition-colors group">
-                    <td className="py-4 px-6">
-                      <div className="font-medium text-foreground">{customer.name}</div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="text-foreground">{customer.email}</div>
-                      <div className="text-xs text-muted-foreground">{customer.phone}</div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center text-muted-foreground">
-                        <CalendarDays className="w-4 h-4 mr-2" />
-                        {new Date(customer.created_at).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center justify-center bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">
-                        {customer.pets_count || 0}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <span className="inline-flex items-center justify-center bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">
-                        {customer.orders_count || 0}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <Link
-                        href={`/admin/customers/${customer.id}`}
-                        className="inline-flex items-center text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-                      >
-                        {t("view_details")}
-                        <ChevronRight className="w-4 h-4 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="bg-card border rounded-xl p-5 shadow-sm flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+            <PawPrint className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              Total de Pets
+            </p>
+            <p className="text-2xl font-bold text-foreground">
+              {isLoading ? "—" : totalPets}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-card border rounded-xl p-5 shadow-sm flex items-center gap-4 col-span-2 lg:col-span-1">
+          <div className="p-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+            <ShoppingBag className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              Total de Pedidos
+            </p>
+            <p className="text-2xl font-bold text-foreground">
+              {isLoading ? "—" : totalOrders}
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* Filter bar */}
+      <div className="flex flex-col md:flex-row gap-3 items-start md:items-center bg-card p-4 rounded-xl border shadow-sm">
+        <div className="relative flex-1 w-full min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={t("search_customers")}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 h-10 w-full"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+          <Select
+            value={sortKey}
+            onValueChange={(v: SortKey) => setSortKey(v)}
+          >
+            <SelectTrigger className="w-full md:w-[200px] h-10">
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date">Mais recentes</SelectItem>
+              <SelectItem value="name">Nome (A-Z)</SelectItem>
+              <SelectItem value="pets">Mais pets</SelectItem>
+              <SelectItem value="orders">Mais pedidos</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="hidden md:flex border rounded-md">
+            <Button
+              variant={viewMode === "grid" ? "secondary" : "ghost"}
+              size="icon"
+              className="h-10 w-10 rounded-r-none"
+              onClick={() => setViewMode("grid")}
+              title="Visualização em grade"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="icon"
+              className="h-10 w-10 rounded-l-none"
+              onClick={() => setViewMode("list")}
+              title="Visualização em lista"
+            >
+              <ListIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm">{t("loading")}</span>
+        </div>
+      ) : sorted.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4 bg-card border rounded-xl">
+          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
+            <Users className="w-8 h-8 text-muted-foreground/50" />
+          </div>
+          <div className="text-center">
+            <p className="font-medium text-foreground">{t("no_customers_found")}</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {searchTerm
+                ? "Nenhum cliente corresponde à busca."
+                : "Ainda não há clientes cadastrados."}
+            </p>
+          </div>
+        </div>
+      ) : viewMode === "grid" ? (
+        /* ── Grid view ──────────────────────────────────────────────────── */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sorted.map((customer) => {
+            const initials = getInitials(customer.name);
+            const avatarBg = nameToHsl(customer.name);
+            return (
+              <div
+                key={customer.id}
+                className="bg-card border rounded-xl shadow-sm overflow-hidden hover:border-primary/50 hover:shadow-md transition-all group flex flex-col"
+              >
+                {/* Card header: avatar + name + email */}
+                <div className="p-5 pb-4 border-b border-border/50 bg-muted/20 flex items-center gap-4">
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm"
+                    style={{ backgroundColor: avatarBg }}
+                  >
+                    {initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground truncate leading-tight">
+                      {customer.name}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
+                      <Mail className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{customer.email}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats row */}
+                <div className="flex divide-x divide-border/50 border-b border-border/50">
+                  <div className="flex-1 py-3 flex flex-col items-center gap-0.5">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      Pets
+                    </span>
+                    <span className="font-bold text-lg text-foreground leading-none">
+                      {customer.pets_count ?? 0}
+                    </span>
+                  </div>
+                  <div className="flex-1 py-3 flex flex-col items-center gap-0.5">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      Pedidos
+                    </span>
+                    <span className="font-bold text-lg text-foreground leading-none">
+                      {customer.orders_count ?? 0}
+                    </span>
+                  </div>
+                  <div className="flex-1 py-3 flex flex-col items-center gap-0.5">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      Desde
+                    </span>
+                    <span className="font-bold text-sm text-foreground leading-none">
+                      {new Date(customer.created_at).toLocaleDateString(
+                        "pt-BR",
+                        { month: "short", year: "2-digit" }
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card footer: phone + action link */}
+                <div className="px-5 py-3 flex items-center justify-between mt-auto">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Phone className="w-3.5 h-3.5 shrink-0" />
+                    <span>{customer.phone || "—"}</span>
+                  </div>
+                  <Link
+                    href={`/admin/customers/${customer.id}`}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Ver detalhes
+                    <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* ── List view ──────────────────────────────────────────────────── */
+        <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b bg-muted/40 text-xs">
+                  <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider">
+                    Cliente
+                  </th>
+                  <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">
+                    Contato
+                  </th>
+                  <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-center">
+                    Pets
+                  </th>
+                  <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-center hidden sm:table-cell">
+                    Pedidos
+                  </th>
+                  <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">
+                    Cadastro
+                  </th>
+                  <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-right">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50 text-sm">
+                {sorted.map((customer) => {
+                  const initials = getInitials(customer.name);
+                  const avatarBg = nameToHsl(customer.name);
+                  return (
+                    <tr
+                      key={customer.id}
+                      className="hover:bg-muted/30 transition-colors group"
+                    >
+                      <td className="py-3.5 px-5">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0"
+                            style={{ backgroundColor: avatarBg }}
+                          >
+                            {initials}
+                          </div>
+                          <span className="font-medium text-foreground">
+                            {customer.name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-5 hidden md:table-cell">
+                        <div className="text-foreground text-sm">
+                          {customer.email}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {customer.phone || "—"}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-5 text-center">
+                        <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 rounded-full text-xs font-semibold">
+                          {customer.pets_count ?? 0}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-5 text-center hidden sm:table-cell">
+                        <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 rounded-full text-xs font-semibold">
+                          {customer.orders_count ?? 0}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-5 hidden lg:table-cell">
+                        <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                          <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+                          {new Date(customer.created_at).toLocaleDateString(
+                            "pt-BR"
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-5 text-right">
+                        <Link
+                          href={`/admin/customers/${customer.id}`}
+                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                        >
+                          {t("view_details")}
+                          <ChevronRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

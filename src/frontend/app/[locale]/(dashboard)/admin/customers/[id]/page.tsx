@@ -8,7 +8,19 @@ import { usePets } from "@/hooks/usePets";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useRecipes, calculateRecipeCost } from "@/hooks/useRecipes";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, User, Phone, Mail, Calendar, PawPrint, Package, CalendarDays, Edit2, Loader2, Plus, Dog, UtensilsCrossed, MapPin, LayoutGrid, List as ListIcon, Info, Search, CheckCircle2, Check, Trash2, ChevronDown, ChevronUp, DollarSign, FileText, CalendarClock, Layers, Eye } from "lucide-react";
+import { ArrowLeft, User, Phone, Mail, Calendar, PawPrint, Package, CalendarDays, Edit2, Loader2, Plus, Dog, UtensilsCrossed, MapPin, LayoutGrid, List as ListIcon, Info, Search, CheckCircle2, Check, Trash2, ChevronDown, ChevronUp, DollarSign, FileText, CalendarClock, Layers, Eye, ShoppingBag } from "lucide-react";
+
+/** Returns two uppercase initials from a full name. */
+function getInitials(name: string): string {
+  return name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
+}
+
+/** Generates a deterministic HSL color from a string. */
+function nameToHsl(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return `hsl(${Math.abs(hash) % 360}, 60%, 42%)`;
+}
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -194,170 +206,369 @@ export default function CustomerDetailPage() {
     setIsRecEditModalOpen(false);
   };
 
+  const avatarBg = nameToHsl(customer.name);
+  const initials = getInitials(customer.name);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/admin/customers" className="p-2 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors">
+      {/* ── Profile header ──────────────────────────────────────────────── */}
+      <div className="flex items-start gap-4">
+        <Link
+          href="/admin/customers"
+          className="p-2 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors shrink-0 mt-1"
+        >
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            {customer.name}
-            <span className="text-sm font-medium px-3 py-1 bg-primary/10 text-primary rounded-full">ID: {customer.id}</span>
-          </h1>
-          <p className="text-muted-foreground mt-1">{t("customer_details")}</p>
+
+        <div className="flex-1 bg-card border rounded-xl shadow-sm overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-6">
+            {/* Avatar */}
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl shrink-0 shadow-md"
+              style={{ backgroundColor: avatarBg }}
+            >
+              {initials}
+            </div>
+
+            {/* Name + meta */}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">{customer.name}</h1>
+                <span className="text-xs font-semibold px-2 py-0.5 bg-primary/10 text-primary rounded-full">
+                  ID: {customer.id}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5" /> {customer.email}
+                </span>
+                {customer.phone && (
+                  <span className="flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5" /> {customer.phone}
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5">
+                  <CalendarDays className="w-3.5 h-3.5" />
+                  Desde {new Date(customer.created_at).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick-stats chips */}
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="flex flex-col items-center px-4 py-2 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 rounded-xl">
+                <span className="font-bold text-xl leading-none">{customer.pets?.length ?? customer.pets_count ?? 0}</span>
+                <span className="text-[10px] uppercase tracking-wider mt-0.5">Pets</span>
+              </div>
+              <div className="flex flex-col items-center px-4 py-2 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 rounded-xl">
+                <span className="font-bold text-xl leading-none">{customer.orders?.length ?? customer.orders_count ?? 0}</span>
+                <span className="text-[10px] uppercase tracking-wider mt-0.5">Pedidos</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="flex space-x-2 border-b">
-        {(["overview", "pets", "recipes", "orders"] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${activeTab === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"}`}
-          >
-            {tab === "overview" ? "Visão Geral" : tab === "pets" ? "Pets" : tab === "recipes" ? "Receitas" : "Pedidos"}
-          </button>
-        ))}
+      {/* ── Tabs ────────────────────────────────────────────────────────── */}
+      <div className="flex space-x-1 border-b">
+        {(["overview", "pets", "recipes", "orders"] as const).map((tab) => {
+          const counts: Record<string, number | undefined> = {
+            pets: customer.pets?.length,
+            recipes: customer.recipes?.length,
+            orders: customer.orders?.length,
+          };
+          const label =
+            tab === "overview" ? "Visão Geral" :
+            tab === "pets" ? "Pets" :
+            tab === "recipes" ? "Receitas" : "Pedidos";
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === tab
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
+              }`}
+            >
+              {label}
+              {counts[tab] !== undefined && counts[tab]! > 0 && (
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none ${
+                  activeTab === tab ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                }`}>
+                  {counts[tab]}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="mt-6">
+      <div className="mt-2">
         {activeTab === "overview" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg flex items-center"><User className="w-5 h-5 mr-2 text-primary" />{t("contact_info")}</CardTitle>
-                <Button variant="outline" size="sm" onClick={handleOpenEditCustomer}><Edit2 className="w-4 h-4 mr-2"/> Editar</Button>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-4">
-                <div className="flex items-start gap-3"><Mail className="w-5 h-5 text-muted-foreground mt-0.5" /><div><p className="text-sm font-medium">{t("email")}</p><p className="text-sm text-muted-foreground">{customer.email}</p></div></div>
-                <div className="flex items-start gap-3"><Phone className="w-5 h-5 text-muted-foreground mt-0.5" /><div><p className="text-sm font-medium">{t("phone")}</p><p className="text-sm text-muted-foreground">{customer.phone || "-"}</p></div></div>
-                <div className="flex items-start gap-3"><Calendar className="w-5 h-5 text-muted-foreground mt-0.5" /><div><p className="text-sm font-medium">{t("registered_at")}</p><p className="text-sm text-muted-foreground">{new Date(customer.created_at).toLocaleDateString()}</p></div></div>
-                
-                <hr className="border-border my-4" />
-                <h4 className="text-sm font-semibold flex items-center text-foreground"><MapPin className="w-4 h-4 mr-2 text-primary" /> Endereço</h4>
-                
-                {customer.address || customer.city || customer.state || customer.zipcode ? (
-                  <div className="space-y-2 mt-2">
-                    <p className="text-sm text-muted-foreground">{customer.address || "Sem rua informada"}</p>
-                    <p className="text-sm text-muted-foreground">{customer.city || "Sem cidade"} - {customer.state || "Estado"}</p>
-                    <p className="text-sm text-muted-foreground">CEP: {customer.zipcode || "Não informado"}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Contact card */}
+            <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b bg-muted/20">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <User className="w-4 h-4 text-primary" /> {t("contact_info")}
+                </h3>
+                <Button variant="outline" size="sm" onClick={handleOpenEditCustomer} className="h-8 text-xs gap-1.5">
+                  <Edit2 className="w-3.5 h-3.5" /> Editar
+                </Button>
+              </div>
+              <div className="divide-y divide-border/50">
+                {[
+                  { icon: Mail, label: t("email"), value: customer.email },
+                  { icon: Phone, label: t("phone"), value: customer.phone || "—" },
+                  { icon: Calendar, label: t("registered_at"), value: new Date(customer.created_at).toLocaleDateString("pt-BR") },
+                ].map(({ icon: Icon, label, value }) => (
+                  <div key={label} className="flex items-center gap-4 px-5 py-3.5">
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Icon className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{label}</p>
+                      <p className="text-sm font-medium text-foreground truncate">{value}</p>
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic mt-2">Endereço não cadastrado.</p>
-                )}
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Address card */}
+            <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+              <div className="flex items-center px-5 py-4 border-b bg-muted/20">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-primary" /> Endereço
+                </h3>
+              </div>
+              {customer.address || customer.city || customer.state || customer.zipcode ? (
+                <div className="px-5 py-4 space-y-3">
+                  {customer.address && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Logradouro</p>
+                      <p className="text-sm font-medium text-foreground">{customer.address}</p>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Cidade</p>
+                      <p className="text-sm font-medium text-foreground">{customer.city || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Estado</p>
+                      <p className="text-sm font-medium text-foreground">{customer.state || "—"}</p>
+                    </div>
+                  </div>
+                  {customer.zipcode && (
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">CEP</p>
+                      <p className="text-sm font-medium text-foreground">{customer.zipcode}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
+                  <MapPin className="w-8 h-8 opacity-30" />
+                  <p className="text-sm">Endereço não cadastrado.</p>
+                  <Button variant="outline" size="sm" onClick={handleOpenEditCustomer} className="mt-1 text-xs gap-1.5 h-8">
+                    <Plus className="w-3.5 h-3.5" /> Adicionar endereço
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {activeTab === "pets" && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold">Pets ({customer.pets?.length || 0})</h2>
-              <div className="flex items-center gap-3">
+            {/* Pets filter bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card p-4 rounded-xl border shadow-sm">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{customer.pets?.length || 0}</span> pet{(customer.pets?.length || 0) !== 1 ? "s" : ""} cadastrado{(customer.pets?.length || 0) !== 1 ? "s" : ""}
+              </p>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
                 <div className="flex border rounded-md">
-                  <button onClick={() => setPetsViewMode('grid')} className={`p-2 transition-colors ${petsViewMode === 'grid' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}><LayoutGrid className="w-4 h-4" /></button>
-                  <button onClick={() => setPetsViewMode('list')} className={`p-2 transition-colors ${petsViewMode === 'list' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}><ListIcon className="w-4 h-4" /></button>
+                  <button
+                    onClick={() => setPetsViewMode("grid")}
+                    className={`p-2 transition-colors ${petsViewMode === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"}`}
+                    title="Grade"
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setPetsViewMode("list")}
+                    className={`p-2 transition-colors ${petsViewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"}`}
+                    title="Lista"
+                  >
+                    <ListIcon className="w-4 h-4" />
+                  </button>
                 </div>
-                <Button onClick={() => handleOpenPetModal()}><Plus className="w-4 h-4 mr-2"/> Adicionar Pet</Button>
+                <Button onClick={() => handleOpenPetModal()} className="flex-1 sm:flex-none">
+                  <Plus className="w-4 h-4 mr-2" /> Adicionar Pet
+                </Button>
               </div>
             </div>
-            
+
             {customer.pets && customer.pets.length > 0 ? (
               petsViewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {customer.pets.map(pet => (
-                    <Card key={pet.id} className="relative overflow-hidden group">
-                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                        <Button variant="secondary" size="icon" className="w-8 h-8 rounded-full shadow-sm" onClick={() => handleOpenPetModal(pet)}><Edit2 className="w-3 h-3" /></Button>
+                  {customer.pets.map((pet) => (
+                    <div key={pet.id} className="bg-card border rounded-xl shadow-sm overflow-hidden hover:border-primary/40 hover:shadow-md transition-all group flex flex-col">
+                      {/* Pet card header */}
+                      <div className="flex items-center gap-3 p-4 pb-3 border-b border-border/50 bg-muted/20">
+                        <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                          <Dog className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-foreground truncate">{pet.name}</p>
+                          <p className="text-xs text-muted-foreground">{pet.breed || "Sem raça"}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          onClick={() => handleOpenPetModal(pet)}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
-                      <CardHeader className="pb-3 border-b border-border/50 bg-muted/20">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                            <Dog className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg">{pet.name}</CardTitle>
-                            <CardDescription>{pet.breed || "Sem raça"}</CardDescription>
-                          </div>
+
+                      {/* Pet stats */}
+                      <div className="flex divide-x divide-border/50 border-b border-border/50">
+                        <div className="flex-1 py-3 flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Espécie</span>
+                          <span className="text-sm font-semibold text-foreground">{pet.type === "cat" ? "Gato" : "Cão"}</span>
                         </div>
-                      </CardHeader>
-                      <CardContent className="pt-4 space-y-3">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span className="capitalize font-medium text-foreground">{pet.type === 'cat' ? 'Gato' : 'Cachorro'}</span>
-                          <span>•</span>
-                          <span>{pet.weight ? `${pet.weight} kg` : 'Peso n/a'}</span>
-                          <span>•</span>
-                          <span>{pet.age ? `${pet.age} meses` : 'Idade n/a'}</span>
+                        <div className="flex-1 py-3 flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Peso</span>
+                          <span className="text-sm font-semibold text-foreground">{pet.weight ? `${pet.weight} kg` : "—"}</span>
                         </div>
-                        
-                        {(pet.allergies || pet.restrictions || pet.special_needs) && (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {pet.allergies && <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full font-medium border border-red-200 dark:border-red-800">Alergias</span>}
-                            {pet.restrictions && <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full font-medium border border-amber-200 dark:border-amber-800">Restrições</span>}
-                            {pet.special_needs && <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium border border-blue-200 dark:border-blue-800">Necessidades</span>}
+                        <div className="flex-1 py-3 flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Idade</span>
+                          <span className="text-sm font-semibold text-foreground">{pet.age ? `${pet.age}m` : "—"}</span>
+                        </div>
+                      </div>
+
+                      {/* Health badges */}
+                      <div className="px-4 py-3">
+                        {pet.allergies || pet.restrictions || pet.special_needs ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {pet.allergies && (
+                              <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full font-medium border border-red-200 dark:border-red-800">
+                                Alergias
+                              </span>
+                            )}
+                            {pet.restrictions && (
+                              <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full font-medium border border-amber-200 dark:border-amber-800">
+                                Restrições
+                              </span>
+                            )}
+                            {pet.special_needs && (
+                              <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium border border-blue-200 dark:border-blue-800">
+                                Necessidades
+                              </span>
+                            )}
                           </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Sem alertas de saúde</span>
                         )}
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden bg-card">
-                  <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-muted-foreground bg-muted/50 uppercase">
-                      <tr>
-                        <th className="px-6 py-3 font-medium">Nome / Raça</th>
-                        <th className="px-6 py-3 font-medium text-center">Espécie</th>
-                        <th className="px-6 py-3 font-medium text-center">Peso</th>
-                        <th className="px-6 py-3 font-medium text-center">Idade</th>
-                        <th className="px-6 py-3 font-medium">Alertas de Saúde</th>
-                        <th className="px-6 py-3 font-medium text-right">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/50">
-                      {customer.pets.map(pet => (
-                        <tr key={pet.id} className="hover:bg-muted/30 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="font-semibold text-foreground">{pet.name}</div>
-                            <div className="text-xs text-muted-foreground mt-0.5">{pet.breed || "Sem raça"}</div>
-                          </td>
-                          <td className="px-6 py-4 text-center capitalize">{pet.type === 'cat' ? 'Gato' : 'Cachorro'}</td>
-                          <td className="px-6 py-4 text-center">{pet.weight ? `${pet.weight} kg` : '-'}</td>
-                          <td className="px-6 py-4 text-center">{pet.age ? `${pet.age} m` : '-'}</td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-wrap gap-1">
-                              {pet.allergies && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-sm">Alergia</span>}
-                              {pet.restrictions && <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-sm">Restrição</span>}
-                              {pet.special_needs && <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-sm">Especial</span>}
-                              {!pet.allergies && !pet.restrictions && !pet.special_needs && <span className="text-muted-foreground">-</span>}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenPetModal(pet)}><Edit2 className="w-4 h-4 text-muted-foreground" /></Button>
-                          </td>
+                <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left border-collapse">
+                      <thead>
+                        <tr className="border-b bg-muted/40 text-xs">
+                          <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider">Nome / Raça</th>
+                          <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-center">Espécie</th>
+                          <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-center">Peso</th>
+                          <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-center">Idade</th>
+                          <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider">Alertas</th>
+                          <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-right">Ações</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-border/50">
+                        {customer.pets.map((pet) => (
+                          <tr key={pet.id} className="hover:bg-muted/30 transition-colors">
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                  <Dog className="w-4 h-4" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-foreground">{pet.name}</p>
+                                  <p className="text-xs text-muted-foreground">{pet.breed || "Sem raça"}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5 text-center capitalize">{pet.type === "cat" ? "Gato" : "Cachorro"}</td>
+                            <td className="px-5 py-3.5 text-center">{pet.weight ? `${pet.weight} kg` : "—"}</td>
+                            <td className="px-5 py-3.5 text-center">{pet.age ? `${pet.age}m` : "—"}</td>
+                            <td className="px-5 py-3.5">
+                              <div className="flex flex-wrap gap-1">
+                                {pet.allergies && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-sm">Alergia</span>}
+                                {pet.restrictions && <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-sm">Restrição</span>}
+                                {pet.special_needs && <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-sm">Especial</span>}
+                                {!pet.allergies && !pet.restrictions && !pet.special_needs && <span className="text-muted-foreground">—</span>}
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5 text-right">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenPetModal(pet)}>
+                                <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )
-            ) : <div className="text-center py-12 bg-muted/20 border rounded-lg"><Dog className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" /><p className="text-muted-foreground">Nenhum pet encontrado para este cliente.</p></div>}
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-xl gap-3 text-muted-foreground">
+                <div className="w-14 h-14 rounded-full bg-muted/50 flex items-center justify-center">
+                  <Dog className="w-7 h-7 opacity-40" />
+                </div>
+                <p className="text-sm">Nenhum pet encontrado para este cliente.</p>
+                <Button variant="outline" size="sm" onClick={() => handleOpenPetModal()} className="mt-1 gap-1.5 text-xs h-8">
+                  <Plus className="w-3.5 h-3.5" /> Adicionar primeiro pet
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === "recipes" && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold">Receitas ({customer.recipes?.length || 0})</h2>
-              <div className="flex items-center gap-3">
+            {/* Recipes filter bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card p-4 rounded-xl border shadow-sm">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{customer.recipes?.length || 0}</span> receita{(customer.recipes?.length || 0) !== 1 ? "s" : ""} vinculada{(customer.recipes?.length || 0) !== 1 ? "s" : ""}
+              </p>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
                 <div className="flex border rounded-md">
-                  <button onClick={() => setRecipesViewMode('grid')} className={`p-2 transition-colors ${recipesViewMode === 'grid' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}><LayoutGrid className="w-4 h-4" /></button>
-                  <button onClick={() => setRecipesViewMode('list')} className={`p-2 transition-colors ${recipesViewMode === 'list' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}><ListIcon className="w-4 h-4" /></button>
+                  <button
+                    onClick={() => setRecipesViewMode("grid")}
+                    className={`p-2 transition-colors ${recipesViewMode === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"}`}
+                    title="Grade"
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setRecipesViewMode("list")}
+                    className={`p-2 transition-colors ${recipesViewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"}`}
+                    title="Lista"
+                  >
+                    <ListIcon className="w-4 h-4" />
+                  </button>
                 </div>
-                <Link href={`/recipes/new?user_id=${customer.id}`}>
-                  <Button><Plus className="w-4 h-4 mr-2"/> Criar Receita</Button>
+                <Link href={`/recipes/new?user_id=${customer.id}`} className="flex-1 sm:flex-none">
+                  <Button className="w-full"><Plus className="w-4 h-4 mr-2" /> Criar Receita</Button>
                 </Link>
               </div>
             </div>
@@ -460,26 +671,82 @@ export default function CustomerDetailPage() {
                   </table>
                 </div>
               )
-            ) : <div className="text-center py-12 bg-muted/20 border rounded-lg"><UtensilsCrossed className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" /><p className="text-muted-foreground">Nenhuma receita encontrada para este cliente.</p></div>}
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-xl gap-3 text-muted-foreground">
+                <div className="w-14 h-14 rounded-full bg-muted/50 flex items-center justify-center">
+                  <UtensilsCrossed className="w-7 h-7 opacity-40" />
+                </div>
+                <p className="text-sm">Nenhuma receita encontrada para este cliente.</p>
+                <Link href={`/recipes/new?user_id=${customer.id}`}>
+                  <Button variant="outline" size="sm" className="mt-1 gap-1.5 text-xs h-8">
+                    <Plus className="w-3.5 h-3.5" /> Criar primeira receita
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === "orders" && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold">Pedidos ({customer.orders?.length || 0})</h2>
+            {/* Orders header */}
+            <div className="flex items-center justify-between bg-card p-4 rounded-xl border shadow-sm">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{customer.orders?.length || 0}</span> pedido{(customer.orders?.length || 0) !== 1 ? "s" : ""} realizado{(customer.orders?.length || 0) !== 1 ? "s" : ""}
+              </p>
+            </div>
+
             {customer.orders && customer.orders.length > 0 ? (
               <div className="space-y-3">
-                {customer.orders.map(order => (
-                  <div key={order.id} className="flex items-center justify-between border rounded-lg p-4 bg-card">
-                    <div>
-                      <p className="font-medium">#{order.id} - {new Date(order.created_at).toLocaleDateString()}</p>
-                      <p className="text-sm text-muted-foreground">{order.status}</p>
+                {customer.orders.map((order) => {
+                  const statusColors: Record<string, string> = {
+                    pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+                    confirmed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+                    delivered: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+                    cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
+                  };
+                  const statusLabel: Record<string, string> = {
+                    pending: "Pendente", confirmed: "Confirmado",
+                    delivered: "Entregue", cancelled: "Cancelado",
+                  };
+                  const colorClass = statusColors[order.status] ?? "bg-muted text-muted-foreground border-border";
+                  return (
+                    <div
+                      key={order.id}
+                      className="bg-card border rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 hover:border-primary/30 transition-colors"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                          <ShoppingBag className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-foreground">Pedido #{order.id}</p>
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${colorClass}`}>
+                              {statusLabel[order.status] ?? order.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(order.created_at).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-xl font-bold text-primary pl-13 sm:pl-0">
+                        R$ {Number(order.total_price).toFixed(2)}
+                      </div>
                     </div>
-                    <div className="font-semibold text-primary">R$ {order.total_price}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            ) : <div className="text-center py-12 bg-muted/20 border rounded-lg"><Package className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" /><p className="text-muted-foreground">Nenhum pedido encontrado.</p></div>}
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-xl gap-3 text-muted-foreground">
+                <div className="w-14 h-14 rounded-full bg-muted/50 flex items-center justify-center">
+                  <Package className="w-7 h-7 opacity-40" />
+                </div>
+                <p className="text-sm">Nenhum pedido encontrado para este cliente.</p>
+              </div>
+            )}
           </div>
         )}
       </div>

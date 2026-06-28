@@ -20,6 +20,7 @@ export interface Recipe {
   is_template: boolean;
   frequency?: string;
   base_cost: number;
+  ingredient_cost: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
