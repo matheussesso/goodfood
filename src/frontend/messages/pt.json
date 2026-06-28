@@ -138,7 +138,8 @@
     "min_profit": "Lucro Mínimo",
     "base_price_label": "Preço Base (R$)",
     "all_species_admin": "Todas as Espécies",
-    "pricing_warning_title": "Atenção ao Custo Base"
+    "pricing_warning_title": "Atenção ao Custo Base",
+    "base_price_table_header": "Preço Base"
   },
   "Recipes": {
     "title": "Nova Receita",

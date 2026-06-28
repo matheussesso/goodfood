@@ -138,7 +138,8 @@
     "min_profit": "Beneficio Mínimo",
     "base_price_label": "Precio Base ($)",
     "all_species_admin": "Todas las Especies",
-    "pricing_warning_title": "Aviso de Coste Base"
+    "pricing_warning_title": "Aviso de Coste Base",
+    "base_price_table_header": "Precio Base"
   },
   "Recipes": {
     "title": "Nueva Receta",
