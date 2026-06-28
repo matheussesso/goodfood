@@ -8,10 +8,12 @@ import { Subscription } from "./useSubscriptions";
 export interface OrderItem {
   id: number;
   order_id: number;
+  pet_id?: number;
   recipe_id: number;
   unit_price: number;
   quantity: number;
   recipe?: Recipe;
+  pet?: Pet;
 }
 
 /** Customer order header. */
@@ -35,12 +37,16 @@ export interface Order {
   user?: { id: number; name: string; email: string };
 }
 
+/** One item in the order creation payload — recipe + optional originating pet. */
+export interface OrderItemPayload {
+  recipe_id: number;
+  pet_id?: number;
+}
+
 /** Payload for creating a new order. */
 export interface CreateOrderPayload {
-  pet_id?: number;
-  recipe_ids: number[];
+  items: OrderItemPayload[];
   delivery_address?: string;
-  delivery_date?: string;
 }
 
 /**

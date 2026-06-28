@@ -24,6 +24,7 @@ class OrderItem extends Model
     /** @var array<int, string> */
     protected $fillable = [
         'order_id',
+        'pet_id',
         'recipe_id',
         'unit_price',
         'quantity',
@@ -45,5 +46,11 @@ class OrderItem extends Model
     public function recipe(): BelongsTo
     {
         return $this->belongsTo(Recipe::class);
+    }
+
+    /** @return BelongsTo<\App\Models\Pet, $this> */
+    public function pet(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Pet::class);
     }
 }

@@ -196,6 +196,45 @@ Responsividade não é um detalhe opcional nem uma etapa de "polimento" — é c
 
 ---
 
+## Internacionalização (i18n) — obrigatório em todo texto de UI
+
+**Nenhum texto visível ao usuário pode ser hardcoded** diretamente no JSX/TSX. Toda string de interface deve obrigatoriamente:
+
+1. **Ser registrada nos 3 arquivos de mensagens**: `messages/pt.json`, `messages/en.json`, `messages/es.json` — simultaneamente, antes de usar.
+2. **Usar `useTranslations()`** do `next-intl` para consumir a chave no componente.
+3. **Nomear chaves de forma semântica** (`Orders.confirm_order`, não `Orders.btn2`), agrupadas por namespace (`Auth`, `Navigation`, `Common`, `Catalog`, `Recipes`, `Pets`, `Orders`, `Dashboard`, `admin`).
+4. **Interpolações dinâmicas** (`{name}`, `{count}`) devem ser incluídas na chave, não concatenadas na string.
+
+### Regras de escopo
+
+- **Namespace `Common`**: rótulos universais (`save`, `cancel`, `edit`, `delete`, `loading`, `view`, `back`, `status`…).
+- **Namespaces de feature** (`Orders`, `Pets`, `Recipes`…): texto específico da feature.
+- **Nunca duplicar** uma chave que já existe em `Common` — reutilizar.
+
+### Fluxo obrigatório ao adicionar qualquer texto novo
+
+```
+1. Definir a chave em pt.json (português)
+2. Adicionar a tradução equivalente em en.json (inglês)
+3. Adicionar a tradução equivalente em es.json (espanhol)
+4. Consumir com useTranslations() no componente
+```
+
+### Exceções permitidas
+
+- Valores monetários formatados (`R$ 0,00`) — formatação de locale, não i18n.
+- Nomes próprios / ids retornados pela API (ex.: nome do pet, nome do cliente).
+- Placeholders de desenvolvimento (nunca chegar em produção).
+
+### Como o agente deve agir
+
+- **Antes de escrever qualquer string de UI**: verificar se já existe chave equivalente nos arquivos de mensagens.
+- **Ao criar página ou componente novo**: listar todos os textos necessários, criar as chaves nos 3 arquivos, só então escrever o JSX.
+- **Ao corrigir texto existente**: atualizar nos 3 arquivos simultaneamente.
+- **Se detectar string hardcoded em código existente**: reportar como code smell e corrigir no mesmo PR.
+
+---
+
 ## Regras do Agente
 
 - **Antes de alterar qualquer coisa**: entender o contexto, arquitetura atual, padrões existentes e impacto potencial (performance, bundle size, SEO, limite server/client, responsividade).

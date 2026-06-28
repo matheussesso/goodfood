@@ -4,8 +4,9 @@ import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { Link } from "@/i18n/routing";
-import { useOrders, CreateOrderPayload } from "@/hooks/useOrders";
+import { useOrders, CreateOrderPayload, OrderItemPayload } from "@/hooks/useOrders";
 import { usePets } from "@/hooks/usePets";
+import { useAuth } from "@/hooks/useAuth";
 import { Recipe } from "@/hooks/useRecipes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,15 +21,22 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
-  Calendar,
   MapPin,
   Trash2,
+  BookUser,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/** Tuple identifying a unique recipe selection scoped to a specific pet. */
+interface SelectedItem {
+  petId: number;
+  recipeId: number;
+}
+
 /**
  * Dedicated page for creating a new order.
- * Lets the customer select recipes from one or more pets in a single order.
+ * Lets the customer pick recipes from one or more pets independently —
+ * the same recipe can be selected for different pets, generating separate order items.
  *
  * @returns The new order creation page element.
  */
@@ -41,15 +49,21 @@ export default function NewOrderPage() {
   const router = useRouter();
   const { pets, isLoading: petsLoading } = usePets();
   const { createOrder, isCreating } = useOrders();
+  const user = useAuth((s) => s.user);
 
-  /** IDs of expanded pet accordions. */
   const [expandedPets, setExpandedPets] = useState<number[]>([]);
-  /** Selected recipe IDs across all pets. */
-  const [selectedRecipeIds, setSelectedRecipeIds] = useState<number[]>([]);
-  const [deliveryDate, setDeliveryDate] = useState("");
-  const [deliveryAddress, setDeliveryAddress] = useState("");
 
-  /** Flat map of all recipes by id across all pets. */
+  /** Unique selections: one entry per (petId, recipeId) tuple. */
+  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
+
+  const [addrStreet, setAddrStreet] = useState("");
+  const [addrNumber, setAddrNumber] = useState("");
+  const [addrComplement, setAddrComplement] = useState("");
+  const [addrCity, setAddrCity] = useState("");
+  const [addrState, setAddrState] = useState("");
+  const [addrZipcode, setAddrZipcode] = useState("");
+
+  /** Flat map of recipe objects by id — needed to look up base_cost and name. */
   const allRecipesById = useMemo<Record<number, Recipe>>(() => {
     const map: Record<number, Recipe> = {};
     pets?.forEach((pet) => {
@@ -60,15 +74,22 @@ export default function NewOrderPage() {
     return map;
   }, [pets]);
 
-  /** Selected recipe objects in insertion order. */
-  const selectedRecipes = useMemo<Recipe[]>(() => {
-    return selectedRecipeIds.map((id) => allRecipesById[id]).filter(Boolean);
-  }, [selectedRecipeIds, allRecipesById]);
-
-  /** Total price from sum of base_cost. */
   const total = useMemo<number>(() => {
-    return selectedRecipes.reduce((s, r) => s + Number(r.base_cost ?? 0), 0);
-  }, [selectedRecipes]);
+    return selectedItems.reduce((sum, item) => {
+      return sum + Number(allRecipesById[item.recipeId]?.base_cost ?? 0);
+    }, 0);
+  }, [selectedItems, allRecipesById]);
+
+  /** Key for deduplicating within the same pet — not across pets. */
+  function itemKey(petId: number, recipeId: number) {
+    return `${petId}_${recipeId}`;
+  }
+
+  function isSelected(petId: number, recipeId: number) {
+    return selectedItems.some(
+      (it) => it.petId === petId && it.recipeId === recipeId
+    );
+  }
 
   function togglePet(petId: number) {
     setExpandedPets((prev) =>
@@ -76,31 +97,68 @@ export default function NewOrderPage() {
     );
   }
 
-  function toggleRecipe(recipeId: number) {
-    setSelectedRecipeIds((prev) =>
-      prev.includes(recipeId) ? prev.filter((id) => id !== recipeId) : [...prev, recipeId]
+  function toggleRecipe(petId: number, recipeId: number) {
+    if (isSelected(petId, recipeId)) {
+      setSelectedItems((prev) =>
+        prev.filter((it) => !(it.petId === petId && it.recipeId === recipeId))
+      );
+    } else {
+      setSelectedItems((prev) => [...prev, { petId, recipeId }]);
+    }
+  }
+
+  function removeItem(petId: number, recipeId: number) {
+    setSelectedItems((prev) =>
+      prev.filter((it) => !(it.petId === petId && it.recipeId === recipeId))
     );
   }
 
-  function removeRecipe(recipeId: number) {
-    setSelectedRecipeIds((prev) => prev.filter((id) => id !== recipeId));
+  /** Fill address fields from the user's registered address. */
+  function fillRegisteredAddress() {
+    if (!user) return;
+    setAddrStreet(user.address ?? "");
+    setAddrNumber("");
+    setAddrComplement("");
+    setAddrCity(user.city ?? "");
+    setAddrState(user.state ?? "");
+    setAddrZipcode(user.zipcode ?? "");
+  }
+
+  /** Build a formatted address string from the individual fields, or undefined if empty. */
+  function buildAddress(): string | undefined {
+    const parts = [
+      addrStreet && addrNumber ? `${addrStreet}, ${addrNumber}` : addrStreet,
+      addrComplement,
+      addrCity && addrState ? `${addrCity}/${addrState}` : addrCity,
+      addrZipcode,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(" — ") : undefined;
   }
 
   async function handleSubmit() {
-    if (selectedRecipeIds.length === 0) return;
+    if (selectedItems.length === 0) return;
+
+    const items: OrderItemPayload[] = selectedItems.map((it) => ({
+      recipe_id: it.recipeId,
+      pet_id: it.petId,
+    }));
+
     const payload: CreateOrderPayload = {
-      recipe_ids: selectedRecipeIds,
-      delivery_date: deliveryDate || undefined,
-      delivery_address: deliveryAddress || undefined,
+      items,
+      delivery_address: buildAddress(),
     };
+
     await createOrder(payload);
     router.push("/orders");
   }
 
-  /** Returns the pet name for a given recipe id (first pet that has it). */
-  function petNameForRecipe(recipeId: number): string {
-    return pets?.find((p) => p.recipes?.some((r) => r.id === recipeId))?.name ?? "";
-  }
+  const petNameById = useMemo<Record<number, string>>(() => {
+    const map: Record<number, string> = {};
+    pets?.forEach((p) => { map[p.id] = p.name; });
+    return map;
+  }, [pets]);
+
+  const hasRegisteredAddress = !!(user?.address || user?.city);
 
   return (
     <div className="space-y-6">
@@ -142,7 +200,9 @@ export default function NewOrderPage() {
               const PetIcon = pet.type === "cat" ? Cat : Dog;
               const isExpanded = expandedPets.includes(pet.id);
               const petRecipes = (pet.recipes ?? []).filter((r) => !r.is_template);
-              const selectedCount = petRecipes.filter((r) => selectedRecipeIds.includes(r.id)).length;
+              const selectedCount = petRecipes.filter((r) =>
+                isSelected(pet.id, r.id)
+              ).length;
               const speciesLabel = pet.type === "cat" ? tPets("cat") : tPets("dog");
 
               return (
@@ -186,23 +246,22 @@ export default function NewOrderPage() {
                         </p>
                       ) : (
                         petRecipes.map((recipe) => {
-                          const isSelected = selectedRecipeIds.includes(recipe.id);
+                          const sel = isSelected(pet.id, recipe.id);
                           return (
                             <button
-                              key={recipe.id}
+                              key={itemKey(pet.id, recipe.id)}
                               type="button"
-                              onClick={() => toggleRecipe(recipe.id)}
+                              onClick={() => toggleRecipe(pet.id, recipe.id)}
                               className={cn(
                                 "w-full flex items-center gap-4 px-4 py-3.5 text-left transition-colors",
-                                isSelected ? "bg-primary/5" : "hover:bg-muted/20"
+                                sel ? "bg-primary/5" : "hover:bg-muted/20"
                               )}
                             >
-                              {/* Checkbox visual */}
                               <div className={cn(
                                 "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
-                                isSelected ? "bg-primary border-primary" : "border-border"
+                                sel ? "bg-primary border-primary" : "border-border"
                               )}>
-                                {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white fill-white" />}
+                                {sel && <CheckCircle2 className="w-3.5 h-3.5 text-white fill-white" />}
                               </div>
 
                               <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">
@@ -210,7 +269,7 @@ export default function NewOrderPage() {
                               </div>
 
                               <div className="flex-1 min-w-0">
-                                <p className={cn("font-medium text-sm", isSelected ? "text-primary" : "text-foreground")}>
+                                <p className={cn("font-medium text-sm", sel ? "text-primary" : "text-foreground")}>
                                   {recipe.name}
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -218,7 +277,7 @@ export default function NewOrderPage() {
                                 </p>
                               </div>
 
-                              <span className={cn("text-sm font-bold shrink-0", isSelected ? "text-primary" : "text-amber-600 dark:text-amber-400")}>
+                              <span className={cn("text-sm font-bold shrink-0", sel ? "text-primary" : "text-amber-600 dark:text-amber-400")}>
                                 R$ {Number(recipe.base_cost ?? 0).toFixed(2)}
                               </span>
                             </button>
@@ -233,7 +292,7 @@ export default function NewOrderPage() {
           )}
         </div>
 
-        {/* ── Right: Order summary (sticky) ──────────────────────── */}
+        {/* ── Right: Order summary + address (sticky) ────────────── */}
         <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-6">
           {/* Recipe list summary */}
           <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
@@ -241,67 +300,138 @@ export default function NewOrderPage() {
               <h2 className="font-semibold text-foreground">{t("order_summary")}</h2>
             </div>
 
-            {selectedRecipes.length === 0 ? (
+            {selectedItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground text-center px-4">
                 <UtensilsCrossed className="w-8 h-8 opacity-30" />
                 <p className="text-sm">{t("select_recipes_hint")}</p>
               </div>
             ) : (
               <div className="divide-y divide-border/50">
-                {selectedRecipes.map((recipe) => (
-                  <div key={recipe.id} className="flex items-center gap-3 px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground line-clamp-1">{recipe.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{petNameForRecipe(recipe.id)}</p>
+                {selectedItems.map((item) => {
+                  const recipe = allRecipesById[item.recipeId];
+                  return (
+                    <div key={itemKey(item.petId, item.recipeId)} className="flex items-center gap-3 px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground line-clamp-1">
+                          {recipe?.name ?? `#${item.recipeId}`}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {petNameById[item.petId] ?? ""}
+                        </p>
+                      </div>
+                      <span className="text-sm font-semibold text-amber-600 dark:text-amber-400 shrink-0">
+                        R$ {Number(recipe?.base_cost ?? 0).toFixed(2)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeItem(item.petId, item.recipeId)}
+                        className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <span className="text-sm font-semibold text-amber-600 dark:text-amber-400 shrink-0">
-                      R$ {Number(recipe.base_cost ?? 0).toFixed(2)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeRecipe(recipe.id)}
-                      className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
-            {/* Total */}
             <div className="px-5 py-4 border-t bg-muted/10 flex items-center justify-between">
               <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("total")}</span>
               <span className="text-2xl font-bold text-primary">R$ {total.toFixed(2)}</span>
             </div>
           </div>
 
-          {/* Delivery details */}
+          {/* Delivery address */}
           <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b bg-muted/20">
-              <h2 className="font-semibold text-foreground">{t("delivery_optional")}</h2>
+            <div className="px-5 py-4 border-b bg-muted/20 flex items-center justify-between gap-2">
+              <h2 className="font-semibold text-foreground flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-muted-foreground" />
+                {t("delivery_optional")}
+              </h2>
+              {hasRegisteredAddress && (
+                <button
+                  type="button"
+                  onClick={fillRegisteredAddress}
+                  className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+                >
+                  <BookUser className="w-3.5 h-3.5" />
+                  {t("use_registered_address")}
+                </button>
+              )}
             </div>
             <div className="px-5 py-4 space-y-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2 space-y-1.5">
+                  <Label htmlFor="addr_street" className="text-xs text-muted-foreground">
+                    {t("addr_street")}
+                  </Label>
+                  <Input
+                    id="addr_street"
+                    placeholder={t("addr_street_placeholder")}
+                    value={addrStreet}
+                    onChange={(e) => setAddrStreet(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="addr_number" className="text-xs text-muted-foreground">
+                    {t("addr_number")}
+                  </Label>
+                  <Input
+                    id="addr_number"
+                    placeholder="123"
+                    value={addrNumber}
+                    onChange={(e) => setAddrNumber(e.target.value)}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1.5">
-                <Label htmlFor="delivery_date" className="text-sm flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" /> {t("delivery_date_label")}
+                <Label htmlFor="addr_complement" className="text-xs text-muted-foreground">
+                  {t("addr_complement")}
                 </Label>
                 <Input
-                  id="delivery_date"
-                  type="date"
-                  value={deliveryDate}
-                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  id="addr_complement"
+                  placeholder={t("addr_complement_placeholder")}
+                  value={addrComplement}
+                  onChange={(e) => setAddrComplement(e.target.value)}
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="addr_city" className="text-xs text-muted-foreground">
+                    {t("addr_city")}
+                  </Label>
+                  <Input
+                    id="addr_city"
+                    placeholder={t("addr_city_placeholder")}
+                    value={addrCity}
+                    onChange={(e) => setAddrCity(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="addr_state" className="text-xs text-muted-foreground">
+                    {t("addr_state")}
+                  </Label>
+                  <Input
+                    id="addr_state"
+                    placeholder="SP"
+                    maxLength={2}
+                    value={addrState}
+                    onChange={(e) => setAddrState(e.target.value.toUpperCase())}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1.5">
-                <Label htmlFor="delivery_address" className="text-sm flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-muted-foreground" /> {t("delivery_address_label")}
+                <Label htmlFor="addr_zipcode" className="text-xs text-muted-foreground">
+                  {t("addr_zipcode")}
                 </Label>
                 <Input
-                  id="delivery_address"
-                  placeholder={t("delivery_address_placeholder")}
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  id="addr_zipcode"
+                  placeholder="00000-000"
+                  value={addrZipcode}
+                  onChange={(e) => setAddrZipcode(e.target.value)}
                 />
               </div>
             </div>
@@ -310,7 +440,7 @@ export default function NewOrderPage() {
           {/* Submit */}
           <Button
             onClick={handleSubmit}
-            disabled={isCreating || selectedRecipeIds.length === 0}
+            disabled={isCreating || selectedItems.length === 0}
             className="w-full gap-2"
             size="lg"
           >
@@ -321,7 +451,7 @@ export default function NewOrderPage() {
             )}
             {isCreating
               ? t("creating")
-              : `${t("confirm_order")}${selectedRecipes.length > 0 ? ` (${selectedRecipes.length})` : ""}`}
+              : `${t("confirm_order")}${selectedItems.length > 0 ? ` (${selectedItems.length})` : ""}`}
           </Button>
         </div>
       </div>

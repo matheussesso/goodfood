@@ -40,7 +40,8 @@ class OrderController extends Controller
 
     /**
      * Create a new order for the authenticated user.
-     * Accepts one or more recipe_ids, computes total from recipe base_cost.
+     * Accepts an array of items (each with recipe_id and optional pet_id),
+     * allowing the same recipe to appear multiple times for different pets.
      *
      * @param  Request  $request
      * @return JsonResponse
@@ -48,40 +49,39 @@ class OrderController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'pet_id'           => 'nullable|exists:pets,id',
-            'recipe_ids'       => 'required|array|min:1',
-            'recipe_ids.*'     => 'integer|exists:recipes,id',
-            'delivery_address' => 'nullable|string|max:500',
-            'delivery_date'    => 'nullable|date|after:today',
+            'items'                => 'required|array|min:1',
+            'items.*.recipe_id'    => 'required|integer|exists:recipes,id',
+            'items.*.pet_id'       => 'nullable|integer|exists:pets,id',
+            'delivery_address'     => 'nullable|string|max:1000',
         ]);
 
-        if (!empty($validated['pet_id'])) {
-            $pet = $request->user()->pets()->find($validated['pet_id']);
-            if (!$pet) {
+        $userPetIds = $request->user()->pets()->pluck('id');
+        foreach ($validated['items'] as $item) {
+            if (!empty($item['pet_id']) && !$userPetIds->contains($item['pet_id'])) {
                 return response()->json(['success' => false, 'message' => 'Pet not found or unauthorized'], 403);
             }
         }
 
-        $recipes = Recipe::whereIn('id', $validated['recipe_ids'])->get();
-        if ($recipes->count() !== count($validated['recipe_ids'])) {
-            return response()->json(['success' => false, 'message' => 'One or more recipes not found'], 422);
-        }
+        $recipeIds   = collect($validated['items'])->pluck('recipe_id');
+        $recipesById = Recipe::whereIn('id', $recipeIds->unique())->get()->keyBy('id');
 
-        $total = $recipes->sum(fn(Recipe $r) => (float) ($r->base_cost ?? 0));
+        $total = collect($validated['items'])->sum(
+            fn(array $item) => (float) ($recipesById[$item['recipe_id']]?->base_cost ?? 0)
+        );
 
         $order = $request->user()->orders()->create([
-            'pet_id'           => $validated['pet_id'],
             'total_price'      => $total,
             'status'           => 'pending',
             'delivery_address' => $validated['delivery_address'] ?? null,
-            'delivery_date'    => $validated['delivery_date'] ?? null,
         ]);
 
-        foreach ($recipes as $recipe) {
+        foreach ($validated['items'] as $item) {
+            $recipe = $recipesById[$item['recipe_id']] ?? null;
             OrderItem::create([
                 'order_id'   => $order->id,
-                'recipe_id'  => $recipe->id,
-                'unit_price' => (float) ($recipe->base_cost ?? 0),
+                'pet_id'     => $item['pet_id'] ?? null,
+                'recipe_id'  => $item['recipe_id'],
+                'unit_price' => (float) ($recipe?->base_cost ?? 0),
                 'quantity'   => 1,
             ]);
         }
@@ -89,7 +89,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Order created successfully',
-            'data'    => $order->load(['pet', 'items.recipe']),
+            'data'    => $order->load(['items.recipe', 'items.pet']),
         ], 201);
     }
 
