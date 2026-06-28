@@ -136,7 +136,8 @@
     "kitchen": "Kitchen",
     "result": "Result",
     "min_profit": "Minimum Profit",
-    "base_price_label": "Base Price ($)"
+    "base_price_label": "Base Price ($)",
+    "all_species_admin": "All Species"
   },
   "Recipes": {
     "title": "New Recipe",
