@@ -486,7 +486,7 @@ export default function CustomerDetailPage() {
 
       {/* Recipe Edit Modal */}
       <Modal isOpen={isRecEditModalOpen} onClose={() => setIsRecEditModalOpen(false)} title={`Editar Receita: ${editingRec?.name || ""}`} className="max-w-4xl">
-        <form onSubmit={handleRecEditSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto px-2">
+        <form onSubmit={handleRecEditSubmit} className="space-y-6 px-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Nome da Receita</Label><Input required value={recForm.name} onChange={e => setRecForm({...recForm, name: e.target.value})} /></div>
             <div className="space-y-2">
