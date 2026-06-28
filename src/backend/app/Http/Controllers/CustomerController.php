@@ -37,7 +37,7 @@ class CustomerController extends Controller
     public function show($id)
     {
         $customer = User::where('role', 'customer')
-            ->with(['pets', 'orders', 'subscriptions', 'recipes'])
+            ->with(['pets', 'orders', 'subscriptions', 'recipes.ingredients', 'recipes.pets'])
             ->findOrFail($id);
 
         return response()->json([

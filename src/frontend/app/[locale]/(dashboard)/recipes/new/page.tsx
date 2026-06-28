@@ -10,7 +10,8 @@ import { apiClient } from "@/lib/api-client";
 import { Ingredient } from "@/hooks/useIngredients";
 import { calculateRecipeCost, Recipe } from "@/hooks/useRecipes";
 import { usePets } from "@/hooks/usePets";
-import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -52,6 +53,8 @@ export default function NewRecipePage() {
   const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
   const [searchIngredient, setSearchIngredient] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todos");
+  const [recipeDetailOpen, setRecipeDetailOpen] = useState(false);
+  const [costDetailOpen, setCostDetailOpen] = useState(false);
 
   // Fetch data
   const { data: ingredients, isLoading: loadingIngredients } = useQuery({
@@ -89,25 +92,27 @@ export default function NewRecipePage() {
   });
 
   const watchedValues = watch();
-  const { user } = require("@/hooks/useAuth").useAuth();
+  const { user } = useAuth();
 
-  // Calculate total weight in kg (for render and logic)
+  // Daily weight of valid ingredients in kg
   const validIngredients = watchedValues.ingredients.filter(i => i.id > 0 && Number(i.quantity) > 0);
   let totalWeightKg = 0;
   validIngredients.forEach(i => {
     const qty = Number(i.quantity);
     if (i.unit === "g" || i.unit === "ml") totalWeightKg += qty / 1000;
     else if (i.unit === "kg" || i.unit === "l") totalWeightKg += qty;
-    else if (i.unit === "unit") totalWeightKg += qty * 0.1; // roughly 100g per unit if unknown
+    else if (i.unit === "unit") totalWeightKg += qty * 0.1;
   });
+  // Total weight across all days — matches old system: sum(daily_weight) * duration_days >= 1.5kg
+  const totalWeightAcrossDays = totalWeightKg * (Number(watchedValues.duration_days) || 15);
 
   // Watch for cost calculation
   useEffect(() => {
     if (step !== "builder") return;
 
     const fetchCost = async () => {
-      // Customer constraint: must be >= 1.5kg
-      if (user?.role === "customer" && totalWeightKg < 1.5) {
+      // Customer constraint: total weight across all days must be >= 1.5kg (matches old system: sum * duration_days >= 1500g)
+      if (user?.role === "customer" && totalWeightAcrossDays < 1.5) {
         setEstimatedCost(0);
         setCostBreakdown([]);
         return; // Don't fetch cost yet
@@ -138,7 +143,7 @@ export default function NewRecipePage() {
     
     const timeoutId = setTimeout(fetchCost, 500);
     return () => clearTimeout(timeoutId);
-  }, [watchedValues.ingredients, watchedValues.duration_days, watchedValues.daily_portions, step, user?.role]);
+  }, [watchedValues.ingredients, watchedValues.duration_days, watchedValues.daily_portions, step, user?.role, totalWeightAcrossDays]);
 
   const createRecipe = useMutation({
     mutationFn: async (data: RecipeFormData) => {
@@ -377,7 +382,7 @@ export default function NewRecipePage() {
                           <span className="font-semibold text-xs leading-tight line-clamp-2">{ing.name}</span>
                           {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />}
                         </div>
-                        <div className="flex justify-between items-end mt-1.5">
+                        <div className="flex justify-between items-end">
                           <span className="text-[9px] uppercase tracking-wider text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-sm truncate max-w-[90px]">
                             {ing.category || "Geral"}
                           </span>
@@ -483,50 +488,95 @@ export default function NewRecipePage() {
               </h3>
               
               <div className="space-y-4">
-                {user?.role === "customer" && totalWeightKg < 1.5 ? (
+                {user?.role === "customer" && totalWeightAcrossDays < 1.5 ? (
                   <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-lg flex gap-2">
                     <Info className="w-5 h-5 flex-shrink-0" />
                     <span>
                       {t("weight_warning")}<br/>
-                      <strong>{t("current_weight")}</strong> {(totalWeightKg * 1000).toFixed(0)}g
+                      <strong>{t("current_weight")}</strong> {(totalWeightAcrossDays * 1000).toFixed(0)}g
                     </span>
                   </div>
                 ) : (
                   <>
-                    <div className="bg-muted/50 p-4 rounded-lg flex flex-col gap-2 mb-4">
+                    {/* Total cost — always visible */}
+                    <div className="border-b pb-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">{t("estimated_cost")}</span>
+                        <span className="text-sm font-medium flex items-center gap-1.5">
+                          {t("estimated_cost")}
+                          {isCalculatingCost && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        </span>
                         <span className="text-2xl font-bold text-primary">R$ {estimatedCost.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between items-center text-xs text-muted-foreground">
-                        <span>Baseado em {watchedValues.duration_days} dia(s)</span>
-                        <span>R$ {costPerKg.toFixed(2)}/kg ({(totalWeightKg).toFixed(3)} kg)</span>
-                      </div>
+                      {costPerKg > 0 && (
+                        <div className="flex justify-between items-center text-xs text-muted-foreground mt-1">
+                          <span>Baseado em {watchedValues.duration_days} dia(s)</span>
+                          <span>R$ {costPerKg.toFixed(2)}/kg ({totalWeightAcrossDays.toFixed(3)} kg total)</span>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="text-sm space-y-2">
-                      <p className="font-medium text-foreground">{t("cost_breakdown")}</p>
-                      <ul className="space-y-1.5 text-muted-foreground text-xs">
-                        {costBreakdown?.filter(item => item.is_supplement).map((item, idx) => (
-                          <li key={idx} className="flex justify-between border-b border-border/50 pb-1">
-                            <span>{item.name}</span>
-                            <span>R$ {Number(item.total_cost).toFixed(2)}</span>
-                          </li>
-                        ))}
-                        {(!costBreakdown || costBreakdown.length === 0) && (
-                          <li className="text-center italic py-2 flex items-center justify-center gap-2">
-                            <Info className="w-3 h-3" />
-                            {t("add_ingredients_simulate")}
-                          </li>
+                    {validIngredients.length === 0 && (
+                      <p className="text-center text-xs text-muted-foreground italic py-3 flex items-center justify-center gap-2">
+                        <Info className="w-3 h-3" />
+                        {t("add_ingredients_simulate")}
+                      </p>
+                    )}
+
+                    {/* Accordion — recipe detail */}
+                    {validIngredients.length > 0 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setRecipeDetailOpen(v => !v)}
+                          className="w-full flex items-center justify-between py-3 border-b text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                        >
+                          <span className="flex items-center gap-2"><FileText className="w-4 h-4" /> Ver detalhamento da receita</span>
+                          {recipeDetailOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+
+                        {recipeDetailOpen && (
+                          <div className="py-3 space-y-3 border-b">
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-muted-foreground">Duração total:</span>
+                              <span className="font-semibold">{watchedValues.duration_days} dias</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="text-muted-foreground">Porções diárias:</span>
+                              <span className="font-semibold">{watchedValues.daily_portions} porção(ões)</span>
+                            </div>
+                            <div>
+                              <div className="grid grid-cols-3 text-xs text-muted-foreground mb-1.5 px-1 font-medium">
+                                <span>Ingrediente</span>
+                                <span className="text-right">Total/dia</span>
+                                <span className="text-right">Por porção</span>
+                              </div>
+                              <ul className="space-y-1.5">
+                                {validIngredients.map((item, idx) => {
+                                  const ing = ingredients?.find(i => i.id === item.id);
+                                  const qty = Number(item.quantity);
+                                  const portions = Number(watchedValues.daily_portions) || 1;
+                                  const perPortion = qty / portions;
+                                  return (
+                                    <li key={idx} className="grid grid-cols-3 gap-1 text-sm items-center bg-muted/20 px-2 py-1.5 rounded-md">
+                                      <span className="text-muted-foreground truncate">{ing?.name || "?"}</span>
+                                      <span className="font-medium text-right text-xs">{qty.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}</span>
+                                      <span className="text-right text-xs text-muted-foreground">{perPortion.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}</span>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          </div>
                         )}
-                      </ul>
-                    </div>
+
+                      </>
+                    )}
                   </>
                 )}
 
                 <button
                   type="submit"
-                  disabled={createRecipe.isPending || isCalculatingCost || (user?.role === "customer" && totalWeightKg < 1.5)}
+                  disabled={createRecipe.isPending || isCalculatingCost || (user?.role === "customer" && totalWeightAcrossDays < 1.5)}
                   className="w-full mt-6 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 disabled:opacity-50"
                 >
                   {createRecipe.isPending ? t("saving") : (

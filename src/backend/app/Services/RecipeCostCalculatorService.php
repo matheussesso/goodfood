@@ -210,6 +210,7 @@ class RecipeCostCalculatorService
 
         return [
             'estimatedCost' => round($cobrar, 2),
+            'ingredientCost' => round($ingredientsCost, 2),
             'costPerKg' => $costPerKg,
             'totalWeight' => round($totalWeight, 3),
             'costBreakdown' => $costBreakdown,

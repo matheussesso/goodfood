@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { usePet } from "@/hooks/usePets";
-import { ArrowLeft, Dog, Loader2, UtensilsCrossed, Package, Calendar } from "lucide-react";
+import { ArrowLeft, Dog, Loader2, UtensilsCrossed, Package, Calendar, Eye, Edit2, CalendarClock, Layers } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useParams } from "next/navigation";
 
 export default function PetProfilePage() {
@@ -136,32 +137,67 @@ export default function PetProfilePage() {
           
           {activeTab === "recipes" && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-semibold flex items-center">
                   <UtensilsCrossed className="w-5 h-5 mr-2 text-primary" />
                   {t("pet_recipes")}
                 </h3>
+                <Link href="/recipes/new">
+                  <Button size="sm" variant="outline" className="gap-1.5 text-xs">
+                    <UtensilsCrossed className="w-3.5 h-3.5" /> Nova Receita
+                  </Button>
+                </Link>
               </div>
-              
+
               {pet.recipes && pet.recipes.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {pet.recipes.map(recipe => (
-                    <Card key={recipe.id} className="relative overflow-hidden group border-muted">
-                      <CardHeader className="pb-3 border-b border-border/50 bg-primary/5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                            <UtensilsCrossed className="w-5 h-5" />
+                    <Card key={recipe.id} className="flex flex-col overflow-hidden hover:border-primary/50 transition-colors">
+                      <div className="p-4 pb-3 border-b border-border/50 bg-muted/20">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <Link href={`/recipes/${recipe.id}`} className="hover:text-primary transition-colors">
+                              <h4 className="font-semibold text-base line-clamp-1">{recipe.name}</h4>
+                            </Link>
+                            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 min-h-[2.5rem]">{recipe.description || "Sem descrição."}</p>
+                          </div>
+                          {recipe.is_template && (
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 bg-muted text-muted-foreground rounded-sm shrink-0">Modelo</span>
+                          )}
+                        </div>
+                      </div>
+                      <CardContent className="pt-4 flex-1 flex flex-col justify-between">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-3 gap-x-2 text-sm">
+                          <div>
+                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Espécie</span>
+                            <span className="font-medium">{recipe.pet_type === 'cat' ? 'Gato' : recipe.pet_type === 'dog' ? 'Cachorro' : 'Geral'}</span>
                           </div>
                           <div>
-                            <CardTitle className="text-lg line-clamp-1">{recipe.name}</CardTitle>
+                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Duração</span>
+                            <span className="font-medium">{recipe.duration_days ?? '-'} dias</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Ingredientes</span>
+                            <span className="font-medium">{recipe.ingredients?.length ?? 0} itens</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Custo Base</span>
+                            <span className="font-semibold text-amber-600 dark:text-amber-400">R$ {Number((recipe as any).ingredient_cost ?? 0).toFixed(2)}</span>
                           </div>
                         </div>
-                      </CardHeader>
-                      <CardContent className="pt-4 space-y-3">
-                        <p className="text-sm text-muted-foreground line-clamp-2 min-h-10">{recipe.description || "Nenhuma descrição."}</p>
-                        <div className="flex justify-between items-center text-sm pt-2 border-t border-border/50">
-                          <span className="text-muted-foreground">Duração: {recipe.duration_days} dias</span>
-                          <span className="font-semibold text-primary">R$ {Number(recipe.base_cost).toFixed(2)}</span>
+                        <div className="flex gap-2 mt-4 pt-3 border-t border-border/50">
+                          <Link href={`/recipes/${recipe.id}`} className="flex-1">
+                            <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
+                              <Eye className="w-3.5 h-3.5" /> Visualizar
+                            </Button>
+                          </Link>
+                          {!recipe.is_template && (
+                            <Link href={`/recipes/${recipe.id}/edit`} className="flex-1">
+                              <Button variant="secondary" size="sm" className="w-full gap-1.5 text-xs">
+                                <Edit2 className="w-3.5 h-3.5" /> Editar
+                              </Button>
+                            </Link>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -170,7 +206,10 @@ export default function PetProfilePage() {
               ) : (
                 <div className="text-center py-12 bg-muted/20 border rounded-lg">
                   <UtensilsCrossed className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
-                  <p className="text-muted-foreground">Seu pet ainda não tem receitas vinculadas.</p>
+                  <p className="text-muted-foreground mb-3">Seu pet ainda não tem receitas vinculadas.</p>
+                  <Link href="/recipes/new">
+                    <Button size="sm" variant="outline">Criar Receita</Button>
+                  </Link>
                 </div>
               )}
             </div>

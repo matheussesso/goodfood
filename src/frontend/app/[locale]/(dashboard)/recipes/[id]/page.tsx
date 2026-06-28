@@ -73,28 +73,45 @@ export default function RecipeDetailPage({ params }: { params: { id: string } })
               {t("ingredients")}
             </h3>
             
+            {recipe.duration_days && recipe.daily_portions && (
+              <div className="mb-4 bg-muted/30 rounded-lg p-3 text-sm text-muted-foreground flex flex-wrap gap-4">
+                <span><strong className="text-foreground">{recipe.duration_days}</strong> dias de duração</span>
+                <span><strong className="text-foreground">{recipe.daily_portions}</strong> porções/dia</span>
+                <span><strong className="text-foreground">{recipe.duration_days * recipe.daily_portions}</strong> refeições totais</span>
+              </div>
+            )}
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b bg-muted/30 text-sm">
                     <th className="py-3 px-4 font-medium text-muted-foreground">{tCat("ingredients")}</th>
-                    <th className="py-3 px-4 font-medium text-muted-foreground">{tCat("category")}</th>
-                    <th className="py-3 px-4 font-medium text-muted-foreground text-right">Qtd</th>
+                    <th className="py-3 px-4 font-medium text-muted-foreground hidden sm:table-cell">{tCat("category")}</th>
+                    <th className="py-3 px-4 font-medium text-muted-foreground text-right">Qtd/dia</th>
+                    <th className="py-3 px-4 font-medium text-muted-foreground text-right hidden md:table-cell">Por porção</th>
+                    <th className="py-3 px-4 font-medium text-muted-foreground text-right hidden lg:table-cell">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y text-sm">
-                  {recipe.ingredients.map((ing) => (
-                    <tr key={ing.id} className="hover:bg-muted/10">
-                      <td className="py-3 px-4 font-medium">{ing.name}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{ing.category || "-"}</td>
-                      <td className="py-3 px-4 text-right">
-                        {parseFloat(ing.pivot.quantity).toFixed(3)} {ing.pivot.unit || ing.unit}
-                      </td>
-                    </tr>
-                  ))}
+                  {recipe.ingredients.map((ing) => {
+                    const qtyPerDay = parseFloat(ing.pivot.quantity);
+                    const unit = ing.pivot.unit || ing.unit;
+                    const qtyPerPortion = recipe.daily_portions && recipe.daily_portions > 0
+                      ? qtyPerDay / recipe.daily_portions
+                      : qtyPerDay;
+                    const qtyTotal = recipe.duration_days ? qtyPerDay * recipe.duration_days : qtyPerDay;
+                    return (
+                      <tr key={ing.id} className="hover:bg-muted/10">
+                        <td className="py-3 px-4 font-medium">{ing.name}</td>
+                        <td className="py-3 px-4 text-muted-foreground hidden sm:table-cell">{ing.category || "-"}</td>
+                        <td className="py-3 px-4 text-right">{qtyPerDay.toFixed(3)} {unit}</td>
+                        <td className="py-3 px-4 text-right text-muted-foreground hidden md:table-cell">{qtyPerPortion.toFixed(3)} {unit}</td>
+                        <td className="py-3 px-4 text-right text-muted-foreground hidden lg:table-cell">{qtyTotal.toFixed(3)} {unit}</td>
+                      </tr>
+                    );
+                  })}
                   {recipe.ingredients.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="py-6 text-center text-muted-foreground">
+                      <td colSpan={5} className="py-6 text-center text-muted-foreground">
                         {t("no_ingredients")}
                       </td>
                     </tr>

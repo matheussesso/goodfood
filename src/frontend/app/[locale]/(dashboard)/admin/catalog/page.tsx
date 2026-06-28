@@ -4,13 +4,13 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/useAuth";
 import { useIngredients, Ingredient } from "@/hooks/useIngredients";
-import { useRecipes, Recipe } from "@/hooks/useRecipes";
+import { useRecipes, Recipe, calculateRecipeCost } from "@/hooks/useRecipes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
-import { Plus, Edit2, Trash2, Loader2, BookOpen, Apple, Settings2, Save, AlertCircle } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, BookOpen, Apple, Settings2, Save, AlertCircle, Search, Filter, LayoutGrid, List, CheckCircle2, Check, Info, ChevronDown, ChevronUp, DollarSign, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings, GeneralSettings } from "@/hooks/useSettings";
 import { useForm } from "react-hook-form";
@@ -22,6 +22,7 @@ export default function CatalogPage() {
   const tCommon = useTranslations("Common");
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"ingredients" | "recipes" | "settings">("ingredients");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Settings Hooks & State
   const { settings, isLoading: isLoadingSettings, updateSettings, isUpdating: isUpdatingSettings } = useSettings();
@@ -117,9 +118,9 @@ export default function CatalogPage() {
     createRecipe, updateRecipe, deleteRecipe, 
     isCreating: isCreatingRec, isUpdating: isUpdatingRec 
   } = useRecipes();
-  const { calculateRecipeCost } = require("@/hooks/useRecipes");
 
   const [isRecModalOpen, setIsRecModalOpen] = useState(false);
+  const [isEditingTemplate, setIsEditingTemplate] = useState(true);
   const [editingRec, setEditingRec] = useState<Recipe | null>(null);
   const [recForm, setRecForm] = useState({
     name: "", description: "", pet_type: "dog", duration_days: "15", daily_portions: "2", is_active: true, instructions: ""
@@ -129,9 +130,25 @@ export default function CatalogPage() {
   const [adminIngSearch, setAdminIngSearch] = useState("");
   const [adminIngCategory, setAdminIngCategory] = useState("all");
 
+  const [adminRecCategoryFilter, setAdminRecCategoryFilter] = useState("Todos");
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
+  const [recCostPerKg, setRecCostPerKg] = useState<number>(0);
   const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
   const [isCalculatingCost, setIsCalculatingCost] = useState(false);
+  const [recipeDetailOpen, setRecipeDetailOpen] = useState(false);
+  const [costDetailOpen, setCostDetailOpen] = useState(false);
+
+  const ADMIN_BREAKDOWN_ORDER = [
+    'Custo de Insumos Adicional',
+    'Repasse Produção (Cozinha)',
+    'Repasse Logística',
+    'Margem Reserva',
+    'Custo GFP+MKT',
+    'Fiscal/Tributário',
+    'Agenda',
+    'Cobrar',
+    'Resultado (Lucro Mínimo)',
+  ];
 
   useEffect(() => {
     const fetchCost = async () => {
@@ -145,6 +162,7 @@ export default function CatalogPage() {
             daily_portions: parseInt(recForm.daily_portions) || 2
           });
           setEstimatedCost(result.estimatedCost);
+          setRecCostPerKg(result.costPerKg || 0);
           setCostBreakdown(result.costBreakdown || []);
         } catch (e) {
           console.error(e);
@@ -153,6 +171,7 @@ export default function CatalogPage() {
         }
       } else {
         setEstimatedCost(0);
+        setRecCostPerKg(0);
         setCostBreakdown([]);
       }
     };
@@ -201,12 +220,18 @@ export default function CatalogPage() {
   };
 
   // --- Recipes Handlers ---
-  const handleOpenRecModal = (rec?: Recipe) => {
+  const handleOpenRecModal = (rec?: Recipe, type: "template" | "customer" = "template") => {
+    setIngredientSearch("");
+    setAdminRecCategoryFilter("Todos");
+    setEstimatedCost(0);
+    setRecCostPerKg(0);
+    setCostBreakdown([]);
+    setIsEditingTemplate(type === "template");
     if (rec) {
       setEditingRec(rec);
       setRecForm({
         name: rec.name, description: rec.description || "", instructions: rec.instructions || "",
-        pet_type: rec.pet_type || "dog", duration_days: rec.duration_days?.toString() || "15", 
+        pet_type: rec.pet_type || "dog", duration_days: rec.duration_days?.toString() || "15",
         daily_portions: rec.daily_portions?.toString() || "2", is_active: rec.is_active
       });
       setRecipeIngredients(rec.ingredients.map(i => ({ id: i.id, quantity: i.pivot.quantity, unit: i.pivot.unit || i.unit })));
@@ -223,13 +248,13 @@ export default function CatalogPage() {
     const data = {
       name: recForm.name, description: recForm.description,
       pet_type: recForm.pet_type, duration_days: parseInt(recForm.duration_days), daily_portions: parseInt(recForm.daily_portions),
-      is_template: true, is_active: recForm.is_active,
+      is_template: isEditingTemplate, is_active: recForm.is_active, instructions: recForm.instructions,
       ingredients: recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).map(i => ({ id: i.id, quantity: parseFloat(i.quantity), unit: i.unit }))
     };
 
     if (editingRec) await updateRecipe({ id: editingRec.id, ...data });
     else await createRecipe(data);
-    
+
     setIsRecModalOpen(false);
   };
 
@@ -257,7 +282,7 @@ export default function CatalogPage() {
           >
             <BookOpen className="inline-block w-4 h-4 mr-2" /> {t("recipes")}
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab("settings")}
             className={cn("px-4 py-2 text-sm font-medium rounded-md transition-colors", activeTab === "settings" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
           >
@@ -356,45 +381,90 @@ export default function CatalogPage() {
                       <option value="Suplemento">Suplemento</option>
                       <option value="Outro">Outro</option>
                     </select>
+                    <div className="flex items-center border rounded-md p-1 bg-muted/30 ml-2">
+                      <Button 
+                        variant={viewMode === "grid" ? "secondary" : "ghost"} 
+                        size="icon" 
+                        className="h-8 w-8" 
+                        onClick={() => setViewMode("grid")}
+                        title="Visualização em Cards"
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant={viewMode === "list" ? "secondary" : "ghost"} 
+                        size="icon" 
+                        className="h-8 w-8" 
+                        onClick={() => setViewMode("list")}
+                        title="Visualização em Lista"
+                      >
+                        <List className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "flex flex-col gap-2"}>
                   {ingredients?.filter(ing => {
                     if (adminIngCategory !== "all" && ing.category !== adminIngCategory) return false;
                     if (adminIngSearch && !ing.name.toLowerCase().includes(adminIngSearch.toLowerCase())) return false;
                     return true;
                   }).map(ing => (
-                    <Card key={ing.id} className="relative group hover:shadow-md transition-all border-l-4" style={{borderLeftColor: ing.category === 'Proteína' ? '#ef4444' : ing.category === 'Vegetal' ? '#22c55e' : ing.category === 'Carboidrato' ? '#eab308' : ing.category === 'Gordura' ? '#f97316' : '#64748b'}}>
-                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="secondary" size="icon" className="h-7 w-7 shadow-sm" onClick={() => handleOpenIngModal(ing)}><Edit2 className="h-3.5 w-3.5" /></Button>
-                        <Button variant="destructive" size="icon" className="h-7 w-7 shadow-sm" onClick={() => handleDeleteIng(ing.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                      </div>
-                      <CardContent className="p-4">
-                        <div className="mb-2">
-                          <h4 className="font-semibold text-base line-clamp-1 pr-14" title={ing.name}>{ing.name}</h4>
-                          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{ing.category || 'Sem Categoria'}</span>
+                    viewMode === "grid" ? (
+                      <Card key={ing.id} className="relative group hover:shadow-md transition-all overflow-hidden flex flex-col h-full">
+                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-background/80 backdrop-blur-sm rounded-md p-0.5">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenIngModal(ing)}><Edit2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteIng(ing.id)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
-                        <div className="space-y-1.5 text-sm">
-                          <div className="flex justify-between items-center bg-muted/30 p-1.5 rounded">
-                            <span className="text-muted-foreground">Preço / kg:</span>
-                            <span className="font-medium text-primary">R$ {ing.cost_per_unit}</span>
+                        <div className="p-4 border-b bg-muted/10">
+                          <h4 className="font-semibold text-sm line-clamp-1 pr-12 mb-1" title={ing.name}>{ing.name}</h4>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground">
+                            {ing.category || 'Sem Categoria'}
+                          </span>
+                        </div>
+                        <div className="p-4 text-sm flex-1 flex flex-col justify-center space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Preço:</span>
+                            <span className="font-semibold text-primary">R$ {ing.cost_per_unit} <span className="text-xs text-muted-foreground font-normal">/ {ing.unit === 'g' || ing.unit === 'kg' ? 'kg' : ing.unit === 'l' ? 'L' : 'un'}</span></span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Compra:</span>
-                            <span className="font-medium">{ing.unit === 'g' ? 'Grama (g)' : ing.unit === 'kg' ? 'Quilograma (kg)' : ing.unit === 'l' ? 'Litro (L)' : ing.unit}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Tx. Perda:</span>
-                            <span className="font-medium">{ing.loss_rate}</span>
+                            <span className="text-muted-foreground">Perda:</span>
+                            <span className="font-medium">{ing.loss_rate}%</span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Dificuldade:</span>
                             <span className="font-medium">x{ing.difficulty_multiplier}</span>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </Card>
+                    ) : (
+                      <div key={ing.id} className="flex items-center justify-between p-3 border rounded-md hover:bg-muted/30 transition-colors group bg-card">
+                        <div className="flex-1 grid grid-cols-12 gap-4 items-center">
+                          <div className="col-span-12 sm:col-span-5 lg:col-span-4">
+                            <h4 className="font-semibold text-sm line-clamp-1 mb-0.5" title={ing.name}>{ing.name}</h4>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground">
+                              {ing.category || 'Sem Categoria'}
+                            </span>
+                          </div>
+                          <div className="hidden sm:flex col-span-3 lg:col-span-3 flex-col text-sm">
+                            <span className="text-muted-foreground text-[10px] uppercase">Preço</span>
+                            <span className="font-medium text-primary">R$ {ing.cost_per_unit} <span className="text-xs text-muted-foreground font-normal">/ {ing.unit === 'g' || ing.unit === 'kg' ? 'kg' : ing.unit === 'l' ? 'L' : 'un'}</span></span>
+                          </div>
+                          <div className="hidden lg:flex col-span-2 flex-col text-sm">
+                            <span className="text-muted-foreground text-[10px] uppercase">Perda</span>
+                            <span className="font-medium">{ing.loss_rate}%</span>
+                          </div>
+                          <div className="hidden lg:flex col-span-2 flex-col text-sm">
+                            <span className="text-muted-foreground text-[10px] uppercase">Dificuldade</span>
+                            <span className="font-medium">x{ing.difficulty_multiplier}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => handleOpenIngModal(ing)}><Edit2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteIng(ing.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      </div>
+                    )
                   ))}
                 </div>
                 {ingredients?.length === 0 && <div className="p-8 text-center text-muted-foreground">{t("no_ingredients")}</div>}
@@ -419,24 +489,34 @@ export default function CatalogPage() {
                 {recipes?.filter(r => r.is_template).map(rec => (
                   <Card key={rec.id} className="bg-muted/30 hover:bg-muted/50 transition-colors">
                     <CardHeader className="p-4 flex flex-row items-start justify-between">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <CardTitle className="text-lg">{rec.name}</CardTitle>
-                        <CardDescription>
-                          {t("duration")}: {rec.duration_days} {t("days")} | 
-                          {t("base_cost")}: R$ {rec.base_cost}
-                        </CardDescription>
+                        <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
+                          <span>{t("duration")}: <strong className="text-foreground">{rec.duration_days} {t("days")}</strong></span>
+                          <span>{rec.daily_portions} porções/dia</span>
+                          <span className="text-primary font-semibold">R$ {Number(rec.base_cost).toFixed(2)}</span>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenRecModal(rec)}><Edit2 className="h-4 w-4" /></Button>
+                      <div className="flex gap-1 shrink-0">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenRecModal(rec, "template")}><Edit2 className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteRec(rec.id)}><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
-                      <p className="text-sm font-medium mb-2">{t("composition")}</p>
-                      <ul className="text-sm text-muted-foreground list-disc list-inside">
-                        {rec.ingredients?.map(i => (
-                          <li key={i.id}>{i.name}: {i.pivot.quantity} {i.pivot.unit || i.unit}</li>
-                        ))}
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t("composition")}</p>
+                      <ul className="space-y-1 text-sm">
+                        {rec.ingredients?.map(i => {
+                          const qty = parseFloat(i.pivot.quantity);
+                          const unit = i.pivot.unit || i.unit;
+                          const costPerDay = (i.cost_per_unit ?? 0) * qty * (i.loss_rate ?? 1);
+                          const totalCost = costPerDay * (rec.duration_days ?? 15);
+                          return (
+                            <li key={i.id} className="flex justify-between items-center text-muted-foreground border-b border-border/30 pb-1 last:border-0">
+                              <span className="truncate flex-1 mr-2">{i.name} <span className="text-xs opacity-70">{qty} {unit}/dia</span></span>
+                              <span className="shrink-0 text-xs font-medium text-foreground">R$ {totalCost.toFixed(2)}</span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </CardContent>
                   </Card>
@@ -533,85 +613,251 @@ export default function CatalogPage() {
             />
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>{t("ingredients")}</Label>
-                <Button type="button" variant="outline" size="sm" onClick={() => setRecipeIngredients([...recipeIngredients, {id: 0, quantity: "", unit: "kg"}])}>
-                  <Plus className="h-3 w-3 mr-1" /> {tCommon("add")}
-                </Button>
-              </div>
-              <div className="mb-2">
-                <Input 
-                  placeholder={t("search_ingredient")} 
+          {/* Ingredient picker — visual grid, same pattern as customer builder */}
+          <div className="space-y-3">
+            <Label>{t("ingredients")}</Label>
+            <div className="bg-primary/10 border border-primary/20 text-primary text-xs p-2.5 rounded-lg flex gap-2">
+              <Info className="w-4 h-4 shrink-0" />
+              <span><strong>Importante:</strong> As quantidades são por dia (quantidade diária por porção).</span>
+            </div>
+
+            {/* Search + category filter */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar ingrediente..."
                   value={ingredientSearch}
                   onChange={(e) => setIngredientSearch(e.target.value)}
-                  className="h-8 text-xs"
+                  className="pl-9 h-9 text-sm"
                 />
               </div>
-              <div className="border rounded-md p-3 space-y-3 bg-muted/30 max-h-[300px] overflow-y-auto">
-                {recipeIngredients.map((item, idx) => (
-                  <div key={idx} className="flex flex-wrap items-center gap-2">
-                    <select 
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-2 py-1 text-xs flex-1 min-w-[120px]"
-                      value={item.id} onChange={e => {
-                        const newArr = [...recipeIngredients]; newArr[idx].id = parseInt(e.target.value); setRecipeIngredients(newArr);
-                      }}
-                    >
-                      <option value={0} disabled>{tCommon("select")}</option>
-                      {ingredients?.filter(ing => ing.name.toLowerCase().includes(ingredientSearch.toLowerCase())).map(ing => <option key={ing.id} value={ing.id}>{ing.name}</option>)}
-                    </select>
-                    <Input type="number" step="0.001" placeholder="Qtd" className="w-20 h-9 px-2 text-xs" value={item.quantity} onChange={e => {
-                      const newArr = [...recipeIngredients]; newArr[idx].quantity = e.target.value; setRecipeIngredients(newArr);
-                    }} />
-                    <select
-                      className="flex h-9 w-16 rounded-md border border-input bg-background px-2 py-1 text-xs"
-                      value={item.unit} onChange={e => {
-                        const newArr = [...recipeIngredients]; newArr[idx].unit = e.target.value; setRecipeIngredients(newArr);
-                      }}
-                    >
-                      <option value="kg">kg</option>
-                      <option value="g">g</option>
-                      <option value="l">l</option>
-                      <option value="unit">un</option>
-                    </select>
-                    <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => setRecipeIngredients(recipeIngredients.filter((_, i) => i !== idx))}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+              <select
+                value={adminRecCategoryFilter}
+                onChange={(e) => setAdminRecCategoryFilter(e.target.value)}
+                className="h-9 px-2 border rounded-md text-sm bg-background border-input w-36"
+              >
+                <option value="Todos">Todos</option>
+                {Array.from(new Set(ingredients?.map(i => i.category).filter(Boolean))).map(cat => (
+                  <option key={cat as string} value={cat as string}>{cat}</option>
                 ))}
-                {recipeIngredients.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">{t("no_ingredients")}</p>}
+              </select>
+            </div>
+
+            {/* Clickable ingredient grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[180px] overflow-y-auto pr-1 border rounded-md p-2 bg-muted/20">
+              {ingredients?.filter(ing => {
+                const matchSearch = ing.name.toLowerCase().includes(ingredientSearch.toLowerCase());
+                const matchCategory = adminRecCategoryFilter === "Todos" || ing.category === adminRecCategoryFilter;
+                return matchSearch && matchCategory;
+              }).map(ing => {
+                const isSelected = recipeIngredients.some(r => r.id === ing.id);
+                return (
+                  <div
+                    key={ing.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        setRecipeIngredients(recipeIngredients.filter(r => r.id !== ing.id));
+                      } else {
+                        setRecipeIngredients([...recipeIngredients, { id: ing.id, quantity: "", unit: ing.unit }]);
+                      }
+                    }}
+                    className={cn(
+                      "border p-2 rounded-lg cursor-pointer transition-all flex flex-col justify-between min-h-[56px]",
+                      isSelected ? "border-primary bg-primary/10 shadow-sm" : "hover:border-primary/50 hover:bg-muted/50 bg-background"
+                    )}
+                  >
+                    <div className="flex justify-between items-start gap-1">
+                      <span className="font-semibold text-xs leading-tight line-clamp-2">{ing.name}</span>
+                      {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />}
+                    </div>
+                    <div className="flex items-end mt-1">
+                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground truncate">{ing.category || "Geral"}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {ingredients?.filter(ing => {
+                const matchSearch = ing.name.toLowerCase().includes(ingredientSearch.toLowerCase());
+                const matchCategory = adminRecCategoryFilter === "Todos" || ing.category === adminRecCategoryFilter;
+                return matchSearch && matchCategory;
+              }).length === 0 && (
+                <div className="col-span-4 text-center text-xs text-muted-foreground py-4">Nenhum ingrediente encontrado</div>
+              )}
+            </div>
+
+            {/* Selected ingredients with quantities */}
+            {recipeIngredients.length > 0 ? (
+              <div className="space-y-2 border rounded-md p-3 bg-card">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Ingredientes selecionados — qtd/dia</p>
+                {(() => {
+                  const ingCostMap = new Map(
+                    costBreakdown.filter(i => !i.is_supplement).map(i => [i.name, i])
+                  );
+                  return recipeIngredients.map((item, idx) => {
+                    const ing = ingredients?.find(i => i.id === item.id);
+                    const breakdown = ing ? ingCostMap.get(ing.name) : null;
+                    return (
+                      <div key={idx} className="flex items-center gap-2">
+                        <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span className="flex-1 text-sm font-medium truncate min-w-0">{ing?.name || "?"}</span>
+                        {breakdown && (
+                          <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
+                            R$ {Number(breakdown.total_cost).toFixed(2)}
+                          </span>
+                        )}
+                        <Input
+                          type="number"
+                          step="0.001"
+                          placeholder="Qtd/dia"
+                          className="w-24 h-8 px-2 text-sm shrink-0"
+                          value={item.quantity}
+                          onChange={e => {
+                            const newArr = [...recipeIngredients];
+                            newArr[idx].quantity = e.target.value;
+                            setRecipeIngredients(newArr);
+                          }}
+                        />
+                        <span className="text-xs text-muted-foreground w-8 text-center shrink-0">{item.unit}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
+                          onClick={() => setRecipeIngredients(recipeIngredients.filter((_, i) => i !== idx))}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-6 border rounded-md border-dashed">{t("no_ingredients")}</p>
+            )}
+          </div>
+
+          {/* Admin cost breakdown — full detail with accordions */}
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-foreground flex items-center gap-2">
+                {t("estimated_cost")}
+                {isCalculatingCost && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              </span>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-primary">R$ {estimatedCost.toFixed(2)}</div>
+                {recCostPerKg > 0 && (
+                  <div className="text-xs text-muted-foreground">R$ {recCostPerKg.toFixed(2)}/kg</div>
+                )}
+                {costBreakdown.filter(i => !i.is_supplement).length > 0 && (
+                  <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-primary/20">
+                    Custo base: R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toFixed(2)}
+                  </div>
+                )}
               </div>
             </div>
-            
-            <div className="space-y-4">
-              <Label>{t("estimated_cost")}</Label>
-              <div className="bg-primary/10 border border-primary/20 p-4 rounded-md">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-sm font-medium">Total Estimado</span>
-                  <div className="flex items-center gap-2 text-2xl font-bold text-primary">
-                    {isCalculatingCost && <Loader2 className="w-4 h-4 animate-spin" />}
-                    R$ {estimatedCost.toFixed(2)}
-                  </div>
-                </div>
 
-                <div className="text-sm space-y-2 border-t border-primary/20 pt-4">
-                  <p className="font-medium text-foreground">{t("cost_breakdown")}</p>
-                  <ul className="space-y-1.5 text-muted-foreground text-xs">
-                    {costBreakdown?.filter(item => item.is_supplement).map((item, idx) => (
-                      <li key={idx} className="flex justify-between border-b border-primary/10 pb-1">
-                        <span>{item.name}</span>
-                        <span>R$ {Number(item.total_cost).toFixed(2)}</span>
-                      </li>
-                    ))}
-                    {(!costBreakdown || costBreakdown.length === 0) && (
-                      <li className="text-center italic py-2">
-                        {t("add_ingredients_simulate")}
+            {/* Recipe detail accordion */}
+            <div className="border-t border-primary/20 pt-3">
+              <button
+                type="button"
+                onClick={() => setRecipeDetailOpen(v => !v)}
+                className="w-full flex justify-between items-center text-sm font-medium text-foreground hover:text-primary transition-colors"
+              >
+                <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Ver detalhamento da receita</span>
+                {recipeDetailOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              {recipeDetailOpen && (
+                <div className="py-3 space-y-3 border-b border-primary/10">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Duração total:</span>
+                    <span className="font-semibold">{recForm.duration_days} dias</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Porções diárias:</span>
+                    <span className="font-semibold">{recForm.daily_portions} porção(ões)</span>
+                  </div>
+                  {recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).length > 0 && (
+                    <div>
+                      <div className="grid grid-cols-3 text-xs text-muted-foreground mb-1.5 px-1 font-medium">
+                        <span>Ingrediente</span>
+                        <span className="text-right">Total/dia</span>
+                        <span className="text-right">Por porção</span>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).map((item, idx) => {
+                          const ing = ingredients?.find(i => i.id === item.id);
+                          const qty = Number(item.quantity);
+                          const portions = Number(recForm.daily_portions) || 1;
+                          const perPortion = qty / portions;
+                          return (
+                            <li key={idx} className="grid grid-cols-3 gap-1 text-sm items-center bg-muted/20 px-2 py-1.5 rounded-md">
+                              <span className="text-muted-foreground truncate">{ing?.name || "?"}</span>
+                              <span className="font-medium text-right text-xs">{qty.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}</span>
+                              <span className="text-right text-xs text-muted-foreground">{perPortion.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Cost detail accordion */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setCostDetailOpen(v => !v)}
+                className="w-full flex justify-between items-center text-sm font-medium text-foreground hover:text-primary transition-colors"
+              >
+                <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5" /> Ver detalhamento dos custos</span>
+                {costDetailOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              {costDetailOpen && (
+                costBreakdown.filter(i => i.is_supplement).length > 0 ? (
+                  <ul className="space-y-1 text-xs mt-3">
+                    {costBreakdown.filter(i => !i.is_supplement).length > 0 && (
+                      <li className="flex justify-between pb-1.5 mb-0.5 border-b-2 border-primary/30 font-semibold text-foreground text-xs">
+                        <span>Custo Base (ingredientes)</span>
+                        <span>R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toFixed(2)}</span>
                       </li>
                     )}
+                    {[...costBreakdown.filter(i => i.is_supplement)]
+                      .sort((a, b) => {
+                        const ai = ADMIN_BREAKDOWN_ORDER.indexOf(a.name);
+                        const bi = ADMIN_BREAKDOWN_ORDER.indexOf(b.name);
+                        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+                      })
+                      .map((item, idx) => {
+                        const isCobrar = item.name === 'Cobrar';
+                        const isResultado = item.name === 'Resultado (Lucro Mínimo)';
+                        return (
+                          <li
+                            key={idx}
+                            className={cn(
+                              "flex justify-between pb-1",
+                              isCobrar
+                                ? "border-t-2 border-primary/40 pt-2 mt-1 font-bold text-primary text-sm"
+                                : isResultado
+                                  ? "text-emerald-600 font-medium border-t border-dashed border-border pt-1 mt-1"
+                                  : "text-muted-foreground border-b border-border/30"
+                            )}
+                          >
+                            <span>{item.name}</span>
+                            <span>R$ {Number(item.total_cost).toFixed(2)}</span>
+                          </li>
+                        );
+                      })}
                   </ul>
-                </div>
-              </div>
+                ) : (
+                  <p className="text-center text-xs text-muted-foreground italic py-2">
+                    {t("add_ingredients_simulate")}
+                  </p>
+                )
+              )}
             </div>
           </div>
 

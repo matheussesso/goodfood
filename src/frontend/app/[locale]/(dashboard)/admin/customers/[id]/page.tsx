@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { useCustomer, useUpdateCustomer } from "@/hooks/useCustomers";
 import { usePets } from "@/hooks/usePets";
-import { ArrowLeft, User, Phone, Mail, Calendar, PawPrint, Package, CalendarDays, Edit2, Loader2, Plus, Dog, UtensilsCrossed, MapPin, LayoutGrid, List as ListIcon, Info } from "lucide-react";
+import { useIngredients } from "@/hooks/useIngredients";
+import { useRecipes, calculateRecipeCost } from "@/hooks/useRecipes";
+import { cn } from "@/lib/utils";
+import { ArrowLeft, User, Phone, Mail, Calendar, PawPrint, Package, CalendarDays, Edit2, Loader2, Plus, Dog, UtensilsCrossed, MapPin, LayoutGrid, List as ListIcon, Info, Search, CheckCircle2, Check, Trash2, ChevronDown, ChevronUp, DollarSign, FileText, CalendarClock, Layers, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +40,58 @@ export default function CustomerDetailPage() {
   const [isPetModalOpen, setIsPetModalOpen] = useState(false);
   const [editingPet, setEditingPet] = useState<any>(null);
   const [petForm, setPetForm] = useState({ name: "", type: "dog", breed: "", weight: "", age: "", restrictions: "", allergies: "", special_needs: "" });
+
+  // Recipe edit modal state
+  const { ingredients } = useIngredients();
+  const { updateRecipe, isUpdating: isUpdatingRec } = useRecipes();
+
+  const ADMIN_BREAKDOWN_ORDER = [
+    'Custo de Insumos Adicional', 'Repasse Produção (Cozinha)', 'Repasse Logística',
+    'Margem Reserva', 'Custo GFP+MKT', 'Fiscal/Tributário', 'Agenda',
+    'Cobrar', 'Resultado (Lucro Mínimo)',
+  ];
+
+  const [isRecEditModalOpen, setIsRecEditModalOpen] = useState(false);
+  const [editingRec, setEditingRec] = useState<any>(null);
+  const [recForm, setRecForm] = useState({ name: "", description: "", pet_type: "dog", duration_days: "15", daily_portions: "2", is_active: true, instructions: "" });
+  const [recipeIngredients, setRecipeIngredients] = useState<{id: number, quantity: string, unit: string}[]>([]);
+  const [ingredientSearch, setIngredientSearch] = useState("");
+  const [recCategoryFilter, setRecCategoryFilter] = useState("Todos");
+  const [estimatedCost, setEstimatedCost] = useState<number>(0);
+  const [recCostPerKg, setRecCostPerKg] = useState<number>(0);
+  const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
+  const [isCalculatingCost, setIsCalculatingCost] = useState(false);
+  const [recipeDetailOpen, setRecipeDetailOpen] = useState(false);
+  const [costDetailOpen, setCostDetailOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchCost = async () => {
+      const validIngredients = recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0);
+      if (validIngredients.length > 0) {
+        setIsCalculatingCost(true);
+        try {
+          const result = await calculateRecipeCost({
+            ingredients: validIngredients.map(i => ({ ingredient_id: i.id, quantity: parseFloat(i.quantity), unit: i.unit })),
+            duration_days: parseInt(recForm.duration_days) || 15,
+            daily_portions: parseInt(recForm.daily_portions) || 2
+          });
+          setEstimatedCost(result.estimatedCost);
+          setRecCostPerKg(result.costPerKg || 0);
+          setCostBreakdown(result.costBreakdown || []);
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setIsCalculatingCost(false);
+        }
+      } else {
+        setEstimatedCost(0);
+        setRecCostPerKg(0);
+        setCostBreakdown([]);
+      }
+    };
+    const timeoutId = setTimeout(fetchCost, 500);
+    return () => clearTimeout(timeoutId);
+  }, [recipeIngredients, recForm.duration_days, recForm.daily_portions]);
 
   if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground flex justify-center"><Loader2 className="animate-spin w-8 h-8" /></div>;
@@ -105,6 +160,38 @@ export default function CustomerDetailPage() {
       await deletePet(id);
       queryClient.invalidateQueries({ queryKey: ["customer", String(customer.id)] });
     }
+  };
+
+  const handleOpenRecEditModal = (rec: any) => {
+    setIngredientSearch("");
+    setRecCategoryFilter("Todos");
+    setEstimatedCost(0);
+    setRecCostPerKg(0);
+    setCostBreakdown([]);
+    setRecipeDetailOpen(false);
+    setCostDetailOpen(false);
+    setEditingRec(rec);
+    setRecForm({
+      name: rec.name, description: rec.description || "", instructions: rec.instructions || "",
+      pet_type: rec.pet_type || "dog", duration_days: rec.duration_days?.toString() || "15",
+      daily_portions: rec.daily_portions?.toString() || "2", is_active: rec.is_active
+    });
+    setRecipeIngredients(rec.ingredients?.map((i: any) => ({ id: i.id, quantity: i.pivot.quantity, unit: i.pivot.unit || i.unit })) || []);
+    setIsRecEditModalOpen(true);
+  };
+
+  const handleRecEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRec) return;
+    await updateRecipe({
+      id: editingRec.id,
+      name: recForm.name, description: recForm.description,
+      pet_type: recForm.pet_type, duration_days: parseInt(recForm.duration_days), daily_portions: parseInt(recForm.daily_portions),
+      is_template: false, is_active: recForm.is_active, instructions: recForm.instructions,
+      ingredients: recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).map(i => ({ id: i.id, quantity: parseFloat(i.quantity), unit: i.unit }))
+    });
+    queryClient.invalidateQueries({ queryKey: ["customer", String(customer.id)] });
+    setIsRecEditModalOpen(false);
   };
 
   return (
@@ -279,42 +366,54 @@ export default function CustomerDetailPage() {
               recipesViewMode === "grid" ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {customer.recipes.map(recipe => (
-                    <Card key={recipe.id} className="relative overflow-hidden group border-muted">
-                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                        <Link href={`/recipes/${recipe.id}`}>
-                          <Button variant="secondary" size="icon" className="w-8 h-8 rounded-full shadow-sm"><Edit2 className="w-3 h-3" /></Button>
-                        </Link>
-                      </div>
-                      <CardHeader className="pb-3 border-b border-border/50 bg-primary/5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                            <UtensilsCrossed className="w-5 h-5" />
+                    <Card key={recipe.id} className="flex flex-col overflow-hidden hover:border-primary/50 transition-colors">
+                      <div className="p-4 pb-3 border-b border-border/50 bg-muted/20">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-base line-clamp-1" title={recipe.name}>{recipe.name}</h4>
+                            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 min-h-[2.5rem]">{recipe.description || "Sem descrição."}</p>
                           </div>
-                          <div>
-                            <CardTitle className="text-lg line-clamp-1" title={recipe.name}>{recipe.name}</CardTitle>
-                            <CardDescription className="text-xs">{recipe.is_template ? "Template" : "Personalizada"}</CardDescription>
-                          </div>
+                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-sm shrink-0 whitespace-nowrap ${recipe.is_template ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"}`}>
+                            {recipe.is_template ? "Template" : "Personalizada"}
+                          </span>
                         </div>
-                      </CardHeader>
-                      <CardContent className="pt-4 space-y-3">
-                        <p className="text-sm text-muted-foreground line-clamp-2 min-h-10">{recipe.description || "Nenhuma descrição informada."}</p>
-                        <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm mt-3 pt-3 border-t border-border/50">
+                      </div>
+                      <CardContent className="pt-4 flex-1 flex flex-col justify-between">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-3 gap-x-2 text-sm">
                           <div>
                             <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Espécie</span>
-                            <span className="font-medium capitalize">{recipe.pet_type === 'cat' ? 'Gato' : recipe.pet_type === 'dog' ? 'Cachorro' : 'Geral'}</span>
+                            <span className="font-medium">{recipe.pet_type === 'cat' ? 'Gato' : recipe.pet_type === 'dog' ? 'Cachorro' : 'Geral'}</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Duração</span>
-                            <span className="font-medium">{recipe.duration_days} dias</span>
+                            <span className="font-medium">{recipe.duration_days ?? '-'} dias</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Ingredientes</span>
+                            <span className="font-medium">{recipe.ingredients?.length ?? 0} itens</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Custo Base</span>
-                            <span className="font-semibold text-primary">R$ {Number(recipe.base_cost).toFixed(2)}</span>
+                            <span className="font-semibold text-amber-600 dark:text-amber-400">R$ {Number((recipe as any).ingredient_cost ?? 0).toFixed(2)}</span>
                           </div>
-                          <div>
-                            <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Porções Dia</span>
-                            <span className="font-medium">{recipe.daily_portions || '-'}</span>
+                        </div>
+                        {recipe.pets && (recipe.pets as any[]).length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border/30 flex flex-wrap items-center gap-2">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">Vinculado a:</span>
+                            {(recipe.pets as any[]).map((pet) => (
+                              <span key={pet.id} className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full font-medium">{pet.name}</span>
+                            ))}
                           </div>
+                        )}
+                        <div className="flex gap-2 mt-4 pt-3 border-t border-border/50">
+                          <Link href={`/recipes/${recipe.id}`} className="flex-1">
+                            <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
+                              <Eye className="w-3.5 h-3.5" /> Visualizar
+                            </Button>
+                          </Link>
+                          <Button variant="secondary" size="sm" className="flex-1 gap-1.5 text-xs" onClick={() => handleOpenRecEditModal(recipe)}>
+                            <Edit2 className="w-3.5 h-3.5" /> Editar
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -344,11 +443,16 @@ export default function CustomerDetailPage() {
                           </td>
                           <td className="px-6 py-4 text-center capitalize">{recipe.pet_type === 'cat' ? 'Gato' : recipe.pet_type === 'dog' ? 'Cachorro' : 'Geral'}</td>
                           <td className="px-6 py-4 text-center">{recipe.duration_days} dias</td>
-                          <td className="px-6 py-4 text-right font-medium text-primary">R$ {Number(recipe.base_cost).toFixed(2)}</td>
+                          <td className="px-6 py-4 text-right font-medium text-amber-600 dark:text-amber-400">R$ {Number((recipe as any).ingredient_cost ?? 0).toFixed(2)}</td>
                           <td className="px-6 py-4 text-right">
-                            <Link href={`/recipes/${recipe.id}`}>
-                              <Button variant="ghost" size="sm" className="text-xs">Ver / Editar</Button>
-                            </Link>
+                            <div className="flex gap-1.5 justify-end">
+                              <Link href={`/recipes/${recipe.id}`}>
+                                <Button variant="ghost" size="sm" className="text-xs gap-1">
+                                  <Eye className="w-3.5 h-3.5" /> Visualizar
+                                </Button>
+                              </Link>
+                              <Button variant="ghost" size="sm" className="text-xs" onClick={() => handleOpenRecEditModal(recipe)}>Editar</Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -379,6 +483,287 @@ export default function CustomerDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Recipe Edit Modal */}
+      <Modal isOpen={isRecEditModalOpen} onClose={() => setIsRecEditModalOpen(false)} title={`Editar Receita: ${editingRec?.name || ""}`} className="max-w-4xl">
+        <form onSubmit={handleRecEditSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto px-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2"><Label>Nome da Receita</Label><Input required value={recForm.name} onChange={e => setRecForm({...recForm, name: e.target.value})} /></div>
+            <div className="space-y-2">
+              <Label>Tipo de Pet</Label>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={recForm.pet_type} onChange={e => setRecForm({...recForm, pet_type: e.target.value})}>
+                <option value="dog">Cachorro</option>
+                <option value="cat">Gato</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2"><Label>Duração (dias)</Label><Input type="number" required value={recForm.duration_days} onChange={e => setRecForm({...recForm, duration_days: e.target.value})} /></div>
+            <div className="space-y-2"><Label>Porções/dia</Label><Input type="number" required value={recForm.daily_portions} onChange={e => setRecForm({...recForm, daily_portions: e.target.value})} /></div>
+          </div>
+
+          <div className="space-y-2"><Label>Descrição</Label><Input value={recForm.description} onChange={e => setRecForm({...recForm, description: e.target.value})} /></div>
+          <div className="space-y-2">
+            <Label>Instruções</Label>
+            <textarea
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              value={recForm.instructions}
+              onChange={e => setRecForm({...recForm, instructions: e.target.value})}
+            />
+          </div>
+
+          {/* Ingredient picker */}
+          <div className="space-y-3">
+            <Label>Ingredientes</Label>
+            <div className="bg-primary/10 border border-primary/20 text-primary text-xs p-2.5 rounded-lg flex gap-2">
+              <Info className="w-4 h-4 shrink-0" />
+              <span><strong>Importante:</strong> As quantidades são por dia (quantidade diária total).</span>
+            </div>
+
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar ingrediente..."
+                  value={ingredientSearch}
+                  onChange={(e) => setIngredientSearch(e.target.value)}
+                  className="pl-9 h-9 text-sm"
+                />
+              </div>
+              <select
+                value={recCategoryFilter}
+                onChange={(e) => setRecCategoryFilter(e.target.value)}
+                className="h-9 px-2 border rounded-md text-sm bg-background border-input w-36"
+              >
+                <option value="Todos">Todos</option>
+                {Array.from(new Set(ingredients?.map(i => i.category).filter(Boolean))).map(cat => (
+                  <option key={cat as string} value={cat as string}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[180px] overflow-y-auto pr-1 border rounded-md p-2 bg-muted/20">
+              {ingredients?.filter(ing => {
+                const matchSearch = ing.name.toLowerCase().includes(ingredientSearch.toLowerCase());
+                const matchCategory = recCategoryFilter === "Todos" || ing.category === recCategoryFilter;
+                return matchSearch && matchCategory;
+              }).map(ing => {
+                const isSelected = recipeIngredients.some(r => r.id === ing.id);
+                return (
+                  <div
+                    key={ing.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        setRecipeIngredients(recipeIngredients.filter(r => r.id !== ing.id));
+                      } else {
+                        setRecipeIngredients([...recipeIngredients, { id: ing.id, quantity: "", unit: ing.unit }]);
+                      }
+                    }}
+                    className={cn(
+                      "border p-2 rounded-lg cursor-pointer transition-all flex flex-col justify-between min-h-[56px]",
+                      isSelected ? "border-primary bg-primary/10 shadow-sm" : "hover:border-primary/50 hover:bg-muted/50 bg-background"
+                    )}
+                  >
+                    <div className="flex justify-between items-start gap-1">
+                      <span className="font-semibold text-xs leading-tight line-clamp-2">{ing.name}</span>
+                      {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />}
+                    </div>
+                    <div className="flex items-end mt-1">
+                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground truncate">{ing.category || "Geral"}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {ingredients?.filter(ing => {
+                const matchSearch = ing.name.toLowerCase().includes(ingredientSearch.toLowerCase());
+                const matchCategory = recCategoryFilter === "Todos" || ing.category === recCategoryFilter;
+                return matchSearch && matchCategory;
+              }).length === 0 && (
+                <div className="col-span-4 text-center text-xs text-muted-foreground py-4">Nenhum ingrediente encontrado</div>
+              )}
+            </div>
+
+            {recipeIngredients.length > 0 ? (
+              <div className="space-y-2 border rounded-md p-3 bg-card">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Ingredientes selecionados — qtd/dia</p>
+                {(() => {
+                  const ingCostMap = new Map(
+                    costBreakdown.filter(i => !i.is_supplement).map(i => [i.name, i])
+                  );
+                  return recipeIngredients.map((item, idx) => {
+                    const ing = ingredients?.find(i => i.id === item.id);
+                    const breakdown = ing ? ingCostMap.get(ing.name) : null;
+                    return (
+                      <div key={idx} className="flex items-center gap-2">
+                        <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span className="flex-1 text-sm font-medium truncate min-w-0">{ing?.name || "?"}</span>
+                        {breakdown && (
+                          <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
+                            R$ {Number(breakdown.total_cost).toFixed(2)}
+                          </span>
+                        )}
+                        <Input
+                          type="number"
+                          step="0.001"
+                          placeholder="Qtd/dia"
+                          className="w-24 h-8 px-2 text-sm shrink-0"
+                          value={item.quantity}
+                          onChange={e => {
+                            const newArr = [...recipeIngredients];
+                            newArr[idx].quantity = e.target.value;
+                            setRecipeIngredients(newArr);
+                          }}
+                        />
+                        <span className="text-xs text-muted-foreground w-8 text-center shrink-0">{item.unit}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
+                          onClick={() => setRecipeIngredients(recipeIngredients.filter((_, i) => i !== idx))}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-6 border rounded-md border-dashed">Nenhum ingrediente selecionado</p>
+            )}
+          </div>
+
+          {/* Cost section with both accordions */}
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-foreground flex items-center gap-2">
+                Custo Estimado
+                {isCalculatingCost && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              </span>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-primary">R$ {estimatedCost.toFixed(2)}</div>
+                {recCostPerKg > 0 && (
+                  <div className="text-xs text-muted-foreground">R$ {recCostPerKg.toFixed(2)}/kg</div>
+                )}
+                {costBreakdown.filter(i => !i.is_supplement).length > 0 && (
+                  <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-primary/20">
+                    Custo base: R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toFixed(2)}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Recipe detail accordion */}
+            <div className="border-t border-primary/20 pt-3">
+              <button
+                type="button"
+                onClick={() => setRecipeDetailOpen(v => !v)}
+                className="w-full flex justify-between items-center text-sm font-medium text-foreground hover:text-primary transition-colors"
+              >
+                <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Ver detalhamento da receita</span>
+                {recipeDetailOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              {recipeDetailOpen && (
+                <div className="py-3 space-y-3 border-b border-primary/10">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Duração total:</span>
+                    <span className="font-semibold">{recForm.duration_days} dias</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Porções diárias:</span>
+                    <span className="font-semibold">{recForm.daily_portions} porção(ões)</span>
+                  </div>
+                  {recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).length > 0 && (
+                    <div>
+                      <div className="grid grid-cols-3 text-xs text-muted-foreground mb-1.5 px-1 font-medium">
+                        <span>Ingrediente</span>
+                        <span className="text-right">Total/dia</span>
+                        <span className="text-right">Por porção</span>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).map((item, idx) => {
+                          const ing = ingredients?.find(i => i.id === item.id);
+                          const qty = Number(item.quantity);
+                          const portions = Number(recForm.daily_portions) || 1;
+                          const perPortion = qty / portions;
+                          return (
+                            <li key={idx} className="grid grid-cols-3 gap-1 text-sm items-center bg-muted/20 px-2 py-1.5 rounded-md">
+                              <span className="text-muted-foreground truncate">{ing?.name || "?"}</span>
+                              <span className="font-medium text-right text-xs">{qty.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}</span>
+                              <span className="text-right text-xs text-muted-foreground">{perPortion.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {item.unit}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Cost detail accordion */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setCostDetailOpen(v => !v)}
+                className="w-full flex justify-between items-center text-sm font-medium text-foreground hover:text-primary transition-colors"
+              >
+                <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5" /> Ver detalhamento dos custos</span>
+                {costDetailOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+              {costDetailOpen && (
+                costBreakdown.filter(i => i.is_supplement).length > 0 ? (
+                  <ul className="space-y-1 text-xs mt-3">
+                    {costBreakdown.filter(i => !i.is_supplement).length > 0 && (
+                      <li className="flex justify-between pb-1.5 mb-0.5 border-b-2 border-primary/30 font-semibold text-foreground text-xs">
+                        <span>Custo Base (ingredientes)</span>
+                        <span>R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toFixed(2)}</span>
+                      </li>
+                    )}
+                    {[...costBreakdown.filter(i => i.is_supplement)]
+                      .sort((a, b) => {
+                        const ai = ADMIN_BREAKDOWN_ORDER.indexOf(a.name);
+                        const bi = ADMIN_BREAKDOWN_ORDER.indexOf(b.name);
+                        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+                      })
+                      .map((item, idx) => {
+                        const isCobrar = item.name === 'Cobrar';
+                        const isResultado = item.name === 'Resultado (Lucro Mínimo)';
+                        return (
+                          <li
+                            key={idx}
+                            className={cn(
+                              "flex justify-between pb-1",
+                              isCobrar
+                                ? "border-t-2 border-primary/40 pt-2 mt-1 font-bold text-primary text-sm"
+                                : isResultado
+                                  ? "text-emerald-600 font-medium border-t border-dashed border-border pt-1 mt-1"
+                                  : "text-muted-foreground border-b border-border/30"
+                            )}
+                          >
+                            <span>{item.name}</span>
+                            <span>R$ {Number(item.total_cost).toFixed(2)}</span>
+                          </li>
+                        );
+                      })}
+                  </ul>
+                ) : (
+                  <p className="text-center text-xs text-muted-foreground italic py-2">
+                    Adicione ingredientes para simular o custo.
+                  </p>
+                )
+              )}
+            </div>
+          </div>
+
+          <div className="pt-4 flex justify-end gap-2 border-t mt-6">
+            <Button type="button" variant="outline" onClick={() => setIsRecEditModalOpen(false)}>Cancelar</Button>
+            <Button type="submit" disabled={isUpdatingRec || isCalculatingCost}>Salvar Receita</Button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal isOpen={isEditCustomerModalOpen} onClose={() => setIsEditCustomerModalOpen(false)} title="Editar Informações do Cliente">
         <form onSubmit={handleSaveCustomer} className="space-y-4">

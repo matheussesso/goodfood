@@ -24,6 +24,7 @@ class Recipe extends Model
         'is_template',
         'frequency',
         'base_cost',
+        'ingredient_cost',
         'is_active',
     ];
 
@@ -32,6 +33,7 @@ class Recipe extends Model
         return [
             'is_template' => 'boolean',
             'base_cost' => 'decimal:2',
+            'ingredient_cost' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }
@@ -82,36 +84,43 @@ class Recipe extends Model
         return $query->where('pet_type', $petType);
     }
 
-    public function calculateTotalCost(): float
+    /**
+     * Run the cost calculator and return the full result array.
+     *
+     * @return array{estimatedCost: float, ingredientCost: float, costPerKg: float, costBreakdown: array}
+     */
+    public function calculateCostResult(): array
     {
         if ($this->ingredients->isEmpty()) {
-            return 0.0;
+            return ['estimatedCost' => 0.0, 'ingredientCost' => 0.0, 'costPerKg' => 0.0, 'costBreakdown' => []];
         }
 
         $costCalculator = app(\App\Services\RecipeCostCalculatorService::class);
 
-        $selectedIngredients = $this->ingredients->map(function ($ingredient) {
-            return [
-                'ingredient_id' => $ingredient->id,
-                'quantity' => $ingredient->pivot->quantity ?? 0,
-                'unit' => $ingredient->pivot->unit ?? $ingredient->unit,
-            ];
-        })->toArray();
+        $selectedIngredients = $this->ingredients->map(fn ($ingredient) => [
+            'ingredient_id' => $ingredient->id,
+            'quantity' => $ingredient->pivot->quantity ?? 0,
+            'unit' => $ingredient->pivot->unit ?? $ingredient->unit,
+        ])->toArray();
 
-        $result = $costCalculator->calculateCost(
+        return $costCalculator->calculateCost(
             $selectedIngredients,
             intval($this->duration_days ?: 1),
             intval($this->daily_portions ?: 1)
         );
+    }
 
-        return (float) $result['estimatedCost'];
+    public function calculateTotalCost(): float
+    {
+        return (float) $this->calculateCostResult()['estimatedCost'];
     }
 
     public function updateBaseCost(): void
     {
-        // Refresh the ingredients relationship to ensure we have the latest data
         $this->load('ingredients');
-        $this->base_cost = $this->calculateTotalCost();
+        $result = $this->calculateCostResult();
+        $this->base_cost = $result['estimatedCost'];
+        $this->ingredient_cost = $result['ingredientCost'];
         $this->save();
     }
 }

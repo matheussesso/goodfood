@@ -72,7 +72,7 @@ class PetController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Pet fetched successfully',
-            'data' => $pet->load(['recipes', 'orders', 'subscriptions']),
+            'data' => $pet->load(['recipes.ingredients', 'orders', 'subscriptions']),
         ]);
     }
 
