@@ -22,11 +22,11 @@ class OrderController extends Controller
     public function index(Request $request): JsonResponse
     {
         if ($request->user()->isAdmin()) {
-            $orders = Order::with(['user', 'pet', 'items.recipe', 'items.pet', 'subscription'])->latest()->get();
+            $orders = Order::with(['user', 'pet', 'items.recipe.ingredients', 'items.pet', 'subscription'])->latest()->get();
         } else {
             $orders = $request->user()
                 ->orders()
-                ->with(['pet', 'items.recipe', 'items.pet', 'subscription'])
+                ->with(['pet', 'items.recipe.ingredients', 'items.pet', 'subscription'])
                 ->latest()
                 ->get();
         }

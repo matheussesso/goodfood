@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { Link } from "@/i18n/routing";
@@ -24,6 +24,10 @@ import {
   MapPin,
   Trash2,
   BookUser,
+  Clock,
+  Salad,
+  Layers,
+  PartyPopper,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +69,16 @@ export default function NewOrderPage() {
 
   /** Field-level validation errors. */
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  /** Set after successful order creation — triggers success screen. */
+  const [confirmedOrderId, setConfirmedOrderId] = useState<number | null>(null);
+
+  /** Auto-redirect to /orders 3 s after successful confirmation. */
+  useEffect(() => {
+    if (confirmedOrderId === null) return;
+    const timer = setTimeout(() => router.push("/orders"), 3000);
+    return () => clearTimeout(timer);
+  }, [confirmedOrderId, router]);
 
   /** Flat map of recipe objects by id — needed to look up base_cost and name. */
   const allRecipesById = useMemo<Record<number, Recipe>>(() => {
@@ -146,14 +160,11 @@ export default function NewOrderPage() {
       newErrors.items = t("error_no_items");
     }
 
-    const anyAddressFilled = !!(addrStreet || addrNumber || addrCity || addrState || addrZipcode);
-    if (anyAddressFilled) {
-      if (!addrStreet.trim())   newErrors.addrStreet  = t("error_street_required");
-      if (!addrNumber.trim())   newErrors.addrNumber  = t("error_number_required");
-      if (!addrCity.trim())     newErrors.addrCity    = t("error_city_required");
-      if (!addrState.trim())    newErrors.addrState   = t("error_state_required");
-      if (!addrZipcode.trim())  newErrors.addrZipcode = t("error_zipcode_required");
-    }
+    if (!addrStreet.trim())   newErrors.addrStreet  = t("error_street_required");
+    if (!addrNumber.trim())   newErrors.addrNumber  = t("error_number_required");
+    if (!addrCity.trim())     newErrors.addrCity    = t("error_city_required");
+    if (!addrState.trim())    newErrors.addrState   = t("error_state_required");
+    if (!addrZipcode.trim())  newErrors.addrZipcode = t("error_zipcode_required");
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -172,8 +183,8 @@ export default function NewOrderPage() {
       delivery_address: buildAddress(),
     };
 
-    await createOrder(payload);
-    router.push("/orders");
+    const result = await createOrder(payload);
+    setConfirmedOrderId(result?.data?.id ?? null);
   }
 
   const petNameById = useMemo<Record<number, string>>(() => {
@@ -183,6 +194,35 @@ export default function NewOrderPage() {
   }, [pets]);
 
   const hasRegisteredAddress = !!(user?.address || user?.city);
+
+  /* ── Success screen ──────────────────────────────────────────────── */
+  if (confirmedOrderId !== null) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-6 px-4">
+        <div className="w-24 h-24 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center animate-bounce">
+          <PartyPopper className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-foreground">{t("order_confirmed_title")}</h1>
+          <p className="text-muted-foreground max-w-sm mx-auto">
+            {t("order_confirmed_desc", { id: String(confirmedOrderId) })}
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-3">
+          <Link href="/orders">
+            <Button size="lg" className="gap-2">
+              <ShoppingBag className="w-5 h-5" />
+              {t("view_orders")}
+            </Button>
+          </Link>
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            {t("order_confirmed_redirect")}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -277,31 +317,62 @@ export default function NewOrderPage() {
                               type="button"
                               onClick={() => toggleRecipe(pet.id, recipe.id)}
                               className={cn(
-                                "w-full flex items-center gap-4 px-4 py-3.5 text-left transition-colors",
+                                "w-full flex items-start gap-4 px-4 py-4 text-left transition-colors",
                                 sel ? "bg-primary/5" : "hover:bg-muted/20"
                               )}
                             >
+                              {/* Checkbox visual */}
                               <div className={cn(
-                                "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
+                                "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors",
                                 sel ? "bg-primary border-primary" : "border-border"
                               )}>
                                 {sel && <CheckCircle2 className="w-3.5 h-3.5 text-white fill-white" />}
                               </div>
 
-                              <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">
-                                <UtensilsCrossed className="w-4 h-4 text-muted-foreground" />
+                              {/* Recipe icon */}
+                              <div className={cn(
+                                "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                                sel ? "bg-primary/15" : "bg-muted/60"
+                              )}>
+                                <UtensilsCrossed className={cn("w-4 h-4", sel ? "text-primary" : "text-muted-foreground")} />
                               </div>
 
+                              {/* Info block */}
                               <div className="flex-1 min-w-0">
-                                <p className={cn("font-medium text-sm", sel ? "text-primary" : "text-foreground")}>
+                                <p className={cn("font-semibold text-sm leading-snug", sel ? "text-primary" : "text-foreground")}>
                                   {recipe.name}
                                 </p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {recipe.duration_days}{tCat("days")[0]} · {recipe.ingredients?.length ?? 0} {tRec("ingredients").toLowerCase()}
-                                </p>
+                                {recipe.description && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                    {recipe.description}
+                                  </p>
+                                )}
+
+                                {/* Stats row */}
+                                <div className="flex items-center gap-0 divide-x divide-border mt-1.5 text-[11px] text-muted-foreground flex-wrap">
+                                  {recipe.duration_days && (
+                                    <span className="flex items-center gap-1 pr-2">
+                                      <Clock className="w-3 h-3" />
+                                      {recipe.duration_days} {tCat("days")}
+                                    </span>
+                                  )}
+                                  {recipe.daily_portions && (
+                                    <span className="flex items-center gap-1 px-2">
+                                      <Salad className="w-3 h-3" />
+                                      {recipe.daily_portions} {tCat("daily_portions").toLowerCase()}
+                                    </span>
+                                  )}
+                                  {recipe.ingredients && recipe.ingredients.length > 0 && (
+                                    <span className="flex items-center gap-1 pl-2">
+                                      <Layers className="w-3 h-3" />
+                                      {recipe.ingredients.length} {tRec("ingredients").toLowerCase()}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
 
-                              <span className={cn("text-sm font-bold shrink-0", sel ? "text-primary" : "text-amber-600 dark:text-amber-400")}>
+                              {/* Price */}
+                              <span className={cn("text-sm font-bold shrink-0 mt-0.5", sel ? "text-primary" : "text-amber-600 dark:text-amber-400")}>
                                 R$ {Number(recipe.base_cost ?? 0).toFixed(2)}
                               </span>
                             </button>

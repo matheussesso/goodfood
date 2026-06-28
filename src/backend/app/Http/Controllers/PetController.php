@@ -17,7 +17,7 @@ class PetController extends Controller
         if ($request->user()->isAdmin()) {
             $pets = Pet::with('user')->get();
         } else {
-            $pets = $request->user()->pets()->with('recipes')->get();
+            $pets = $request->user()->pets()->with('recipes.ingredients')->get();
         }
 
         return response()->json([
