@@ -54,6 +54,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       links.push({ href: "/pets", label: t("pets"), icon: Dog });
       links.push({ href: "/recipes", label: t("recipes"), icon: UtensilsCrossed });
       links.push({ href: "/orders", label: t("orders"), icon: ShoppingBag });
+      links.push({ href: "/subscriptions", label: t("subscriptions"), icon: CalendarCheck });
     }
 
     if (role === "producer" || role === "admin") {

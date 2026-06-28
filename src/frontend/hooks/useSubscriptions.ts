@@ -17,6 +17,7 @@ export interface Subscription {
   
   pet?: Pet;
   recipe?: Recipe;
+  user?: { id: number; name: string; email: string };
 }
 
 export function useSubscriptions() {

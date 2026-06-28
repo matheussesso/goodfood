@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Subscription;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 
 class SubscriptionController extends Controller
 {
@@ -14,9 +13,9 @@ class SubscriptionController extends Controller
     public function index(Request $request)
     {
         if ($request->user()->isAdmin()) {
-            $subscriptions = Subscription::with(['user', 'pet', 'recipe'])->get();
+            $subscriptions = Subscription::with(['user', 'pet', 'recipe'])->latest()->get();
         } else {
-            $subscriptions = $request->user()->subscriptions()->with(['pet', 'recipe'])->get();
+            $subscriptions = $request->user()->subscriptions()->with(['pet', 'recipe'])->latest()->get();
         }
 
         return response()->json([

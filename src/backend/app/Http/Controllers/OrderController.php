@@ -7,6 +7,8 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Recipe;
+use App\Models\Subscription;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -52,6 +54,7 @@ class OrderController extends Controller
             'items'                => 'required|array|min:1',
             'items.*.recipe_id'    => 'required|integer|exists:recipes,id',
             'items.*.pet_id'       => 'nullable|integer|exists:pets,id',
+            'items.*.subscribe'    => 'sometimes|boolean',
             'delivery_address'     => 'nullable|string|max:1000',
         ]);
 
@@ -63,11 +66,13 @@ class OrderController extends Controller
         }
 
         $recipeIds   = collect($validated['items'])->pluck('recipe_id');
-        $recipesById = Recipe::whereIn('id', $recipeIds->unique())->get()->keyBy('id');
+        $recipesById = Recipe::with('ingredients')->whereIn('id', $recipeIds->unique())->get()->keyBy('id');
 
-        $total = collect($validated['items'])->sum(
-            fn(array $item) => (float) ($recipesById[$item['recipe_id']]?->base_cost ?? 0)
-        );
+        $total = collect($validated['items'])->sum(function (array $item) use ($recipesById): float {
+            /** @var Recipe|null $recipe */
+            $recipe = $recipesById->get($item['recipe_id']);
+            return (float) ($recipe?->calculateTotalCost() ?? 0);
+        });
 
         $order = $request->user()->orders()->create([
             'total_price'      => $total,
@@ -75,21 +80,51 @@ class OrderController extends Controller
             'delivery_address' => $validated['delivery_address'] ?? null,
         ]);
 
+        $subscriptionsCreated = 0;
+
         foreach ($validated['items'] as $item) {
-            $recipe = $recipesById[$item['recipe_id']] ?? null;
+            /** @var Recipe|null $recipe */
+            $recipe = $recipesById->get($item['recipe_id']);
+            $currentPrice = (float) ($recipe?->calculateTotalCost() ?? 0);
             OrderItem::create([
                 'order_id'   => $order->id,
                 'pet_id'     => $item['pet_id'] ?? null,
                 'recipe_id'  => $item['recipe_id'],
-                'unit_price' => (float) ($recipe?->base_cost ?? 0),
+                'unit_price' => $currentPrice,
                 'quantity'   => 1,
             ]);
+
+            if (!empty($item['subscribe']) && $recipe !== null && !empty($item['pet_id'])) {
+                try {
+                    $durationDays  = (int) ($recipe->duration_days ?? 30);
+                    $daysUntilNext = max(1, $durationDays - 7);
+
+                    $request->user()->subscriptions()->create([
+                        'pet_id'             => $item['pet_id'],
+                        'recipe_id'          => $item['recipe_id'],
+                        'frequency'          => 'monthly',
+                        'status'             => 'active',
+                        'start_date'         => Carbon::today(),
+                        'next_delivery_date' => Carbon::today()->addDays($daysUntilNext),
+                    ]);
+
+                    $subscriptionsCreated++;
+                } catch (\Throwable $e) {
+                    \Log::error('Subscription creation failed', [
+                        'order_id'  => $order->id,
+                        'recipe_id' => $item['recipe_id'],
+                        'pet_id'    => $item['pet_id'],
+                        'error'     => $e->getMessage(),
+                    ]);
+                }
+            }
         }
 
         return response()->json([
-            'success' => true,
-            'message' => 'Order created successfully',
-            'data'    => $order->load(['items.recipe', 'items.pet']),
+            'success'               => true,
+            'message'               => 'Order created successfully',
+            'data'                  => $order->load(['items.recipe', 'items.pet']),
+            'subscriptions_created' => $subscriptionsCreated,
         ], 201);
     }
 

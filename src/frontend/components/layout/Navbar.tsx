@@ -97,6 +97,11 @@ export function Navbar({
         label: t("orders"),
         icon: ShoppingBag,
       });
+      links.push({
+        href: "/subscriptions",
+        label: t("subscriptions"),
+        icon: CalendarCheck,
+      });
     }
 
     if (role === "producer" || role === "admin") {

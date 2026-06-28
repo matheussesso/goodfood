@@ -28,6 +28,7 @@ import {
   Salad,
   Layers,
   PartyPopper,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -60,6 +61,9 @@ export default function NewOrderPage() {
   /** Unique selections: one entry per (petId, recipeId) tuple. */
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
 
+  /** Set of itemKeys for which the user enabled auto-subscription. */
+  const [subscribeItems, setSubscribeItems] = useState<Set<string>>(new Set());
+
   const [addrStreet, setAddrStreet] = useState("");
   const [addrNumber, setAddrNumber] = useState("");
   const [addrComplement, setAddrComplement] = useState("");
@@ -72,6 +76,12 @@ export default function NewOrderPage() {
 
   /** Set after successful order creation — triggers success screen. */
   const [confirmedOrderId, setConfirmedOrderId] = useState<number | null>(null);
+
+  /** Number of subscriptions activated in the last order creation. */
+  const [confirmedSubscriptions, setConfirmedSubscriptions] = useState(0);
+
+  /** Submit error message shown below the button. */
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   /** Auto-redirect to /orders 3 s after successful confirmation. */
   useEffect(() => {
@@ -115,19 +125,32 @@ export default function NewOrderPage() {
   }
 
   function toggleRecipe(petId: number, recipeId: number) {
+    const key = itemKey(petId, recipeId);
     if (isSelected(petId, recipeId)) {
       setSelectedItems((prev) =>
         prev.filter((it) => !(it.petId === petId && it.recipeId === recipeId))
       );
+      setSubscribeItems((prev) => { const s = new Set(prev); s.delete(key); return s; });
     } else {
       setSelectedItems((prev) => [...prev, { petId, recipeId }]);
     }
   }
 
   function removeItem(petId: number, recipeId: number) {
+    const key = itemKey(petId, recipeId);
     setSelectedItems((prev) =>
       prev.filter((it) => !(it.petId === petId && it.recipeId === recipeId))
     );
+    setSubscribeItems((prev) => { const s = new Set(prev); s.delete(key); return s; });
+  }
+
+  function toggleSubscribe(petId: number, recipeId: number) {
+    const key = itemKey(petId, recipeId);
+    setSubscribeItems((prev) => {
+      const s = new Set(prev);
+      if (s.has(key)) s.delete(key); else s.add(key);
+      return s;
+    });
   }
 
   /** Fill address fields from the user's registered address. */
@@ -172,10 +195,12 @@ export default function NewOrderPage() {
 
   async function handleSubmit() {
     if (!validate()) return;
+    setSubmitError(null);
 
     const items: OrderItemPayload[] = selectedItems.map((it) => ({
       recipe_id: it.recipeId,
       pet_id: it.petId,
+      subscribe: subscribeItems.has(itemKey(it.petId, it.recipeId)),
     }));
 
     const payload: CreateOrderPayload = {
@@ -183,8 +208,13 @@ export default function NewOrderPage() {
       delivery_address: buildAddress(),
     };
 
-    const result = await createOrder(payload);
-    setConfirmedOrderId(result?.data?.id ?? null);
+    try {
+      const result = await createOrder(payload);
+      setConfirmedSubscriptions(result?.subscriptions_created ?? 0);
+      setConfirmedOrderId(result?.data?.id ?? null);
+    } catch {
+      setSubmitError(t("error_submit"));
+    }
   }
 
   const petNameById = useMemo<Record<number, string>>(() => {
@@ -208,13 +238,31 @@ export default function NewOrderPage() {
             {t("order_confirmed_desc", { id: String(confirmedOrderId) })}
           </p>
         </div>
+
+        {confirmedSubscriptions > 0 && (
+          <div className="flex items-center gap-2.5 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm text-emerald-700 dark:text-emerald-400 max-w-sm">
+            <RefreshCw className="w-4 h-4 shrink-0" />
+            <span>{t("subscription_activated", { count: String(confirmedSubscriptions) })}</span>
+          </div>
+        )}
+
         <div className="flex flex-col items-center gap-3">
-          <Link href="/orders">
-            <Button size="lg" className="gap-2">
-              <ShoppingBag className="w-5 h-5" />
-              {t("view_orders")}
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3 flex-wrap justify-center">
+            <Link href="/orders">
+              <Button size="lg" className="gap-2">
+                <ShoppingBag className="w-5 h-5" />
+                {t("view_orders")}
+              </Button>
+            </Link>
+            {confirmedSubscriptions > 0 && (
+              <Link href="/subscriptions">
+                <Button size="lg" variant="outline" className="gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  {t("view_subscriptions")}
+                </Button>
+              </Link>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
             <Loader2 className="w-3 h-3 animate-spin" />
             {t("order_confirmed_redirect")}
@@ -311,9 +359,12 @@ export default function NewOrderPage() {
                       ) : (
                         petRecipes.map((recipe) => {
                           const sel = isSelected(pet.id, recipe.id);
+                          const key = itemKey(pet.id, recipe.id);
+                          const canSubscribe = (recipe.duration_days ?? 0) >= 14;
+                          const subscribed = subscribeItems.has(key);
                           return (
+                            <div key={key}>
                             <button
-                              key={itemKey(pet.id, recipe.id)}
                               type="button"
                               onClick={() => toggleRecipe(pet.id, recipe.id)}
                               className={cn(
@@ -376,6 +427,41 @@ export default function NewOrderPage() {
                                 R$ {Number(recipe.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>
                             </button>
+
+                            {/* Subscription toggle — only when selected and recipe ≥14 days */}
+                            {sel && canSubscribe && (
+                              <button
+                                type="button"
+                                onClick={() => toggleSubscribe(pet.id, recipe.id)}
+                                className={cn(
+                                  "w-full flex items-center gap-3 px-4 py-2.5 border-t text-left transition-colors",
+                                  subscribed
+                                    ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+                                    : "bg-muted/20 border-border/40 hover:bg-muted/40"
+                                )}
+                              >
+                                {/* Toggle knob */}
+                                <div className={cn(
+                                  "relative w-8 h-4.5 rounded-full transition-colors shrink-0 flex items-center",
+                                  subscribed ? "bg-emerald-500" : "bg-muted-foreground/30"
+                                )} style={{ width: 32, height: 18 }}>
+                                  <div className={cn(
+                                    "absolute w-3.5 h-3.5 bg-white rounded-full shadow transition-transform",
+                                    subscribed ? "translate-x-[14px]" : "translate-x-[2px]"
+                                  )} />
+                                </div>
+                                <RefreshCw className={cn("w-3.5 h-3.5 shrink-0", subscribed ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")} />
+                                <div className="flex-1 min-w-0">
+                                  <p className={cn("text-xs font-semibold", subscribed ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground")}>
+                                    {t("subscribe_label")}
+                                  </p>
+                                  <p className="text-[11px] text-muted-foreground leading-tight">
+                                    {t("subscribe_desc")}
+                                  </p>
+                                </div>
+                              </button>
+                            )}
+                            </div>
                           );
                         })
                       )}
@@ -546,6 +632,11 @@ export default function NewOrderPage() {
           {errors.items && (
             <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-2.5">
               {errors.items}
+            </p>
+          )}
+          {submitError && (
+            <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-2.5">
+              {submitError}
             </p>
           )}
           <Button
