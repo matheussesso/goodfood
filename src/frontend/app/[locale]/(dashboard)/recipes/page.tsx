@@ -2,14 +2,13 @@
 
 import { useTranslations } from "next-intl";
 import { useRecipes } from "@/hooks/useRecipes";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UtensilsCrossed, Plus, Search, Loader2, LayoutGrid, List as ListIcon, Eye, Edit2 } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+
 
 /**
  * RecipesPage component.
@@ -115,67 +114,79 @@ export default function RecipesPage() {
       ) : (
         <div className={cn("grid gap-4", viewMode === "grid" ? "md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1")}>
           {filteredRecipes?.map((recipe) => (
-            <Card key={recipe.id} className={cn("flex hover:border-primary/50 transition-colors", viewMode === "grid" ? "flex-col h-full" : "flex-row items-stretch")}>
-              <div className={cn("border-border/50 bg-muted/20 p-6", viewMode === "grid" ? "pb-3 border-b" : "w-1/3 border-r flex items-center")}>
-                <div className="flex flex-col h-full justify-center w-full">
-                  <div className="flex items-start justify-between gap-2">
-                    <Link href={`/recipes/${recipe.id}`} className="flex-1 min-w-0 hover:text-primary transition-colors">
-                      <h3 className="text-base font-semibold line-clamp-1" title={recipe.name}>{recipe.name}</h3>
+            <div
+              key={recipe.id}
+              className="bg-card border rounded-xl shadow-sm overflow-hidden hover:border-primary/50 hover:shadow-md transition-all flex flex-col"
+            >
+              {/* Header */}
+              <div className="p-4 pb-3 border-b border-border/50 bg-muted/20">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <Link href={`/recipes/${recipe.id}`} className="hover:text-primary transition-colors">
+                      <h3 className="font-semibold text-base line-clamp-1">{recipe.name}</h3>
                     </Link>
-                    {recipe.is_template && (
-                      <Badge variant="secondary" className="shrink-0 text-xs">{tRec("model")}</Badge>
-                    )}
+                    <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 min-h-[2.5rem]">
+                      {recipe.description || tRec("no_description")}
+                    </p>
                   </div>
-                  <p className={cn("text-sm text-muted-foreground mt-1", viewMode === "grid" ? "line-clamp-2 min-h-10" : "line-clamp-2")}>
-                    {recipe.description || tRec("no_description")}
-                  </p>
                 </div>
               </div>
-              <CardContent className={cn("flex-1", viewMode === "grid" ? "pt-4" : "py-4")}>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-3 gap-x-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">{tRec("pet_type")}</span>
-                    <span className="font-medium">{recipe.pet_type === 'cat' ? tCat("cat") : recipe.pet_type === 'dog' ? tCat("dog") : tCommon("all")}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">{tCat("duration")}</span>
-                    <span className="font-medium">{recipe.duration_days} {tCat("days")}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">{tRec("ingredients")}</span>
-                    <span className="font-medium">{recipe.ingredients.length} {recipe.ingredients.length === 1 ? tCommon("ingredient").toLowerCase() : tRec("ingredients").toLowerCase()}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-xs uppercase tracking-wider mb-0.5">{tRec("cost_summary")}</span>
-                    <span className="font-medium text-amber-600 dark:text-amber-400">R$ {Number(recipe.base_cost ?? 0).toFixed(2)}</span>
-                  </div>
+
+              {/* Stats — divide-x */}
+              <div className="flex divide-x divide-border/50 border-b border-border/50">
+                <div className="flex-1 py-2.5 flex flex-col items-center gap-0.5">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{tRec("pet_type")}</span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {recipe.pet_type === "cat" ? tCat("cat") : recipe.pet_type === "dog" ? tCat("dog") : tCommon("all")}
+                  </span>
                 </div>
+                <div className="flex-1 py-2.5 flex flex-col items-center gap-0.5">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{tCat("duration")}</span>
+                  <span className="text-sm font-semibold text-foreground">{recipe.duration_days ?? "—"}d</span>
+                </div>
+                <div className="flex-1 py-2.5 flex flex-col items-center gap-0.5">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Ingred.</span>
+                  <span className="text-sm font-semibold text-foreground">{recipe.ingredients?.length ?? 0}</span>
+                </div>
+                <div className="flex-1 py-2.5 flex flex-col items-center gap-0.5">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Custo Est.</span>
+                  <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                    R$ {Number((recipe as any).base_cost ?? 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
 
-                {recipe.pets && recipe.pets.length > 0 && (
-                  <div className="mt-3 pt-3 border-t flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider mr-1">{tRec("linked_to")}:</span>
-                    {recipe.pets.map(pet => (
-                      <Badge key={pet.id} variant="outline" className="text-xs bg-primary/5">{pet.name}</Badge>
-                    ))}
-                  </div>
-                )}
+              {/* Pet badges */}
+              {recipe.pets && recipe.pets.length > 0 && (
+                <div className="px-4 py-2.5 border-b border-border/50 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">{tRec("linked_to")}:</span>
+                  {recipe.pets.map((pet) => (
+                    <span
+                      key={pet.id}
+                      className="text-xs px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full font-medium"
+                    >
+                      {pet.name}
+                    </span>
+                  ))}
+                </div>
+              )}
 
-                <div className="mt-4 pt-3 border-t flex gap-2">
-                  <Link href={`/recipes/${recipe.id}`} className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
-                      <Eye className="w-3.5 h-3.5" /> {tCommon("view")}
+              {/* Actions — always at bottom */}
+              <div className="flex gap-2 p-3 mt-auto">
+                <Link href={`/recipes/${recipe.id}`} className="flex-1">
+                  <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
+                    <Eye className="w-3.5 h-3.5" /> {tCommon("view")}
+                  </Button>
+                </Link>
+                {!recipe.is_template && (
+                  <Link href={`/recipes/${recipe.id}/edit`} className="flex-1">
+                    <Button variant="secondary" size="sm" className="w-full gap-1.5 text-xs">
+                      <Edit2 className="w-3.5 h-3.5" /> {tCommon("edit")}
                     </Button>
                   </Link>
-                  {!recipe.is_template && (
-                    <Link href={`/recipes/${recipe.id}/edit`} className="flex-1">
-                      <Button variant="secondary" size="sm" className="w-full gap-1.5 text-xs">
-                        <Edit2 className="w-3.5 h-3.5" /> {tCommon("edit")}
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       )}
