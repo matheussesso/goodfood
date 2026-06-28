@@ -133,6 +133,7 @@ class OrderController extends Controller
 
         if ($request->user()->isAdmin()) {
             $rules['status'] = 'sometimes|required|in:pending,in_production,ready,out_for_delivery,delivered,cancelled';
+            $rules['scheduled_reposicao_date'] = 'sometimes|nullable|date';
         }
 
         $validated = $request->validate($rules);

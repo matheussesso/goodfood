@@ -135,7 +135,8 @@
     "additional_ingredient_cost": "Costo de Insumos Adicional",
     "kitchen": "Cocina",
     "result": "Resultado",
-    "min_profit": "Beneficio Mínimo"
+    "min_profit": "Beneficio Mínimo",
+    "base_price_label": "Precio Base ($)"
   },
   "Recipes": {
     "title": "Nueva Receta",
@@ -423,7 +424,10 @@
     "reposicao_date": "Fecha de Reposición",
     "producao_date": "Inicio de Producción",
     "entrega_date": "Fecha de Entrega",
-    "placed_date": "Fecha del Pedido"
+    "placed_date": "Fecha del Pedido",
+    "show_more": "más",
+    "show_less": "Contraer",
+    "drag_to_reschedule": "Arrastrar para reprogramar"
   },
   "Metadata": {
     "description": "Sistema de gestión de alimentación natural para mascotas"

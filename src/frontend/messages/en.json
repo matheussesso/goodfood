@@ -135,7 +135,8 @@
     "additional_ingredient_cost": "Additional Ingredient Cost",
     "kitchen": "Kitchen",
     "result": "Result",
-    "min_profit": "Minimum Profit"
+    "min_profit": "Minimum Profit",
+    "base_price_label": "Base Price ($)"
   },
   "Recipes": {
     "title": "New Recipe",
@@ -423,7 +424,10 @@
     "reposicao_date": "Replenishment Date",
     "producao_date": "Production Start",
     "entrega_date": "Delivery Date",
-    "placed_date": "Order Date"
+    "placed_date": "Order Date",
+    "show_more": "more",
+    "show_less": "Collapse",
+    "drag_to_reschedule": "Drag to reschedule"
   },
   "Metadata": {
     "description": "Natural pet food management system"

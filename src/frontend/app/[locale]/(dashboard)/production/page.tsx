@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import {
@@ -24,6 +24,8 @@ import {
   CalendarDays,
   Filter,
   Users,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useOrders, Order } from "@/hooks/useOrders";
 import { Button } from "@/components/ui/button";
@@ -41,24 +43,40 @@ interface CycleDates {
   entrega: Date;
 }
 
-// ─── Cycle helpers ────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 /**
  * Computes the production cycle dates for an order.
- * Cycle: order cutoff = Sunday → Reposição = next Monday → Produção = Tuesday → Entrega = following Monday.
+ * If the order has a `scheduled_reposicao_date` override set by an admin drag,
+ * that date is used as the reposição anchor instead of the computed default.
  *
- * @param createdAt - ISO date string of when the order was placed.
+ * Default cycle: orders placed up to Sunday → Reposição next Monday →
+ * Produção Tuesday (+1) → Entrega following Monday (+7).
+ *
+ * @param order - The order to compute cycle dates for.
  * @returns The three cycle milestone dates.
  */
-function computeCycleDates(createdAt: string): CycleDates {
-  const created = new Date(createdAt);
-  created.setHours(0, 0, 0, 0);
-  const day = created.getDay();
-  // Sunday=+1, Monday=+7 (skip to next week), Tue-Sat = 8-day
-  const daysToMonday = day === 0 ? 1 : day === 1 ? 7 : 8 - day;
+function computeCycleDates(order: Order): CycleDates {
+  let reposicao: Date;
 
-  const reposicao = new Date(created);
-  reposicao.setDate(created.getDate() + daysToMonday);
+  if (order.scheduled_reposicao_date) {
+    // Slice first 10 chars to handle any format: "YYYY-MM-DD", "YYYY-MM-DD HH:mm:ss", ISO
+    const datePart = String(order.scheduled_reposicao_date).slice(0, 10);
+    const [y, m, d] = datePart.split("-").map(Number);
+    reposicao = new Date(y, m - 1, d);
+  } else {
+    const created = new Date(order.created_at);
+    created.setHours(0, 0, 0, 0);
+    const day = created.getDay();
+    // Sunday=+1, Monday=+7 (next week), Tue–Sat = 8-day
+    const daysToMonday = day === 0 ? 1 : day === 1 ? 7 : 8 - day;
+    reposicao = new Date(created);
+    reposicao.setDate(created.getDate() + daysToMonday);
+  }
 
   const producao = new Date(reposicao);
   producao.setDate(reposicao.getDate() + 1);
@@ -73,12 +91,12 @@ function computeCycleDates(createdAt: string): CycleDates {
 function getPhaseDate(order: Order, phase: Phase): Date {
   const placed = new Date(order.created_at);
   placed.setHours(0, 0, 0, 0);
-  const { reposicao, producao, entrega } = computeCycleDates(order.created_at);
+  const { reposicao, producao, entrega } = computeCycleDates(order);
   switch (phase) {
     case "order_placed": return placed;
-    case "reposicao": return reposicao;
-    case "producao": return producao;
-    case "entrega": return entrega;
+    case "reposicao":    return reposicao;
+    case "producao":     return producao;
+    case "entrega":      return entrega;
   }
 }
 
@@ -90,9 +108,11 @@ function isHighlightDay(weekday: number, phase: Phase): boolean {
 }
 
 function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear()
-    && a.getMonth() === b.getMonth()
-    && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth()    === b.getMonth()    &&
+    a.getDate()     === b.getDate()
+  );
 }
 
 /** Builds a Sun-aligned month grid (null = padding cell). */
@@ -201,14 +221,14 @@ function OrderDetailPanel({
   onUpdateStatus: (status: string) => Promise<void>;
   isUpdating: boolean;
 }) {
-  const t = useTranslations("Orders");
+  const t     = useTranslations("Orders");
   const tProd = useTranslations("Production");
-  const tCat = useTranslations("Catalog");
+  const tCat  = useTranslations("Catalog");
 
   const [localStatus, setLocalStatus] = useState(order.status);
   const placed = new Date(order.created_at);
   placed.setHours(0, 0, 0, 0);
-  const { reposicao, producao, entrega } = computeCycleDates(order.created_at);
+  const { reposicao, producao, entrega } = computeCycleDates(order);
   const hasItems = !!(order.items?.length);
 
   const fmt = (d: Date) =>
@@ -246,19 +266,16 @@ function OrderDetailPanel({
             {tProd("cycle_phase")}
           </p>
           <div className="flex flex-wrap gap-2">
-            {phaseDates.map(({ key, date, Icon, label }) => {
-              const style = PHASE_STYLE[key];
-              return (
-                <div
-                  key={key}
-                  className="flex items-center gap-1.5 text-xs bg-muted/40 border rounded-lg px-3 py-1.5"
-                >
-                  <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-muted-foreground">{label}:</span>
-                  <span className="font-semibold text-foreground">{fmt(date)}</span>
-                </div>
-              );
-            })}
+            {phaseDates.map(({ key, date, Icon, label }) => (
+              <div
+                key={key}
+                className="flex items-center gap-1.5 text-xs bg-muted/40 border rounded-lg px-3 py-1.5"
+              >
+                <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-muted-foreground">{label}:</span>
+                <span className="font-semibold text-foreground">{fmt(date)}</span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -266,7 +283,6 @@ function OrderDetailPanel({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Order info (left 2/3) */}
           <div className="lg:col-span-2 space-y-3">
-            {/* Card header */}
             <div className="border rounded-xl overflow-hidden">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b bg-muted/10">
                 <div className="flex items-center gap-2.5">
@@ -393,7 +409,6 @@ function OrderDetailPanel({
               )}
             </div>
 
-            {/* Delivery address */}
             {order.delivery_address && (
               <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2.5">
                 <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/60" />
@@ -449,13 +464,14 @@ function OrderDetailPanel({
 
 /**
  * Production page — shows orders positioned in a weekly production cycle.
- * Admins and producers can view orders by cycle phase (calendar or list), and update order status.
+ * Admins and producers can view orders by cycle phase (calendar or list),
+ * update order status, expand busy calendar days, and drag orders to reschedule.
  *
  * @returns The production management page element.
  */
 export default function ProductionPage() {
-  const t = useTranslations("Orders");
-  const tProd = useTranslations("Production");
+  const t       = useTranslations("Orders");
+  const tProd   = useTranslations("Production");
   const tCommon = useTranslations("Common");
 
   const today = new Date();
@@ -463,34 +479,44 @@ export default function ProductionPage() {
 
   const { orders, isLoading, updateOrder, isUpdating } = useOrders();
 
-  const [phase, setPhase] = useState<Phase>("order_placed");
-  const [viewMode, setViewMode] = useState<ViewMode>("calendar");
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [phase,         setPhase]         = useState<Phase>("order_placed");
+  const [viewMode,      setViewMode]      = useState<ViewMode>("calendar");
+  const [year,          setYear]          = useState(today.getFullYear());
+  const [month,         setMonth]         = useState(today.getMonth());
+  const [search,        setSearch]        = useState("");
+  const [filterStatus,  setFilterStatus]  = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  // Expand/collapse state: Set of "year-month-day" keys
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+
+  // Drag-and-drop state
+  const [draggingOrderId, setDraggingOrderId] = useState<number | null>(null);
+  const [dragOverDay,     setDragOverDay]     = useState<number | null>(null);
+  const dragCounter = useRef<Record<number, number>>({});
 
   // Month navigation
   function prevMonth() {
     if (month === 0) { setMonth(11); setYear((y) => y - 1); }
     else setMonth((m) => m - 1);
     setSelectedOrder(null);
+    setExpandedDays(new Set());
   }
   function nextMonth() {
     if (month === 11) { setMonth(0); setYear((y) => y + 1); }
     else setMonth((m) => m + 1);
     setSelectedOrder(null);
+    setExpandedDays(new Set());
   }
 
   // Calendar grid (Sun-aligned)
   const grid = useMemo(() => buildMonthGrid(year, month), [year, month]);
 
-  // Weekday labels (locale-aware)
+  // Weekday labels
   const weekdays = useMemo(
     () =>
       [0, 1, 2, 3, 4, 5, 6].map((i) => {
-        const d = new Date(2024, 0, 7 + i); // Jan 7=Sun…Jan 13=Sat 2024
+        const d = new Date(2024, 0, 7 + i);
         return new Intl.DateTimeFormat("pt-BR", { weekday: "short" })
           .format(d)
           .slice(0, 3)
@@ -509,7 +535,18 @@ export default function ProductionPage() {
     return raw.charAt(0).toUpperCase() + raw.slice(1);
   }, [year, month]);
 
-  // Filter orders
+  // Phase label helper
+  const phaseLabel = (p: Phase) => {
+    const keys: Record<Phase, string> = {
+      order_placed: "phase_order_placed",
+      reposicao:    "phase_reposicao",
+      producao:     "phase_producao",
+      entrega:      "phase_entrega",
+    };
+    return tProd(keys[p] as any);
+  };
+
+  // Filtered orders
   const filteredOrders = useMemo<Order[]>(() => {
     if (!orders) return [];
     const q = search.toLowerCase();
@@ -533,7 +570,7 @@ export default function ProductionPage() {
     });
   }, [filteredOrders, phase, year, month]);
 
-  // Map: day number → orders landing on that day in this phase
+  // Map: day number → orders on that day
   const dayMap = useMemo<Record<number, Order[]>>(() => {
     const map: Record<number, Order[]> = {};
     monthOrders.forEach((o) => {
@@ -554,22 +591,56 @@ export default function ProductionPage() {
     setSelectedOrder((prev) => (prev ? { ...prev, status } : null));
   }
 
-  const phaseStyle = PHASE_STYLE[phase];
-  const PhaseIcon = phaseStyle.Icon;
-  const ordersCount = monthOrders.length;
-  const ordersLabel =
-    ordersCount === 1 ? tProd("orders_this_month_singular") : tProd("orders_this_month_plural");
+  /**
+   * Handles dropping an order tile onto a calendar day.
+   * Computes the new `scheduled_reposicao_date` based on the active phase:
+   * - reposicao: droppedDate IS the new reposição date
+   * - producao:  new reposição = droppedDate - 1 day
+   * - entrega:   new reposição = droppedDate - 7 days
+   */
+  async function handleDrop(orderId: number, droppedDate: Date) {
+    if (phase === "order_placed") return;
 
-  // Phase label helper
-  const phaseLabel = (p: Phase) => {
-    const keys: Record<Phase, string> = {
-      order_placed: "phase_order_placed",
-      reposicao: "phase_reposicao",
-      producao: "phase_producao",
-      entrega: "phase_entrega",
-    };
-    return tProd(keys[p] as any);
-  };
+    let newReposicao: Date;
+    if (phase === "reposicao") {
+      newReposicao = droppedDate;
+    } else if (phase === "producao") {
+      newReposicao = new Date(droppedDate);
+      newReposicao.setDate(droppedDate.getDate() - 1);
+    } else {
+      // entrega
+      newReposicao = new Date(droppedDate);
+      newReposicao.setDate(droppedDate.getDate() - 7);
+    }
+
+    await updateOrder({ id: orderId, scheduled_reposicao_date: toDateStr(newReposicao) });
+  }
+
+  // Drag event helpers for cells (counter pattern avoids child-element flicker)
+  function onCellDragEnter(dayNum: number) {
+    dragCounter.current[dayNum] = (dragCounter.current[dayNum] ?? 0) + 1;
+    setDragOverDay(dayNum);
+  }
+  function onCellDragLeave(dayNum: number) {
+    dragCounter.current[dayNum] = (dragCounter.current[dayNum] ?? 1) - 1;
+    if (dragCounter.current[dayNum] <= 0) {
+      delete dragCounter.current[dayNum];
+      setDragOverDay((prev) => (prev === dayNum ? null : prev));
+    }
+  }
+  function onCellDrop(dayNum: number, date: Date) {
+    delete dragCounter.current[dayNum];
+    setDragOverDay(null);
+    setDraggingOrderId(null);
+    if (draggingOrderId !== null) handleDrop(draggingOrderId, date);
+  }
+
+  const phaseStyle   = PHASE_STYLE[phase];
+  const PhaseIcon    = phaseStyle.Icon;
+  const ordersCount  = monthOrders.length;
+  const ordersLabel  =
+    ordersCount === 1 ? tProd("orders_this_month_singular") : tProd("orders_this_month_plural");
+  const canDragPhase = phase !== "order_placed";
 
   return (
     <div className="space-y-6">
@@ -652,10 +723,7 @@ export default function ProductionPage() {
               return (
                 <button
                   key={p}
-                  onClick={() => {
-                    setPhase(p);
-                    setSelectedOrder(null);
-                  }}
+                  onClick={() => { setPhase(p); setSelectedOrder(null); }}
                   className={cn(
                     "flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors",
                     phase === p ? chipActive : chipInactive
@@ -667,6 +735,11 @@ export default function ProductionPage() {
               );
             })}
           </div>
+          {canDragPhase && viewMode === "calendar" && (
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1 pt-0.5">
+              <span>↔</span> {tProd("drag_to_reschedule")}
+            </p>
+          )}
         </div>
       </div>
 
@@ -692,9 +765,7 @@ export default function ProductionPage() {
               <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5 mt-0.5">
                 {ordersCount > 0 ? (
                   <>
-                    <span>
-                      {ordersCount} {ordersLabel}
-                    </span>
+                    <span>{ordersCount} {ordersLabel}</span>
                     <span className="text-muted-foreground/40">·</span>
                     <PhaseIcon className="w-3.5 h-3.5" />
                     <span className={cn("font-medium", phaseStyle.dotColor.replace("bg-", "text-"))}>
@@ -730,16 +801,26 @@ export default function ProductionPage() {
           <div className="grid grid-cols-7">
             {grid.map((date, idx) => {
               if (!date) {
-                return <div key={`pad-${idx}`} className="min-h-[90px] border-r border-b last:border-r-0 bg-muted/5" />;
+                return (
+                  <div
+                    key={`pad-${idx}`}
+                    className="min-h-[90px] border-r border-b last:border-r-0 bg-muted/5"
+                  />
+                );
               }
 
-              const weekday = date.getDay();
-              const dayNum = date.getDate();
-              const isToday = isSameDay(date, today);
-              const isPast = date < today;
+              const weekday   = date.getDay();
+              const dayNum    = date.getDate();
+              const dayKey    = `${year}-${month}-${dayNum}`;
+              const isToday   = isSameDay(date, today);
+              const isPast    = date < today;
               const highlight = isHighlightDay(weekday, phase);
               const dayOrders = dayMap[dayNum] ?? [];
-              const isLastRow = idx >= grid.length - 7;
+              const isExpanded = expandedDays.has(dayKey);
+              const overflow   = dayOrders.length - 3;
+              const visibleOrders = isExpanded ? dayOrders : dayOrders.slice(0, 3);
+              const isLastRow  = idx >= grid.length - 7;
+              const isDragOver = canDragPhase && dragOverDay === dayNum;
 
               return (
                 <div
@@ -749,8 +830,13 @@ export default function ProductionPage() {
                     weekday === 6 && "border-r-0",
                     isLastRow && "border-b-0",
                     highlight ? phaseStyle.highlight : "",
-                    isPast && !isToday && "opacity-60"
+                    isPast && !isToday && "opacity-60",
+                    isDragOver && "ring-2 ring-inset ring-primary/50 bg-primary/5"
                   )}
+                  onDragOver={canDragPhase ? (e) => e.preventDefault() : undefined}
+                  onDragEnter={canDragPhase ? () => onCellDragEnter(dayNum) : undefined}
+                  onDragLeave={canDragPhase ? () => onCellDragLeave(dayNum) : undefined}
+                  onDrop={canDragPhase ? (e) => { e.preventDefault(); onCellDrop(dayNum, date); } : undefined}
                 >
                   {/* Day number */}
                   <div className="flex items-center justify-between mb-1">
@@ -773,14 +859,27 @@ export default function ProductionPage() {
 
                   {/* Order tiles */}
                   <div className="space-y-0.5">
-                    {dayOrders.slice(0, 3).map((order) => (
+                    {visibleOrders.map((order) => (
                       <button
                         key={order.id}
+                        draggable={canDragPhase}
+                        onDragStart={(e) => {
+                          e.stopPropagation();
+                          e.dataTransfer.effectAllowed = "move";
+                          setDraggingOrderId(order.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggingOrderId(null);
+                          setDragOverDay(null);
+                          dragCounter.current = {};
+                        }}
                         onClick={() => toggleOrder(order)}
                         className={cn(
                           "w-full text-left rounded px-1.5 py-1 text-[10px] font-semibold border transition-colors leading-tight",
+                          canDragPhase ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
                           phaseStyle.tileColor,
-                          selectedOrder?.id === order.id && "ring-1 ring-primary ring-offset-1"
+                          selectedOrder?.id === order.id && "ring-1 ring-primary ring-offset-1",
+                          draggingOrderId === order.id && "opacity-40 scale-95"
                         )}
                       >
                         <p className="truncate">#{order.id}</p>
@@ -790,10 +889,35 @@ export default function ProductionPage() {
                         <p className="font-bold">R$ {Number(order.total_price).toFixed(2)}</p>
                       </button>
                     ))}
-                    {dayOrders.length > 3 && (
-                      <p className="text-[10px] text-muted-foreground text-center">
-                        +{dayOrders.length - 3}
-                      </p>
+
+                    {/* Expand / collapse toggle */}
+                    {overflow > 0 && !isExpanded && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedDays((prev) => new Set([...prev, dayKey]));
+                        }}
+                        className="w-full flex items-center justify-center gap-0.5 text-[9px] text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded py-0.5 transition-colors"
+                      >
+                        <ChevronDown className="w-2.5 h-2.5" />
+                        +{overflow} {tProd("show_more")}
+                      </button>
+                    )}
+                    {isExpanded && dayOrders.length > 3 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedDays((prev) => {
+                            const next = new Set(prev);
+                            next.delete(dayKey);
+                            return next;
+                          });
+                        }}
+                        className="w-full flex items-center justify-center gap-0.5 text-[9px] text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded py-0.5 transition-colors"
+                      >
+                        <ChevronUp className="w-2.5 h-2.5" />
+                        {tProd("show_less")}
+                      </button>
                     )}
                   </div>
                 </div>
@@ -821,7 +945,7 @@ export default function ProductionPage() {
               .map((order) => {
                 const phaseDate = getPhaseDate(order, phase);
                 const isSelected = selectedOrder?.id === order.id;
-                const { reposicao, producao, entrega } = computeCycleDates(order.created_at);
+                const { reposicao, producao, entrega } = computeCycleDates(order);
 
                 return (
                   <button
@@ -855,9 +979,9 @@ export default function ProductionPage() {
                         <div className="flex flex-wrap gap-3 mt-1.5 text-[10px] text-muted-foreground">
                           {[
                             { Icon: ShoppingBag, d: new Date(order.created_at) },
-                            { Icon: Package, d: reposicao },
-                            { Icon: UtensilsCrossed, d: producao },
-                            { Icon: Truck, d: entrega },
+                            { Icon: Package,         d: reposicao },
+                            { Icon: UtensilsCrossed, d: producao  },
+                            { Icon: Truck,           d: entrega   },
                           ].map(({ Icon, d }, i) => (
                             <span
                               key={i}

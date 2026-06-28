@@ -135,7 +135,8 @@
     "additional_ingredient_cost": "Custo de Insumos Adicional",
     "kitchen": "Cozinha",
     "result": "Resultado",
-    "min_profit": "Lucro Mínimo"
+    "min_profit": "Lucro Mínimo",
+    "base_price_label": "Preço Base (R$)"
   },
   "Recipes": {
     "title": "Nova Receita",
@@ -423,7 +424,10 @@
     "reposicao_date": "Data de Reposição",
     "producao_date": "Início da Produção",
     "entrega_date": "Data de Entrega",
-    "placed_date": "Data do Pedido"
+    "placed_date": "Data do Pedido",
+    "show_more": "mais",
+    "show_less": "Recolher",
+    "drag_to_reschedule": "Arraste para reagendar"
   },
   "Metadata": {
     "description": "Sistema de gestão de alimentação natural para pets"

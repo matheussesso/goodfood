@@ -36,12 +36,14 @@ class Order extends Model
         'status',
         'delivery_address',
         'delivery_date',
+        'scheduled_reposicao_date',
     ];
 
     /** @var array<string, string> */
     protected $casts = [
         'total_price' => 'decimal:2',
         'delivery_date' => 'date',
+        'scheduled_reposicao_date' => 'string',
     ];
 
     /** @return BelongsTo<User, $this> */
