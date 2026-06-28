@@ -220,6 +220,10 @@ export default function CatalogPage() {
   const [isCalculatingCost, setIsCalculatingCost] = useState(false);
   const [recipeDetailOpen, setRecipeDetailOpen] = useState(false);
   const [costDetailOpen, setCostDetailOpen] = useState(false);
+  const [recFormErrors, setRecFormErrors] = useState<Record<string, string>>({});
+  const [recFeedback, setRecFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [expandedRecipes, setExpandedRecipes] = useState<Set<number>>(new Set());
+  const [editingIngIdx, setEditingIngIdx] = useState<number | null>(null);
 
   const ADMIN_BREAKDOWN_ORDER = [
     'Custo de Insumos Adicional',
@@ -337,6 +341,7 @@ export default function CatalogPage() {
     setEstimatedCost(0);
     setRecCostPerKg(0);
     setCostBreakdown([]);
+    setRecFormErrors({});
     setIsEditingTemplate(type === "template");
     if (rec) {
       setEditingRec(rec);
@@ -345,7 +350,10 @@ export default function CatalogPage() {
         pet_type: rec.pet_type || "dog", duration_days: rec.duration_days?.toString() || "15",
         daily_portions: rec.daily_portions?.toString() || "2", is_active: rec.is_active
       });
-      setRecipeIngredients(rec.ingredients.map(i => ({ id: i.id, quantity: i.pivot.quantity, unit: i.pivot.unit || i.unit })));
+      setRecipeIngredients(rec.ingredients.map(i => {
+        const n = parseFloat(i.pivot.quantity);
+        return { id: i.id, quantity: isNaN(n) ? "" : String(n), unit: i.pivot.unit || i.unit };
+      }));
     } else {
       setEditingRec(null);
       setRecForm({ name: "", description: "", instructions: "", pet_type: "dog", duration_days: "15", daily_portions: "2", is_active: true });
@@ -356,17 +364,43 @@ export default function CatalogPage() {
 
   const handleRecSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = {
-      name: recForm.name, description: recForm.description,
-      pet_type: recForm.pet_type, duration_days: parseInt(recForm.duration_days), daily_portions: parseInt(recForm.daily_portions),
-      is_template: isEditingTemplate, is_active: recForm.is_active, instructions: recForm.instructions,
-      ingredients: recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).map(i => ({ id: i.id, quantity: parseFloat(i.quantity), unit: i.unit }))
-    };
 
-    if (editingRec) await updateRecipe({ id: editingRec.id, ...data });
-    else await createRecipe(data);
+    const errors: Record<string, string> = {};
+    if (!recForm.name.trim()) errors.name = t("validation_required");
+    if (!recForm.description.trim()) errors.description = t("validation_required");
+    const dur = parseInt(recForm.duration_days);
+    if (!dur || dur <= 0) errors.duration_days = t("validation_positive_number");
+    const portions = parseInt(recForm.daily_portions);
+    if (!portions || portions <= 0) errors.daily_portions = t("validation_positive_number");
+    const validIngredients = recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0);
+    if (validIngredients.length === 0) errors.ingredients = t("validation_at_least_one_ingredient");
 
-    setIsRecModalOpen(false);
+    if (Object.keys(errors).length > 0) {
+      setRecFormErrors(errors);
+      return;
+    }
+    setRecFormErrors({});
+
+    try {
+      const data = {
+        name: recForm.name.trim(), description: recForm.description,
+        pet_type: recForm.pet_type, duration_days: dur, daily_portions: portions,
+        is_template: isEditingTemplate, is_active: recForm.is_active, instructions: recForm.instructions,
+        ingredients: validIngredients.map(i => ({ id: i.id, quantity: parseFloat(i.quantity), unit: i.unit }))
+      };
+
+      if (editingRec) await updateRecipe({ id: editingRec.id, ...data });
+      else await createRecipe(data);
+
+      setIsRecModalOpen(false);
+      setActiveTab("recipes");
+      const msg = editingRec ? t("recipe_updated_success") : t("recipe_created_success");
+      setRecFeedback({ type: "success", message: msg });
+      setTimeout(() => setRecFeedback(null), 4000);
+    } catch {
+      setRecFeedback({ type: "error", message: tCommon("error") });
+      setTimeout(() => setRecFeedback(null), 4000);
+    }
   };
 
   const handleDeleteRec = async (id: number) => {
@@ -664,6 +698,25 @@ export default function CatalogPage() {
 
       {activeTab === "recipes" && (
         <div className="space-y-4">
+          {/* Success / error feedback banner */}
+          {recFeedback && (
+            <div className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium",
+              recFeedback.type === "success"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400"
+                : "bg-red-50 border-red-200 text-red-700 dark:bg-red-950/30 dark:border-red-800 dark:text-red-400"
+            )}>
+              {recFeedback.type === "success"
+                ? <CheckCircle2 className="w-4 h-4 shrink-0" />
+                : <AlertCircle className="w-4 h-4 shrink-0" />
+              }
+              <span className="flex-1">{recFeedback.message}</span>
+              <button onClick={() => setRecFeedback(null)} className="p-0.5 hover:opacity-70 transition-opacity">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Filter bar */}
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center bg-card p-4 rounded-xl border shadow-sm">
             <div className="relative flex-1 w-full min-w-[200px]">
@@ -729,24 +782,37 @@ export default function CatalogPage() {
                         <span className="font-medium text-xs">{rec.daily_portions}/dia</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{t("base_cost")}</span>
-                        <span className="font-semibold text-xs text-amber-600 dark:text-amber-400">R$ {Number(rec.ingredient_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{tRec("estimated_cost")}</span>
+                        <span className="font-semibold text-xs text-amber-600 dark:text-amber-400">R$ {Number(rec.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                     {rec.ingredients && rec.ingredients.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-border/50 flex-1">
                         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">{tRec("recipe_composition")}</p>
                         <ul className="space-y-1">
-                          {rec.ingredients.slice(0, 3).map(i => (
+                          {(expandedRecipes.has(rec.id) ? rec.ingredients : rec.ingredients.slice(0, 3)).map(i => (
                             <li key={i.id} className="flex items-center justify-between text-xs">
                               <span className="text-muted-foreground truncate flex-1 mr-2">{i.name}</span>
                               <span className="font-medium shrink-0 text-[10px] bg-muted px-1.5 py-0.5 rounded">{i.pivot.quantity} {i.pivot.unit || i.unit}/dia</span>
                             </li>
                           ))}
-                          {rec.ingredients.length > 3 && (
-                            <li className="text-[10px] text-muted-foreground">+{rec.ingredients.length - 3} ingrediente(s)</li>
-                          )}
                         </ul>
+                        {rec.ingredients.length > 3 && (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedRecipes(prev => {
+                              const next = new Set(prev);
+                              if (next.has(rec.id)) next.delete(rec.id); else next.add(rec.id);
+                              return next;
+                            })}
+                            className="mt-2 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
+                          >
+                            {expandedRecipes.has(rec.id)
+                              ? <><ChevronUp className="w-3 h-3" /> Recolher</>
+                              : <><ChevronDown className="w-3 h-3" /> +{rec.ingredients.length - 3} mais</>
+                            }
+                          </button>
+                        )}
                       </div>
                     )}
                   </CardContent>
@@ -760,17 +826,17 @@ export default function CatalogPage() {
               )}
             </div>
           ) : (
-            <div className="border rounded-lg overflow-hidden bg-card">
+            <div className="border rounded-lg bg-card">
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-muted-foreground bg-muted/50 uppercase">
                   <tr>
-                    <th className="px-6 py-3 font-medium">{t("name")}</th>
+                    <th className="px-6 py-3 font-medium rounded-tl-lg">{t("name")}</th>
                     <th className="px-6 py-3 font-medium text-center">{tRec("pet_type")}</th>
                     <th className="px-6 py-3 font-medium text-center">{t("duration")}</th>
                     <th className="px-6 py-3 font-medium text-center">{tRec("portions_per_day_caps")}</th>
                     <th className="px-6 py-3 font-medium text-center">{tRec("ingredients")}</th>
                     <th className="px-6 py-3 font-medium text-right">{t("base_price_table_header")}</th>
-                    <th className="px-6 py-3 font-medium text-right">{tCommon("actions")}</th>
+                    <th className="px-6 py-3 font-medium text-right rounded-tr-lg">{tCommon("actions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -788,8 +854,31 @@ export default function CatalogPage() {
                       <td className="px-6 py-4 text-center">{rec.pet_type === 'cat' ? 'Gato' : rec.pet_type === 'dog' ? 'Cachorro' : 'Geral'}</td>
                       <td className="px-6 py-4 text-center">{rec.duration_days} dias</td>
                       <td className="px-6 py-4 text-center">{rec.daily_portions}</td>
-                      <td className="px-6 py-4 text-center">{rec.ingredients?.length ?? 0}</td>
-                      <td className="px-6 py-4 text-right font-semibold text-amber-600 dark:text-amber-400">R$ {Number(rec.ingredient_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="relative inline-flex group/ing cursor-default">
+                          <span className="underline decoration-dotted decoration-muted-foreground/50">
+                            {rec.ingredients?.length ?? 0}
+                          </span>
+                          {(rec.ingredients?.length ?? 0) > 0 && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20 hidden group-hover/ing:block pointer-events-none">
+                              <div className="bg-popover border border-border shadow-lg rounded-lg p-2.5 text-left min-w-[180px] max-w-[260px]">
+                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 border-b pb-1">{tRec("ingredients")}</p>
+                                <ul className="space-y-1">
+                                  {rec.ingredients?.map(i => (
+                                    <li key={i.id} className="flex items-center gap-1.5 text-xs">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                      <span className="text-foreground truncate flex-1">{i.name}</span>
+                                      <span className="text-muted-foreground text-[10px] shrink-0 ml-1">{String(parseFloat(i.pivot.quantity) || 0)}{i.pivot.unit || i.unit}/d</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                              <div className="w-2.5 h-2.5 bg-popover border-b border-r border-border rotate-45 mx-auto -mt-[5px]" />
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right font-semibold text-amber-600 dark:text-amber-400">R$ {Number(rec.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex gap-1 justify-end">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenRecModal(rec, "template")}><Edit2 className="h-4 w-4" /></Button>
@@ -914,8 +1003,16 @@ export default function CatalogPage() {
       <Modal isOpen={isRecModalOpen} onClose={() => setIsRecModalOpen(false)} title={editingRec ? t("edit_recipe") : t("new_recipe")} className="max-w-4xl">
         <form onSubmit={handleRecSubmit} className="space-y-6 px-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>{t("recipe_name")}</Label><Input required value={recForm.name} onChange={e => setRecForm({...recForm, name: e.target.value})} /></div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
+              <Label>{t("recipe_name")}</Label>
+              <Input
+                value={recForm.name}
+                onChange={e => { setRecForm({...recForm, name: e.target.value}); setRecFormErrors(p => ({...p, name: ""})); }}
+                className={recFormErrors.name ? "border-destructive" : ""}
+              />
+              {recFormErrors.name && <p className="text-xs text-destructive">{recFormErrors.name}</p>}
+            </div>
+            <div className="space-y-1.5">
               <Label>{t("pet_type")}</Label>
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={recForm.pet_type} onChange={e => setRecForm({...recForm, pet_type: e.target.value})}>
                 <option value="dog">{t("dog")}</option>
@@ -924,12 +1021,15 @@ export default function CatalogPage() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>{t("duration")} ({t("days")})</Label><Input type="number" required value={recForm.duration_days} onChange={e => setRecForm({...recForm, duration_days: e.target.value})} /></div>
-            <div className="space-y-2"><Label>{t("daily_portions")}</Label><Input type="number" required value={recForm.daily_portions} onChange={e => setRecForm({...recForm, daily_portions: e.target.value})} /></div>
+          <div className="space-y-1.5">
+            <Label>{t("description_label")}</Label>
+            <Input
+              value={recForm.description}
+              onChange={e => { setRecForm({...recForm, description: e.target.value}); setRecFormErrors(p => ({...p, description: ""})); }}
+              className={recFormErrors.description ? "border-destructive" : ""}
+            />
+            {recFormErrors.description && <p className="text-xs text-destructive">{recFormErrors.description}</p>}
           </div>
-
-          <div className="space-y-2"><Label>{t("description_label")}</Label><Input value={recForm.description} onChange={e => setRecForm({...recForm, description: e.target.value})} /></div>
           <div className="space-y-2">
             <Label>{t("instructions")}</Label>
             <textarea 
@@ -976,7 +1076,7 @@ export default function CatalogPage() {
                 const matchSearch = ing.name.toLowerCase().includes(ingredientSearch.toLowerCase());
                 const matchCategory = adminRecCategoryFilter === "Todos" || ing.category === adminRecCategoryFilter;
                 return matchSearch && matchCategory;
-              }).map(ing => {
+              }).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")).map(ing => {
                 const isSelected = recipeIngredients.some(r => r.id === ing.id);
                 return (
                   <div
@@ -1014,8 +1114,8 @@ export default function CatalogPage() {
 
             {/* Selected ingredients with quantities */}
             {recipeIngredients.length > 0 ? (
-              <div className="space-y-2 border rounded-md p-3 bg-card">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Ingredientes selecionados — qtd/dia</p>
+              <div className="border rounded-md p-3 bg-card space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide pb-1.5 border-b">Ingredientes selecionados — qtd/dia</p>
                 {(() => {
                   const ingCostMap = new Map(
                     costBreakdown.filter(i => !i.is_supplement).map(i => [i.name, i])
@@ -1024,7 +1124,7 @@ export default function CatalogPage() {
                     const ing = ingredients?.find(i => i.id === item.id);
                     const breakdown = ing ? ingCostMap.get(ing.name) : null;
                     return (
-                      <div key={idx} className="flex items-center gap-2">
+                      <div key={idx} className="flex items-center gap-3 px-2.5 py-2 bg-muted/30 rounded-lg border border-border/50 hover:border-primary/30 transition-colors">
                         <Check className="w-3.5 h-3.5 text-primary shrink-0" />
                         <span className="flex-1 text-sm font-medium truncate min-w-0">{ing?.name || "?"}</span>
                         {breakdown && (
@@ -1032,24 +1132,40 @@ export default function CatalogPage() {
                             R$ {Number(breakdown.total_cost).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         )}
-                        <Input
-                          type="number"
-                          step="0.001"
-                          placeholder="Qtd/dia"
-                          className="w-24 h-8 px-2 text-sm shrink-0"
-                          value={item.quantity}
-                          onChange={e => {
-                            const newArr = [...recipeIngredients];
-                            newArr[idx].quantity = e.target.value;
-                            setRecipeIngredients(newArr);
-                          }}
-                        />
-                        <span className="text-xs text-muted-foreground w-8 text-center shrink-0">{item.unit}</span>
+                        <div className="flex items-center rounded-md border overflow-hidden shrink-0 bg-background">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="0"
+                            className="w-24 px-2 py-1.5 text-sm text-right border-0 focus:outline-none focus:ring-0 bg-background"
+                            value={editingIngIdx === idx
+                              ? (() => {
+                                  const raw = item.quantity;
+                                  if (raw.endsWith(".") || raw.endsWith(",")) return raw;
+                                  const n = parseFloat(raw.replace(",", "."));
+                                  return isNaN(n) || n === 0 ? "" : String(n);
+                                })()
+                              : (() => {
+                                  const n = parseFloat(item.quantity);
+                                  return isNaN(n) || n === 0 ? (item.quantity || "") : n.toLocaleString("pt-BR", { maximumFractionDigits: 3, useGrouping: false });
+                                })()
+                            }
+                            onFocus={() => setEditingIngIdx(idx)}
+                            onBlur={() => setEditingIngIdx(null)}
+                            onChange={e => {
+                              const v = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".").replace(/^(\d*\.?\d*).*/, "$1");
+                              const newArr = [...recipeIngredients];
+                              newArr[idx].quantity = v;
+                              setRecipeIngredients(newArr);
+                            }}
+                          />
+                          <span className="px-2 py-1.5 bg-muted text-xs font-medium text-muted-foreground border-l shrink-0">{item.unit}</span>
+                        </div>
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-destructive hover:bg-destructive/10 shrink-0"
+                          className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
                           onClick={() => setRecipeIngredients(recipeIngredients.filter((_, i) => i !== idx))}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -1062,6 +1178,35 @@ export default function CatalogPage() {
             ) : (
               <p className="text-sm text-muted-foreground text-center py-6 border rounded-md border-dashed">{t("no_ingredients")}</p>
             )}
+            {recFormErrors.ingredients && (
+              <p className="text-xs text-destructive flex items-center gap-1.5 mt-1">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {recFormErrors.ingredients}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>{t("duration")} ({t("days")})</Label>
+              <Input
+                type="number"
+                value={recForm.duration_days}
+                onChange={e => { setRecForm({...recForm, duration_days: e.target.value}); setRecFormErrors(p => ({...p, duration_days: ""})); }}
+                className={recFormErrors.duration_days ? "border-destructive" : ""}
+              />
+              {recFormErrors.duration_days && <p className="text-xs text-destructive">{recFormErrors.duration_days}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t("daily_portions")}</Label>
+              <Input
+                type="number"
+                value={recForm.daily_portions}
+                onChange={e => { setRecForm({...recForm, daily_portions: e.target.value}); setRecFormErrors(p => ({...p, daily_portions: ""})); }}
+                className={recFormErrors.daily_portions ? "border-destructive" : ""}
+              />
+              {recFormErrors.daily_portions && <p className="text-xs text-destructive">{recFormErrors.daily_portions}</p>}
+            </div>
           </div>
 
           {/* Admin cost breakdown — full detail with accordions */}

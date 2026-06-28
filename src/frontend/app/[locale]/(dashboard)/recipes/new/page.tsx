@@ -53,6 +53,7 @@ export default function NewRecipePage() {
   const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
   const [searchIngredient, setSearchIngredient] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todos");
+  const [focusedIngIdx, setFocusedIngIdx] = useState<number | null>(null);
   const [recipeDetailOpen, setRecipeDetailOpen] = useState(false);
   const [costDetailOpen, setCostDetailOpen] = useState(false);
 
@@ -307,10 +308,11 @@ export default function NewRecipePage() {
                 <div>
                   <label className="block text-sm font-medium mb-1">{t("description")}</label>
                   <textarea
-                    {...register("description")}
+                    {...register("description", { required: true })}
                     rows={2}
-                    className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+                    className={`w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50 ${errors.description ? "border-destructive" : ""}`}
                   />
+                  {errors.description && <span className="text-xs text-destructive">{t("required")}</span>}
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -360,7 +362,7 @@ export default function NewRecipePage() {
                     const matchSearch = ing.name.toLowerCase().includes(searchIngredient.toLowerCase());
                     const matchCategory = categoryFilter === "Todos" || ing.category === categoryFilter;
                     return matchSearch && matchCategory;
-                  }).map(ing => {
+                  }).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")).map(ing => {
                     const isSelected = watchedValues.ingredients.some(f => f.id === ing.id);
                     return (
                       <div
@@ -414,40 +416,41 @@ export default function NewRecipePage() {
                   {fields.map((field, index) => {
                     const ingId = watchedValues.ingredients[index]?.id;
                     const ingName = ingredients?.find(i => i.id === ingId)?.name || "";
+                    const ingUnit = watchedValues.ingredients[index]?.unit || "";
                     return (
-                      <div key={field.id} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-3 border rounded-lg bg-background">
-                        <div className="flex-1 flex items-center gap-2 w-full">
-                          <Check className="w-4 h-4 text-primary shrink-0" />
-                          <span className="font-medium text-sm truncate">{ingName}</span>
+                      <div key={field.id} className="flex items-center gap-3 px-3 py-2.5 border rounded-lg bg-background hover:border-primary/40 transition-colors">
+                        <Check className="w-4 h-4 text-primary shrink-0" />
+                        <span className="flex-1 text-sm font-medium truncate min-w-0">{ingName}</span>
+                        <div className="flex items-center rounded-md border overflow-hidden shrink-0 bg-background">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="0"
+                            value={focusedIngIdx === index
+                              ? (watchedValues.ingredients[index]?.quantity || 0) === 0 ? "" : String(watchedValues.ingredients[index]?.quantity ?? "")
+                              : (() => {
+                                  const n = Number(watchedValues.ingredients[index]?.quantity);
+                                  return isNaN(n) || n === 0 ? "" : n.toLocaleString("pt-BR", { maximumFractionDigits: 3, useGrouping: false });
+                                })()
+                            }
+                            onFocus={() => setFocusedIngIdx(index)}
+                            onBlur={() => setFocusedIngIdx(null)}
+                            onChange={e => {
+                              const v = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".").replace(/^(\d*\.?\d*).*/, "$1");
+                              setValue(`ingredients.${index}.quantity`, parseFloat(v) || 0);
+                            }}
+                            className="w-24 px-2 py-1.5 text-sm text-right border-0 focus:outline-none focus:ring-0 bg-background"
+                          />
+                          <span className="px-2 py-1.5 bg-muted text-xs font-medium text-muted-foreground border-l shrink-0">{ingUnit}</span>
                         </div>
-                        <div className="flex gap-2 w-full sm:w-auto">
-                          <div className="flex-1 sm:w-32">
-                            <label className="text-xs text-muted-foreground mb-1 block sm:hidden">Quantidade</label>
-                            <input
-                              type="number"
-                              step="0.001"
-                              placeholder="Qtd/dia"
-                              {...register(`ingredients.${index}.quantity` as const, { valueAsNumber: true })}
-                              className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
-                            />
-                          </div>
-                          <div className="w-20 shrink-0">
-                            <label className="text-xs text-muted-foreground mb-1 block sm:hidden">Unidade</label>
-                            <input
-                              type="text"
-                              readOnly
-                              {...register(`ingredients.${index}.unit` as const)}
-                              className="w-full px-3 py-2 bg-muted border rounded-md text-sm text-center text-muted-foreground cursor-not-allowed"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => remove(index)}
-                            className="p-2 sm:mt-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors h-[38px] flex items-center justify-center self-end sm:self-auto"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <input type="hidden" {...register(`ingredients.${index}.unit` as const)} />
+                        <button
+                          type="button"
+                          onClick={() => remove(index)}
+                          className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     );
                   })}
