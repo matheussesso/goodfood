@@ -636,7 +636,7 @@ export default function CustomerDetailPage() {
                           </div>
                           <div>
                             <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">Custo Est.</span>
-                            <span className="font-semibold text-amber-600 dark:text-amber-400">R$ {Number((recipe as any).base_cost ?? 0).toFixed(2)}</span>
+                            <span className="font-semibold text-amber-600 dark:text-amber-400">R$ {Number((recipe as any).base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
                         </div>
                         {recipe.pets && (recipe.pets as any[]).length > 0 && (
@@ -685,7 +685,7 @@ export default function CustomerDetailPage() {
                           </td>
                           <td className="px-6 py-4 text-center capitalize">{recipe.pet_type === 'cat' ? 'Gato' : recipe.pet_type === 'dog' ? 'Cachorro' : 'Geral'}</td>
                           <td className="px-6 py-4 text-center">{recipe.duration_days} dias</td>
-                          <td className="px-6 py-4 text-right font-medium text-amber-600 dark:text-amber-400">R$ {Number((recipe as any).ingredient_cost ?? 0).toFixed(2)}</td>
+                          <td className="px-6 py-4 text-right font-medium text-amber-600 dark:text-amber-400">R$ {Number((recipe as any).ingredient_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex gap-1.5 justify-end">
                               <Link href={`/recipes/${recipe.id}`}>
@@ -764,7 +764,7 @@ export default function CustomerDetailPage() {
                         </div>
                       </div>
                       <div className="text-xl font-bold text-primary pl-13 sm:pl-0">
-                        R$ {Number(order.total_price).toFixed(2)}
+                        R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                     </div>
                   );
@@ -933,7 +933,7 @@ export default function CustomerDetailPage() {
                         <span className="flex-1 text-sm font-medium truncate min-w-0">{ing?.name || "?"}</span>
                         {breakdown && (
                           <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                            R$ {Number(breakdown.total_cost).toFixed(2)}
+                            R$ {Number(breakdown.total_cost).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         )}
                         <Input
@@ -976,13 +976,13 @@ export default function CustomerDetailPage() {
                 {isCalculatingCost && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               </span>
               <div className="text-right">
-                <div className="text-2xl font-bold text-primary">R$ {estimatedCost.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-primary">R$ {estimatedCost.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                 {recCostPerKg > 0 && (
-                  <div className="text-xs text-muted-foreground">R$ {recCostPerKg.toFixed(2)}/kg</div>
+                  <div className="text-xs text-muted-foreground">R$ {recCostPerKg.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/kg</div>
                 )}
                 {costBreakdown.filter(i => !i.is_supplement).length > 0 && (
                   <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-primary/20">
-                    Custo base: R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toFixed(2)}
+                    Custo base: R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 )}
               </div>
@@ -1052,7 +1052,7 @@ export default function CustomerDetailPage() {
                     {costBreakdown.filter(i => !i.is_supplement).length > 0 && (
                       <li className="flex justify-between pb-1.5 mb-0.5 border-b-2 border-primary/30 font-semibold text-foreground text-xs">
                         <span>{tRec("base_cost")} ({tRec("ingredients").toLowerCase()})</span>
-                        <span>R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toFixed(2)}</span>
+                        <span>R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </li>
                     )}
                     {[...costBreakdown.filter(i => i.is_supplement)]
@@ -1077,7 +1077,7 @@ export default function CustomerDetailPage() {
                             )}
                           >
                             <span>{translateBreakdownName(item.name)}</span>
-                            <span>R$ {Number(item.total_cost).toFixed(2)}</span>
+                            <span>R$ {Number(item.total_cost).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </li>
                         );
                       })}

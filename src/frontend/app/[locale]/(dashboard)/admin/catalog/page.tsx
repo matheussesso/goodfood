@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/useAuth";
 import { useIngredients, Ingredient } from "@/hooks/useIngredients";
@@ -10,11 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
-import { Plus, Edit2, Trash2, Loader2, BookOpen, Apple, Settings2, Save, AlertCircle, Search, Filter, LayoutGrid, List, CheckCircle2, Check, Info, ChevronDown, ChevronUp, DollarSign, FileText } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, BookOpen, Apple, Settings2, Save, AlertCircle, Search, Filter, LayoutGrid, List, CheckCircle2, Check, Info, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, DollarSign, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings, GeneralSettings } from "@/hooks/useSettings";
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
 
 export default function CatalogPage() {
   const tNav = useTranslations("Navigation");
@@ -168,6 +167,42 @@ export default function CatalogPage() {
   const [ingredientSearch, setIngredientSearch] = useState("");
   const [adminIngSearch, setAdminIngSearch] = useState("");
   const [adminIngCategory, setAdminIngCategory] = useState("all");
+  const [adminIngSort, setAdminIngSort] = useState<"name" | "category" | "price">("name");
+  const [adminIngPage, setAdminIngPage] = useState(1);
+  const [ingFormErrors, setIngFormErrors] = useState<Record<string, string>>({});
+  const [ingFeedback, setIngFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const INGREDIENTS_PER_PAGE = 12;
+
+  const filteredSortedIng = useMemo(() => {
+    if (!ingredients) return [];
+    let result = ingredients.filter(ing => {
+      if (adminIngCategory !== "all" && ing.category !== adminIngCategory) return false;
+      if (adminIngSearch && !ing.name.toLowerCase().includes(adminIngSearch.toLowerCase())) return false;
+      return true;
+    });
+    if (adminIngSort === "name") {
+      result = result.slice().sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+    } else if (adminIngSort === "category") {
+      result = result.slice().sort((a, b) =>
+        (a.category ?? "").localeCompare(b.category ?? "", "pt-BR") || a.name.localeCompare(b.name, "pt-BR")
+      );
+    } else {
+      result = result.slice().sort((a, b) => Number(a.cost_per_unit) - Number(b.cost_per_unit));
+    }
+    return result;
+  }, [ingredients, adminIngSearch, adminIngCategory, adminIngSort]);
+
+  const totalIngPages = Math.max(1, Math.ceil(filteredSortedIng.length / INGREDIENTS_PER_PAGE));
+
+  const paginatedIng = useMemo(() => {
+    const start = (adminIngPage - 1) * INGREDIENTS_PER_PAGE;
+    return filteredSortedIng.slice(start, start + INGREDIENTS_PER_PAGE);
+  }, [filteredSortedIng, adminIngPage, INGREDIENTS_PER_PAGE]);
+
+  useEffect(() => {
+    setAdminIngPage(1);
+  }, [adminIngSearch, adminIngCategory, adminIngSort, viewMode]);
 
   const [adminRecCategoryFilter, setAdminRecCategoryFilter] = useState("Todos");
   const [adminRecSearch, setAdminRecSearch] = useState("");
@@ -245,16 +280,40 @@ export default function CatalogPage() {
 
   const handleIngSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = {
-      name: ingForm.name, category: ingForm.category, description: ingForm.description, unit: ingForm.unit,
-      cost_per_unit: parseFloat(ingForm.cost_per_unit), loss_rate: parseFloat(ingForm.loss_rate),
-      difficulty_multiplier: parseFloat(ingForm.difficulty_multiplier), is_active: ingForm.is_active
-    };
 
-    if (editingIng) await updateIngredient({ id: editingIng.id, ...data });
-    else await createIngredient(data);
-    
-    setIsIngModalOpen(false);
+    const errors: Record<string, string> = {};
+    if (!ingForm.name.trim()) errors.name = t("validation_required");
+    const cost = parseFloat(ingForm.cost_per_unit);
+    if (!ingForm.cost_per_unit || isNaN(cost) || cost < 0) errors.cost_per_unit = t("validation_positive_number");
+    const loss = parseFloat(ingForm.loss_rate);
+    if (isNaN(loss) || loss < 0) errors.loss_rate = t("validation_non_negative");
+    const diff = parseFloat(ingForm.difficulty_multiplier);
+    if (isNaN(diff) || diff <= 0) errors.difficulty_multiplier = t("validation_positive_number");
+
+    if (Object.keys(errors).length > 0) {
+      setIngFormErrors(errors);
+      return;
+    }
+    setIngFormErrors({});
+
+    try {
+      const data = {
+        name: ingForm.name.trim(), category: ingForm.category, description: ingForm.description,
+        unit: ingForm.unit, cost_per_unit: cost, loss_rate: loss,
+        difficulty_multiplier: diff, is_active: ingForm.is_active,
+      };
+      if (editingIng) await updateIngredient({ id: editingIng.id, ...data });
+      else await createIngredient(data);
+
+      setIsIngModalOpen(false);
+      setActiveTab("ingredients");
+      const msg = editingIng ? t("ingredient_updated_success") : t("ingredient_created_success");
+      setIngFeedback({ type: "success", message: msg });
+      setTimeout(() => setIngFeedback(null), 4000);
+    } catch {
+      setIngFeedback({ type: "error", message: tCommon("error") });
+      setTimeout(() => setIngFeedback(null), 4000);
+    }
   };
 
   const handleDeleteIng = async (id: number) => {
@@ -392,6 +451,25 @@ export default function CatalogPage() {
 
       {activeTab === "ingredients" && (
         <div className="space-y-4">
+          {/* Success / error feedback banner */}
+          {ingFeedback && (
+            <div className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium",
+              ingFeedback.type === "success"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400"
+                : "bg-red-50 border-red-200 text-red-700 dark:bg-red-950/30 dark:border-red-800 dark:text-red-400"
+            )}>
+              {ingFeedback.type === "success"
+                ? <CheckCircle2 className="w-4 h-4 shrink-0" />
+                : <AlertCircle className="w-4 h-4 shrink-0" />
+              }
+              <span className="flex-1">{ingFeedback.message}</span>
+              <button onClick={() => setIngFeedback(null)} className="p-0.5 hover:opacity-70 transition-opacity">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Filter bar */}
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center bg-card p-4 rounded-xl border shadow-sm">
             <div className="relative flex-1 w-full min-w-[200px]">
@@ -417,6 +495,15 @@ export default function CatalogPage() {
                 <option value="Suplemento">{t("supplement")}</option>
                 <option value="Outro">{t("other")}</option>
               </select>
+              <select
+                className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm min-w-[150px]"
+                value={adminIngSort}
+                onChange={e => setAdminIngSort(e.target.value as "name" | "category" | "price")}
+              >
+                <option value="name">{t("sort_name")}</option>
+                <option value="category">{t("sort_category")}</option>
+                <option value="price">{t("sort_price")}</option>
+              </select>
               <div className="hidden md:flex border rounded-md">
                 <Button variant={viewMode === "grid" ? "secondary" : "ghost"} size="icon" className="h-10 w-10 rounded-r-none" onClick={() => setViewMode("grid")}><LayoutGrid className="h-4 w-4" /></Button>
                 <Button variant={viewMode === "list" ? "secondary" : "ghost"} size="icon" className="h-10 w-10 rounded-l-none" onClick={() => setViewMode("list")}><List className="h-4 w-4" /></Button>
@@ -429,11 +516,7 @@ export default function CatalogPage() {
             <div className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-              {ingredients?.filter(ing => {
-                if (adminIngCategory !== "all" && ing.category !== adminIngCategory) return false;
-                if (adminIngSearch && !ing.name.toLowerCase().includes(adminIngSearch.toLowerCase())) return false;
-                return true;
-              }).map(ing => (
+              {paginatedIng.map(ing => (
                 <Card key={ing.id} className="group hover:shadow-md hover:border-primary/30 transition-all overflow-hidden">
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2 mb-3">
@@ -457,7 +540,7 @@ export default function CatalogPage() {
                     <div className="grid grid-cols-3 divide-x divide-border/50 bg-muted/30 rounded-lg">
                       <div className="px-2 py-2 text-center">
                         <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("cost")}</span>
-                        <span className="font-semibold text-xs text-primary">R$ {Number(ing.cost_per_unit).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+                        <span className="font-semibold text-xs text-primary">R$ {Number(ing.cost_per_unit).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         <span className="block text-[9px] text-muted-foreground">/{ing.unit === 'g' || ing.unit === 'kg' ? 'kg' : ing.unit === 'l' || ing.unit === 'ml' ? 'L' : 'un'}</span>
                       </div>
                       <div className="px-2 py-2 text-center">
@@ -472,11 +555,7 @@ export default function CatalogPage() {
                   </div>
                 </Card>
               ))}
-              {ingredients?.filter(ing => {
-                if (adminIngCategory !== "all" && ing.category !== adminIngCategory) return false;
-                if (adminIngSearch && !ing.name.toLowerCase().includes(adminIngSearch.toLowerCase())) return false;
-                return true;
-              }).length === 0 && (
+              {filteredSortedIng.length === 0 && (
                 <div className="col-span-4 p-12 text-center text-muted-foreground border rounded-lg border-dashed">
                   <Apple className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
                   <p>{t("no_ingredients")}</p>
@@ -497,18 +576,14 @@ export default function CatalogPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
-                  {ingredients?.filter(ing => {
-                    if (adminIngCategory !== "all" && ing.category !== adminIngCategory) return false;
-                    if (adminIngSearch && !ing.name.toLowerCase().includes(adminIngSearch.toLowerCase())) return false;
-                    return true;
-                  }).map(ing => (
+                  {paginatedIng.map(ing => (
                     <tr key={ing.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-6 py-3">
                         <div className="font-semibold">{ing.name}</div>
                         <div className="text-xs text-muted-foreground mt-0.5">{ing.category || 'Sem Categoria'}</div>
                       </td>
                       <td className="px-6 py-3 text-center uppercase text-xs font-medium">{ing.unit}</td>
-                      <td className="px-6 py-3 text-right font-semibold text-primary">R$ {Number(ing.cost_per_unit).toFixed(2)}</td>
+                      <td className="px-6 py-3 text-right font-semibold text-primary">R$ {Number(ing.cost_per_unit).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="px-6 py-3 text-center">{ing.loss_rate}x</td>
                       <td className="px-6 py-3 text-center">x{ing.difficulty_multiplier}</td>
                       <td className="px-6 py-3 text-right">
@@ -521,6 +596,57 @@ export default function CatalogPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalIngPages > 1 && (
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-xs text-muted-foreground">
+                {t("page_info", { current: adminIngPage, total: totalIngPages })}
+                {" · "}
+                {filteredSortedIng.length} {filteredSortedIng.length === 1 ? t("ingredient") : t("ingredients")}
+              </p>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setAdminIngPage(p => p - 1)}
+                  disabled={adminIngPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {Array.from({ length: Math.min(5, totalIngPages) }, (_, i) => {
+                  const page = totalIngPages <= 5
+                    ? i + 1
+                    : adminIngPage <= 3
+                      ? i + 1
+                      : adminIngPage >= totalIngPages - 2
+                        ? totalIngPages - 4 + i
+                        : adminIngPage - 2 + i;
+                  return (
+                    <Button
+                      key={page}
+                      variant={page === adminIngPage ? "default" : "outline"}
+                      size="icon"
+                      className="h-8 w-8 text-xs"
+                      onClick={() => setAdminIngPage(page)}
+                    >
+                      {page}
+                    </Button>
+                  );
+                })}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setAdminIngPage(p => p + 1)}
+                  disabled={adminIngPage === totalIngPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -594,7 +720,7 @@ export default function CatalogPage() {
                       </div>
                       <div>
                         <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{t("base_cost")}</span>
-                        <span className="font-semibold text-xs text-amber-600 dark:text-amber-400">R$ {Number(rec.ingredient_cost ?? 0).toFixed(2)}</span>
+                        <span className="font-semibold text-xs text-amber-600 dark:text-amber-400">R$ {Number(rec.ingredient_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                     {rec.ingredients && rec.ingredients.length > 0 && (
@@ -653,7 +779,7 @@ export default function CatalogPage() {
                       <td className="px-6 py-4 text-center">{rec.duration_days} dias</td>
                       <td className="px-6 py-4 text-center">{rec.daily_portions}</td>
                       <td className="px-6 py-4 text-center">{rec.ingredients?.length ?? 0}</td>
-                      <td className="px-6 py-4 text-right font-semibold text-amber-600 dark:text-amber-400">R$ {Number(rec.ingredient_cost ?? 0).toFixed(2)}</td>
+                      <td className="px-6 py-4 text-right font-semibold text-amber-600 dark:text-amber-400">R$ {Number(rec.ingredient_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex gap-1 justify-end">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenRecModal(rec, "template")}><Edit2 className="h-4 w-4" /></Button>
@@ -671,52 +797,82 @@ export default function CatalogPage() {
 
       {/* Ingredient Modal */}
       <Modal isOpen={isIngModalOpen} onClose={() => setIsIngModalOpen(false)} title={editingIng ? t("edit_ingredient") : t("new_ingredient")}>
-        <form onSubmit={handleIngSubmit} className="space-y-4">
+        <form onSubmit={handleIngSubmit} className="space-y-4" noValidate>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>{t("name")}</Label><Input required value={ingForm.name} onChange={e => setIngForm({...ingForm, name: e.target.value})} /></div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
+              <Label>{t("name")}</Label>
+              <Input
+                value={ingForm.name}
+                onChange={e => { setIngForm({...ingForm, name: e.target.value}); setIngFormErrors(p => ({...p, name: ""})); }}
+                className={ingFormErrors.name ? "border-destructive" : ""}
+              />
+              {ingFormErrors.name && <p className="text-xs text-destructive">{ingFormErrors.name}</p>}
+            </div>
+            <div className="space-y-1.5">
               <Label>{t("category")}</Label>
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={ingForm.category} onChange={e => setIngForm({...ingForm, category: e.target.value})}>
                 <option value="Proteína">{t("protein")}</option>
                 <option value="Carboidrato">{t("carb")}</option>
                 <option value="Vegetal">{t("vegetable")}</option>
+                <option value="Gordura">{t("fat")}</option>
                 <option value="Suplemento">{t("supplement")}</option>
                 <option value="Outro">{t("other")}</option>
               </select>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Unidade de Compra</Label>
+            <div className="space-y-1.5">
+              <Label>{t("unit")}</Label>
               <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={ingForm.unit} onChange={e => setIngForm({...ingForm, unit: e.target.value})}>
-                <option value="kg">Quilograma (kg)</option>
-                <option value="g">Grama (g)</option>
-                <option value="l">Litro (L)</option>
-                <option value="ml">Mililitro (ml)</option>
-                <option value="unit">Unidade (un)</option>
+                <option value="kg">{t("unit_kg")}</option>
+                <option value="g">{t("unit_g")}</option>
+                <option value="l">{t("unit_l")}</option>
+                <option value="ml">{t("unit_ml")}</option>
+                <option value="unit">{t("unit_un")}</option>
               </select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>{t("base_price_label")}</Label>
-              <Input type="number" step="0.01" required value={ingForm.cost_per_unit} onChange={e => setIngForm({...ingForm, cost_per_unit: e.target.value})} />
+              <Input
+                type="number" step="0.01" min="0"
+                value={ingForm.cost_per_unit}
+                onChange={e => { setIngForm({...ingForm, cost_per_unit: e.target.value}); setIngFormErrors(p => ({...p, cost_per_unit: ""})); }}
+                className={ingFormErrors.cost_per_unit ? "border-destructive" : ""}
+              />
+              {ingFormErrors.cost_per_unit && <p className="text-xs text-destructive">{ingFormErrors.cost_per_unit}</p>}
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Taxa de Perda (%)</Label>
-              <Input type="number" step="0.01" required value={ingForm.loss_rate} onChange={e => setIngForm({...ingForm, loss_rate: e.target.value})} />
+            <div className="space-y-1.5">
+              <Label>{t("loss_rate_label")}</Label>
+              <Input
+                type="number" step="0.01" min="0"
+                value={ingForm.loss_rate}
+                onChange={e => { setIngForm({...ingForm, loss_rate: e.target.value}); setIngFormErrors(p => ({...p, loss_rate: ""})); }}
+                className={ingFormErrors.loss_rate ? "border-destructive" : ""}
+              />
+              {ingFormErrors.loss_rate && <p className="text-xs text-destructive">{ingFormErrors.loss_rate}</p>}
             </div>
-            <div className="space-y-2">
-              <Label>Multiplicador de Dificuldade</Label>
-              <Input type="number" step="0.01" required value={ingForm.difficulty_multiplier} onChange={e => setIngForm({...ingForm, difficulty_multiplier: e.target.value})} />
+            <div className="space-y-1.5">
+              <Label>{t("difficulty_multiplier_label")}</Label>
+              <Input
+                type="number" step="0.01" min="0.01"
+                value={ingForm.difficulty_multiplier}
+                onChange={e => { setIngForm({...ingForm, difficulty_multiplier: e.target.value}); setIngFormErrors(p => ({...p, difficulty_multiplier: ""})); }}
+                className={ingFormErrors.difficulty_multiplier ? "border-destructive" : ""}
+              />
+              {ingFormErrors.difficulty_multiplier && <p className="text-xs text-destructive">{ingFormErrors.difficulty_multiplier}</p>}
             </div>
           </div>
-          
+
           <div className="pt-4 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsIngModalOpen(false)}>{tCommon("cancel")}</Button>
-            <Button type="submit" disabled={isCreatingIng || isUpdatingIng}>{tCommon("save")}</Button>
+            <Button type="button" variant="outline" onClick={() => { setIsIngModalOpen(false); setIngFormErrors({}); }}>{tCommon("cancel")}</Button>
+            <Button type="submit" disabled={isCreatingIng || isUpdatingIng}>
+              {(isCreatingIng || isUpdatingIng) && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+              {tCommon("save")}
+            </Button>
           </div>
         </form>
       </Modal>
@@ -840,7 +996,7 @@ export default function CatalogPage() {
                         <span className="flex-1 text-sm font-medium truncate min-w-0">{ing?.name || "?"}</span>
                         {breakdown && (
                           <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                            R$ {Number(breakdown.total_cost).toFixed(2)}
+                            R$ {Number(breakdown.total_cost).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         )}
                         <Input
@@ -883,13 +1039,13 @@ export default function CatalogPage() {
                 {isCalculatingCost && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               </span>
               <div className="text-right">
-                <div className="text-2xl font-bold text-primary">R$ {estimatedCost.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-primary">R$ {estimatedCost.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                 {recCostPerKg > 0 && (
-                  <div className="text-xs text-muted-foreground">R$ {recCostPerKg.toFixed(2)}/kg</div>
+                  <div className="text-xs text-muted-foreground">R$ {recCostPerKg.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/kg</div>
                 )}
                 {costBreakdown.filter(i => !i.is_supplement).length > 0 && (
                   <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-primary/20">
-                    Custo base: R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toFixed(2)}
+                    Custo base: R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 )}
               </div>
@@ -959,7 +1115,7 @@ export default function CatalogPage() {
                     {costBreakdown.filter(i => !i.is_supplement).length > 0 && (
                       <li className="flex justify-between pb-1.5 mb-0.5 border-b-2 border-primary/30 font-semibold text-foreground text-xs">
                         <span>{tRec("base_cost")} ({tRec("ingredients").toLowerCase()})</span>
-                        <span>R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toFixed(2)}</span>
+                        <span>R$ {costBreakdown.filter(i => !i.is_supplement).reduce((s: number, i: any) => s + Number(i.total_cost), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </li>
                     )}
                     {[...costBreakdown.filter(i => i.is_supplement)]
@@ -984,7 +1140,7 @@ export default function CatalogPage() {
                             )}
                           >
                             <span>{translateBreakdownName(item.name)}</span>
-                            <span>R$ {Number(item.total_cost).toFixed(2)}</span>
+                            <span>R$ {Number(item.total_cost).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </li>
                         );
                       })}

@@ -433,12 +433,12 @@ export default function EditRecipePage() {
                         {t("estimated_cost")}
                         {isCalculatingCost && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                       </span>
-                      <span className="text-2xl font-bold text-primary">R$ {estimatedCost.toFixed(2)}</span>
+                      <span className="text-2xl font-bold text-primary">R$ {estimatedCost.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                     {costPerKg > 0 && (
                       <div className="flex justify-between items-center text-xs text-muted-foreground mt-1">
                         <span>{t("duration_days")}: {watchedValues.duration_days} {tCat("days")}</span>
-                        <span>R$ {costPerKg.toFixed(2)}/kg</span>
+                        <span>R$ {costPerKg.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/kg</span>
                       </div>
                     )}
                   </div>

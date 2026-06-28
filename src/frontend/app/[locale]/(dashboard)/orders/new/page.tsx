@@ -373,7 +373,7 @@ export default function NewOrderPage() {
 
                               {/* Price */}
                               <span className={cn("text-sm font-bold shrink-0 mt-0.5", sel ? "text-primary" : "text-amber-600 dark:text-amber-400")}>
-                                R$ {Number(recipe.base_cost ?? 0).toFixed(2)}
+                                R$ {Number(recipe.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>
                             </button>
                           );
@@ -415,7 +415,7 @@ export default function NewOrderPage() {
                         </p>
                       </div>
                       <span className="text-sm font-semibold text-amber-600 dark:text-amber-400 shrink-0">
-                        R$ {Number(recipe?.base_cost ?? 0).toFixed(2)}
+                        R$ {Number(recipe?.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                       <button
                         type="button"
@@ -432,7 +432,7 @@ export default function NewOrderPage() {
 
             <div className="px-5 py-4 border-t bg-muted/10 flex items-center justify-between">
               <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("total")}</span>
-              <span className="text-2xl font-bold text-primary">R$ {total.toFixed(2)}</span>
+              <span className="text-2xl font-bold text-primary">R$ {total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
 

@@ -322,7 +322,7 @@ function OrderDetailPanel({
                     {t("total")}
                   </p>
                   <p className="font-bold text-primary text-sm">
-                    R$ {Number(order.total_price).toFixed(2)}
+                    R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                   <p className="text-muted-foreground">
                     {hasItems
@@ -393,7 +393,7 @@ function OrderDetailPanel({
                               </span>
                             )}
                             <span className="font-semibold text-amber-600 dark:text-amber-400">
-                              R$ {Number(item.unit_price).toFixed(2)}
+                              R$ {Number(item.unit_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </p>
                         </div>
@@ -886,7 +886,7 @@ export default function ProductionPage() {
                         {order.user && (
                           <p className="truncate font-normal opacity-80">{order.user.name}</p>
                         )}
-                        <p className="font-bold">R$ {Number(order.total_price).toFixed(2)}</p>
+                        <p className="font-bold">R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       </button>
                     ))}
 
@@ -998,7 +998,7 @@ export default function ProductionPage() {
                       </div>
                       <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1 shrink-0">
                         <p className="text-lg font-bold text-primary">
-                          R$ {Number(order.total_price).toFixed(2)}
+                          R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                         <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                           <PhaseIcon className="w-3 h-3" />

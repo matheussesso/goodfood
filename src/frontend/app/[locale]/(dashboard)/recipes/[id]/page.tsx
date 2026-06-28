@@ -122,7 +122,7 @@ export default function RecipeDetailPage() {
           { icon: Dog, label: tRec("pet_type"), value: petLabel, color: "text-primary bg-primary/10" },
           { icon: CalendarClock, label: tCat("duration"), value: `${recipe.duration_days ?? "—"} ${tCat("days")}`, color: "text-blue-600 bg-blue-500/10" },
           { icon: Package, label: tRec("portions_per_day_caps"), value: `${recipe.daily_portions ?? "—"}x`, color: "text-violet-600 bg-violet-500/10" },
-          { icon: DollarSign, label: tRec("estimated_cost"), value: `R$ ${Number(recipe.base_cost ?? 0).toFixed(2)}`, color: "text-amber-600 bg-amber-500/10" },
+          { icon: DollarSign, label: tRec("estimated_cost"), value: `R$ ${Number(recipe.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: "text-amber-600 bg-amber-500/10" },
         ].map(({ icon: Icon, label, value, color }) => (
           <div key={label} className="bg-card border rounded-xl p-4 shadow-sm flex items-center gap-3">
             <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", color)}>
@@ -247,7 +247,7 @@ export default function RecipeDetailPage() {
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 text-center">
                 <p className="text-xs text-primary/70 uppercase tracking-wider mb-1">{tRec("total")}</p>
                 <p className="text-4xl font-bold text-primary">
-                  R$ {Number(recipe.base_cost ?? 0).toFixed(2)}
+                  R$ {Number(recipe.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
                   {tRec("cost_estimated_desc")}
@@ -265,7 +265,7 @@ export default function RecipeDetailPage() {
                   <span className="text-muted-foreground">{tRec("cost_per_day")}</span>
                   <span className="font-medium text-foreground">
                     {recipe.duration_days && recipe.base_cost
-                      ? `R$ ${(Number(recipe.base_cost) / recipe.duration_days).toFixed(2)}`
+                      ? `R$ ${(Number(recipe.base_cost) / recipe.duration_days).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                       : "—"}
                   </span>
                 </div>

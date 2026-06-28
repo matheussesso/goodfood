@@ -130,7 +130,7 @@ function RecipeBlock({ item, compact = false }: { item: OrderItem; compact?: boo
           {stats && <div className="mt-0.5">{stats}</div>}
         </div>
         <span className="text-xs font-bold text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
-          R$ {Number(item.unit_price).toFixed(2)}
+          R$ {Number(item.unit_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       </div>
     );
@@ -152,7 +152,7 @@ function RecipeBlock({ item, compact = false }: { item: OrderItem; compact?: boo
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
-            R$ {Number(item.unit_price).toFixed(2)}
+            R$ {Number(item.unit_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
           <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
@@ -217,7 +217,7 @@ function AdminOrderCard({
         )}
 
         <p className="text-xl font-bold text-primary mt-2.5">
-          R$ {Number(order.total_price).toFixed(2)}
+          R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
       </div>
 
@@ -316,7 +316,7 @@ function AdminOrderRow({
         </div>
 
         <div className="flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0">
-          <p className="text-lg font-bold text-primary">R$ {Number(order.total_price).toFixed(2)}</p>
+          <p className="text-lg font-bold text-primary">R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           <div className="flex items-center gap-2">
             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
               <Calendar className="w-3 h-3" />
@@ -554,7 +554,7 @@ export default function AdminOrdersPage() {
           <div className="bg-muted/30 border rounded-xl p-4 space-y-1.5 text-sm">
             <p><span className="text-muted-foreground">{t("client")}:</span> <span className="font-medium">{selectedOrder?.user?.name ?? "—"}</span></p>
             <p><span className="text-muted-foreground">{t("pet")}:</span> <span className="font-medium">{selectedOrder?.items?.map(i => i.pet?.name).filter(Boolean).join(", ") || selectedOrder?.pet?.name || "—"}</span></p>
-            <p><span className="text-muted-foreground">{t("total")}:</span> <span className="font-bold text-primary">R$ {Number(selectedOrder?.total_price ?? 0).toFixed(2)}</span></p>
+            <p><span className="text-muted-foreground">{t("total")}:</span> <span className="font-bold text-primary">R$ {Number(selectedOrder?.total_price ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
             <p className="flex items-center gap-2">
               <span className="text-muted-foreground">{t("current_status")}:</span>
               {selectedOrder && (

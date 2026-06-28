@@ -344,7 +344,7 @@ export default function PetProfilePage() {
                       <div className="flex-1 py-2.5 flex flex-col items-center gap-0.5">
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Custo Est.</span>
                         <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
-                          R$ {Number((recipe as any).base_cost ?? 0).toFixed(2)}
+                          R$ {Number((recipe as any).base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>
@@ -421,7 +421,7 @@ export default function PetProfilePage() {
                         </div>
                       </div>
                       <div className="text-xl font-bold text-primary">
-                        R$ {Number(order.total_price).toFixed(2)}
+                        R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </div>
                     </div>
                   );

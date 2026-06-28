@@ -101,7 +101,7 @@ function RecipeDetailBlock({ item }: { item: OrderItem }) {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-base font-bold text-amber-600 dark:text-amber-400">
-            R$ {Number(item.unit_price).toFixed(2)}
+            R$ {Number(item.unit_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
           <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
@@ -256,7 +256,7 @@ export default function AdminOrderDetailPage() {
           {
             icon: DollarSign,
             label: t("total"),
-            value: `R$ ${Number(order.total_price).toFixed(2)}`,
+            value: `R$ ${Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             color: "text-amber-600 bg-amber-500/10",
           },
           {
@@ -484,7 +484,7 @@ export default function AdminOrderDetailPage() {
               <div className="flex justify-between items-center px-5 py-4">
                 <span className="font-semibold text-foreground">{t("total")}</span>
                 <span className="text-xl font-bold text-primary">
-                  R$ {Number(order.total_price).toFixed(2)}
+                  R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>

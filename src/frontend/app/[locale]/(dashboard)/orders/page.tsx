@@ -125,7 +125,7 @@ function RecipeBlock({ item, compact = false }: { item: OrderItem; compact?: boo
           {stats && <div className="mt-0.5">{stats}</div>}
         </div>
         <span className="text-xs font-bold text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
-          R$ {Number(item.unit_price).toFixed(2)}
+          R$ {Number(item.unit_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       </div>
     );
@@ -148,7 +148,7 @@ function RecipeBlock({ item, compact = false }: { item: OrderItem; compact?: boo
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
-            R$ {Number(item.unit_price).toFixed(2)}
+            R$ {Number(item.unit_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
           <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
@@ -203,7 +203,7 @@ function OrderCard({ order, t }: { order: Order; t: ReturnType<typeof useTransla
         </div>
 
         <p className="text-xl font-bold text-primary mt-3">
-          R$ {Number(order.total_price).toFixed(2)}
+          R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
       </div>
 
@@ -283,7 +283,7 @@ function OrderRow({ order, t }: { order: Order; t: ReturnType<typeof useTranslat
         </div>
 
         <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1.5 shrink-0">
-          <p className="text-lg font-bold text-primary">R$ {Number(order.total_price).toFixed(2)}</p>
+          <p className="text-lg font-bold text-primary">R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           <div className="flex items-center gap-2">
             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
               <Calendar className="w-3 h-3" />

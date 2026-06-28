@@ -505,12 +505,12 @@ export default function NewRecipePage() {
                           {t("estimated_cost")}
                           {isCalculatingCost && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                         </span>
-                        <span className="text-2xl font-bold text-primary">R$ {estimatedCost.toFixed(2)}</span>
+                        <span className="text-2xl font-bold text-primary">R$ {estimatedCost.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                       {costPerKg > 0 && (
                         <div className="flex justify-between items-center text-xs text-muted-foreground mt-1">
                           <span>Baseado em {watchedValues.duration_days} dia(s)</span>
-                          <span>R$ {costPerKg.toFixed(2)}/kg ({totalWeightAcrossDays.toFixed(3)} kg total)</span>
+                          <span>R$ {costPerKg.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/kg ({totalWeightAcrossDays.toFixed(3)} kg total)</span>
                         </div>
                       )}
                     </div>
