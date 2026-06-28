@@ -326,7 +326,18 @@
     "update_status_title": "Atualizar Status — Pedido #{id}",
     "current_status": "Status atual",
     "new_status": "Novo status",
-    "save_status": "Salvar Status"
+    "save_status": "Salvar Status",
+    "error_no_items": "Selecione ao menos uma receita para confirmar o pedido.",
+    "error_address_incomplete": "Preencha todos os campos de endereço obrigatórios ou deixe o endereço em branco.",
+    "error_street_required": "Informe a rua/avenida.",
+    "error_number_required": "Informe o número.",
+    "error_city_required": "Informe a cidade.",
+    "error_state_required": "Informe o estado (UF).",
+    "error_zipcode_required": "Informe o CEP.",
+    "order_date": "Realizado em",
+    "order_items_label": "Receitas do pedido",
+    "per_pet": "para {pet}",
+    "delivery_address_detail": "Endereço de entrega"
   },
   "admin": {
     "dashboard": "Dashboard Admin",

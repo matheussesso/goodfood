@@ -63,6 +63,9 @@ export default function NewOrderPage() {
   const [addrState, setAddrState] = useState("");
   const [addrZipcode, setAddrZipcode] = useState("");
 
+  /** Field-level validation errors. */
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   /** Flat map of recipe objects by id — needed to look up base_cost and name. */
   const allRecipesById = useMemo<Record<number, Recipe>>(() => {
     const map: Record<number, Recipe> = {};
@@ -135,8 +138,29 @@ export default function NewOrderPage() {
     return parts.length > 0 ? parts.join(" — ") : undefined;
   }
 
+  /** Validates the form; returns true if valid. Populates `errors` otherwise. */
+  function validate(): boolean {
+    const newErrors: Record<string, string> = {};
+
+    if (selectedItems.length === 0) {
+      newErrors.items = t("error_no_items");
+    }
+
+    const anyAddressFilled = !!(addrStreet || addrNumber || addrCity || addrState || addrZipcode);
+    if (anyAddressFilled) {
+      if (!addrStreet.trim())   newErrors.addrStreet  = t("error_street_required");
+      if (!addrNumber.trim())   newErrors.addrNumber  = t("error_number_required");
+      if (!addrCity.trim())     newErrors.addrCity    = t("error_city_required");
+      if (!addrState.trim())    newErrors.addrState   = t("error_state_required");
+      if (!addrZipcode.trim())  newErrors.addrZipcode = t("error_zipcode_required");
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }
+
   async function handleSubmit() {
-    if (selectedItems.length === 0) return;
+    if (!validate()) return;
 
     const items: OrderItemPayload[] = selectedItems.map((it) => ({
       recipe_id: it.recipeId,
@@ -369,8 +393,10 @@ export default function NewOrderPage() {
                     id="addr_street"
                     placeholder={t("addr_street_placeholder")}
                     value={addrStreet}
-                    onChange={(e) => setAddrStreet(e.target.value)}
+                    onChange={(e) => { setAddrStreet(e.target.value); setErrors((p) => ({ ...p, addrStreet: "" })); }}
+                    className={errors.addrStreet ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {errors.addrStreet && <p className="text-xs text-destructive">{errors.addrStreet}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="addr_number" className="text-xs text-muted-foreground">
@@ -380,8 +406,10 @@ export default function NewOrderPage() {
                     id="addr_number"
                     placeholder="123"
                     value={addrNumber}
-                    onChange={(e) => setAddrNumber(e.target.value)}
+                    onChange={(e) => { setAddrNumber(e.target.value); setErrors((p) => ({ ...p, addrNumber: "" })); }}
+                    className={errors.addrNumber ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {errors.addrNumber && <p className="text-xs text-destructive">{errors.addrNumber}</p>}
                 </div>
               </div>
 
@@ -406,8 +434,10 @@ export default function NewOrderPage() {
                     id="addr_city"
                     placeholder={t("addr_city_placeholder")}
                     value={addrCity}
-                    onChange={(e) => setAddrCity(e.target.value)}
+                    onChange={(e) => { setAddrCity(e.target.value); setErrors((p) => ({ ...p, addrCity: "" })); }}
+                    className={errors.addrCity ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {errors.addrCity && <p className="text-xs text-destructive">{errors.addrCity}</p>}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="addr_state" className="text-xs text-muted-foreground">
@@ -418,8 +448,10 @@ export default function NewOrderPage() {
                     placeholder="SP"
                     maxLength={2}
                     value={addrState}
-                    onChange={(e) => setAddrState(e.target.value.toUpperCase())}
+                    onChange={(e) => { setAddrState(e.target.value.toUpperCase()); setErrors((p) => ({ ...p, addrState: "" })); }}
+                    className={errors.addrState ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {errors.addrState && <p className="text-xs text-destructive">{errors.addrState}</p>}
                 </div>
               </div>
 
@@ -431,16 +463,23 @@ export default function NewOrderPage() {
                   id="addr_zipcode"
                   placeholder="00000-000"
                   value={addrZipcode}
-                  onChange={(e) => setAddrZipcode(e.target.value)}
+                  onChange={(e) => { setAddrZipcode(e.target.value); setErrors((p) => ({ ...p, addrZipcode: "" })); }}
+                  className={errors.addrZipcode ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                {errors.addrZipcode && <p className="text-xs text-destructive">{errors.addrZipcode}</p>}
               </div>
             </div>
           </div>
 
           {/* Submit */}
+          {errors.items && (
+            <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-2.5">
+              {errors.items}
+            </p>
+          )}
           <Button
             onClick={handleSubmit}
-            disabled={isCreating || selectedItems.length === 0}
+            disabled={isCreating}
             className="w-full gap-2"
             size="lg"
           >

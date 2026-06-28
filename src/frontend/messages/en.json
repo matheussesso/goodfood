@@ -326,7 +326,18 @@
     "update_status_title": "Update Status — Order #{id}",
     "current_status": "Current status",
     "new_status": "New status",
-    "save_status": "Save Status"
+    "save_status": "Save Status",
+    "error_no_items": "Select at least one recipe to confirm the order.",
+    "error_address_incomplete": "Fill in all required address fields or leave the address blank.",
+    "error_street_required": "Enter the street/avenue.",
+    "error_number_required": "Enter the number.",
+    "error_city_required": "Enter the city.",
+    "error_state_required": "Enter the state.",
+    "error_zipcode_required": "Enter the ZIP code.",
+    "order_date": "Placed on",
+    "order_items_label": "Order recipes",
+    "per_pet": "for {pet}",
+    "delivery_address_detail": "Delivery address"
   },
   "admin": {
     "dashboard": "Admin Dashboard",

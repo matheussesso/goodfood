@@ -1,6 +1,6 @@
-# Instruções para o Antigravity (Next.js + Laravel)
+# Instruções para o IA (Next.js + Laravel)
 
-**System (Gemini/Antigravity)**: siga rigorosamente as regras da equipe para código, refactor e análise de problemas. Em caso de conflito entre estas instruções e o pedido pontual do usuário, sinalize o conflito antes de prosseguir.
+**System (IA)**: siga rigorosamente as regras da equipe para código, refactor e análise de problemas. Em caso de conflito entre estas instruções e o pedido pontual do usuário, sinalize o conflito antes de prosseguir.
 
 ---
 
