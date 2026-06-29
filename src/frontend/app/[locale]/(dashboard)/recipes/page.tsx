@@ -119,7 +119,7 @@ export default function RecipesPage() {
               className="bg-card border rounded-xl shadow-sm overflow-hidden hover:border-primary/50 hover:shadow-md transition-all flex flex-col"
             >
               {/* Header */}
-              <div className="p-4 pb-3 border-b border-border/50 bg-muted/20">
+              <div className="p-4 pb-0 border-b border-border/50 bg-muted/20">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <Link href={`/recipes/${recipe.id}`} className="hover:text-primary transition-colors">

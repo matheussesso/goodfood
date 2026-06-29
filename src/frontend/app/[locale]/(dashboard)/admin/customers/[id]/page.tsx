@@ -565,7 +565,7 @@ export default function CustomerDetailPage() {
                   {customer.pets.map((pet) => (
                     <div key={pet.id} className="bg-card border rounded-xl shadow-sm overflow-hidden hover:border-primary/40 hover:shadow-md transition-all group flex flex-col">
                       {/* Pet card header */}
-                      <div className="flex items-center gap-3 p-4 pb-3 border-b border-border/50 bg-muted/20">
+                      <div className="flex items-center gap-3 p-4 pb-0 border-b border-border/50 bg-muted/20">
                         <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
                           <Dog className="w-6 h-6" />
                         </div>
@@ -623,6 +623,23 @@ export default function CustomerDetailPage() {
                           <span className="text-xs text-muted-foreground">{tPets("no_health_alerts")}</span>
                         )}
                       </div>
+
+                      {/* Footer actions */}
+                      <div className="px-4 pb-4 pt-0 mt-auto flex gap-2">
+                        <Link href={`/admin/customers/${customer.id}/pets/${pet.id}`} className="flex-1">
+                          <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
+                            <Eye className="w-3.5 h-3.5" /> Ver perfil
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 text-xs"
+                          onClick={() => handleOpenPetModal(pet)}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -666,9 +683,16 @@ export default function CustomerDetailPage() {
                               </div>
                             </td>
                             <td className="px-5 py-3.5 text-right">
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenPetModal(pet)}>
-                                <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
-                              </Button>
+                              <div className="flex items-center justify-end gap-1">
+                                <Link href={`/admin/customers/${customer.id}/pets/${pet.id}`}>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                                  </Button>
+                                </Link>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenPetModal(pet)}>
+                                  <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -726,7 +750,7 @@ export default function CustomerDetailPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {customer.recipes.map(recipe => (
                     <Card key={recipe.id} className="flex flex-col overflow-hidden hover:border-primary/50 transition-colors">
-                      <div className="p-4 pb-3 border-b border-border/50 bg-muted/20">
+                      <div className="p-4 pb-0 border-b border-border/50 bg-muted/20">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <h4 className="font-semibold text-base line-clamp-1" title={recipe.name}>{recipe.name}</h4>

@@ -33,7 +33,7 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
         className="absolute inset-0 bg-background/80 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className={cn("relative z-50 w-full rounded-xl border bg-card shadow-lg flex flex-col max-h-[90vh]", className || "max-w-lg")}>
+      <div className={cn("relative z-50 w-full rounded-xl border bg-card shadow-lg flex flex-col max-h-[90vh]", className || "max-w-2xl")}>
         <div className="flex items-center justify-between border-b p-4">
           <h3 className="font-semibold text-lg">{title}</h3>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
