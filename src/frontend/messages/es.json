@@ -320,6 +320,7 @@
     "created_at_label": "Creado el",
     "items_count": "receta",
     "items_count_plural": "recetas",
+    "status_pending_payment": "Esperando Pago",
     "status_pending": "Pendiente",
     "status_in_production": "En Producción",
     "status_ready": "Listo",
@@ -379,7 +380,14 @@
     "subscription_badge": "Suscripción",
     "subscription_activated": "¡{count} suscripción(es) activada(s) exitosamente!",
     "view_subscriptions": "Ver Suscripciones",
-    "error_submit": "Error al crear el pedido. Inténtalo de nuevo."
+    "error_submit": "Error al crear el pedido. Inténtalo de nuevo.",
+    "invoice_label": "Factura",
+    "invoice_status_pending": "Pendiente",
+    "invoice_status_paid": "Pagado",
+    "invoice_status_failed": "Fallido",
+    "invoice_status_cancelled": "Cancelada",
+    "invoice_due": "Vence el",
+    "await_payment_hint": "Realiza el pago para iniciar la producción."
   },
   "Subscriptions": {
     "title": "Mis Suscripciones",
@@ -409,7 +417,20 @@
     "subscriptions_found_plural": "suscripciones encontradas",
     "cancel_confirm": "¿Cancelar esta suscripción? Esta acción no se puede deshacer.",
     "status_updated": "Estado de suscripción actualizado.",
-    "error_update": "Error al actualizar la suscripción."
+    "error_update": "Error al actualizar la suscripción.",
+    "total_orders": "Pedidos realizados",
+    "last_order": "Último pedido",
+    "estimated_price": "Valor estimado",
+    "frequency_weekly": "Semanal",
+    "frequency_biweekly": "Quincenal",
+    "frequency_monthly": "Mensual",
+    "frequency_custom": "Cada {days} días",
+    "never": "Nunca",
+    "orders_delivered": "entregado(s)",
+    "since": "desde",
+    "per_cycle": "por ciclo",
+    "order_info": "Próximo pedido",
+    "no_orders_yet": "Aún no se han generado pedidos"
   },
   "admin": {
     "dashboard": "Panel de Administración",

@@ -320,6 +320,7 @@
     "created_at_label": "Criado em",
     "items_count": "receita",
     "items_count_plural": "receitas",
+    "status_pending_payment": "Aguardando Pagamento",
     "status_pending": "Pendente",
     "status_in_production": "Em Produção",
     "status_ready": "Pronto",
@@ -379,7 +380,14 @@
     "subscription_badge": "Assinatura",
     "subscription_activated": "{count} assinatura(s) ativada(s) com sucesso!",
     "view_subscriptions": "Ver Assinaturas",
-    "error_submit": "Erro ao criar o pedido. Tente novamente."
+    "error_submit": "Erro ao criar o pedido. Tente novamente.",
+    "invoice_label": "Fatura",
+    "invoice_status_pending": "Aguardando",
+    "invoice_status_paid": "Pago",
+    "invoice_status_failed": "Falhou",
+    "invoice_status_cancelled": "Cancelada",
+    "invoice_due": "Vence em",
+    "await_payment_hint": "Realize o pagamento para iniciar a produção."
   },
   "Subscriptions": {
     "title": "Minhas Assinaturas",
@@ -409,7 +417,20 @@
     "subscriptions_found_plural": "assinaturas encontradas",
     "cancel_confirm": "Cancelar esta assinatura? Esta ação não pode ser desfeita.",
     "status_updated": "Status da assinatura atualizado.",
-    "error_update": "Erro ao atualizar assinatura."
+    "error_update": "Erro ao atualizar assinatura.",
+    "total_orders": "Pedidos realizados",
+    "last_order": "Último pedido",
+    "estimated_price": "Valor estimado",
+    "frequency_weekly": "Semanal",
+    "frequency_biweekly": "Quinzenal",
+    "frequency_monthly": "Mensal",
+    "frequency_custom": "A cada {days} dias",
+    "never": "Nunca",
+    "orders_delivered": "entregue(s)",
+    "since": "desde",
+    "per_cycle": "por ciclo",
+    "order_info": "Próximo pedido",
+    "no_orders_yet": "Nenhum pedido gerado ainda"
   },
   "admin": {
     "dashboard": "Dashboard",

@@ -4,6 +4,22 @@ import { Pet } from "./usePets";
 import { Recipe } from "./useRecipes";
 import { Subscription } from "./useSubscriptions";
 
+/** Payment invoice attached to an order. */
+export interface Invoice {
+  id: number;
+  order_id: number;
+  user_id: number;
+  amount: number;
+  /** pending | paid | failed | cancelled */
+  status: "pending" | "paid" | "failed" | "cancelled";
+  due_date?: string;
+  paid_at?: string;
+  payment_method?: string;
+  reference?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 /** A single recipe line within an order. */
 export interface OrderItem {
   id: number;
@@ -34,6 +50,7 @@ export interface Order {
   pet?: Pet;
   recipe?: Recipe;
   subscription?: Subscription;
+  invoice?: Invoice;
   items?: OrderItem[];
   user?: { id: number; name: string; email: string };
 }

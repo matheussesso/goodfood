@@ -21,10 +21,28 @@ import {
   FilterX,
   LayoutGrid,
   List as ListIcon,
+  Repeat2,
+  Package,
+  DollarSign,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type SubStatus = "active" | "paused" | "cancelled";
+
+/**
+ * Returns a human-readable frequency label based on recipe duration_days.
+ *
+ * @param durationDays - The recipe's duration in days.
+ * @param t - Subscriptions namespace translator.
+ */
+function frequencyLabel(durationDays: number | undefined, t: ReturnType<typeof useTranslations>): string {
+  if (!durationDays) return t("frequency_monthly");
+  if (durationDays <= 7)  return t("frequency_weekly");
+  if (durationDays <= 14) return t("frequency_biweekly");
+  if (durationDays <= 31) return t("frequency_monthly");
+  return t("frequency_custom", { days: durationDays });
+}
 
 const STATUS_STYLE: Record<SubStatus, { badge: string; dot: string }> = {
   active:    { badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800", dot: "bg-emerald-500" },
@@ -257,7 +275,8 @@ interface SubscriptionCardProps {
 }
 
 /**
- * Card displaying a single subscription with pet, recipe info and action buttons.
+ * Card displaying a single subscription with full details: pet, recipe, frequency,
+ * estimated price, orders count, last order date, next delivery date and action buttons.
  *
  * @param sub - The subscription data.
  * @param t - Subscriptions namespace translator.
@@ -278,19 +297,36 @@ function SubscriptionCard({ sub, t, isUpdating, onStatusChange }: SubscriptionCa
     ? Math.max(0, Math.ceil((new Date(sub.next_delivery_date).getTime() - Date.now()) / 86_400_000))
     : null;
 
+  const startDate = sub.start_date
+    ? new Date(sub.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+    : null;
+
+  const lastOrderDate = sub.orders_max_created_at
+    ? new Date(sub.orders_max_created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+    : null;
+
+  const frequency = frequencyLabel(sub.recipe?.duration_days, t);
+  const estimatedPrice = sub.estimated_price ?? 0;
+
   return (
     <div className={cn(
-      "bg-card border rounded-xl shadow-sm overflow-hidden hover:border-primary/30 transition-colors",
+      "bg-card border rounded-xl shadow-sm overflow-hidden hover:border-primary/30 transition-colors flex flex-col",
       status === "cancelled" && "opacity-60"
     )}>
-      <div className="flex flex-col gap-4 p-4">
-        {/* Pet + status */}
-        <div className="flex items-center justify-between gap-2">
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div className="p-4 border-b">
+        <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
               <PetIcon className="w-5 h-5" />
             </div>
-            <span className="font-semibold text-foreground text-sm line-clamp-1">{sub.pet?.name ?? "—"}</span>
+            <div className="min-w-0">
+              <p className="font-semibold text-foreground text-sm line-clamp-1">{sub.pet?.name ?? "—"}</p>
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                <UtensilsCrossed className="w-3 h-3 shrink-0" />
+                <span className="line-clamp-1">{sub.recipe?.name ?? "—"}</span>
+              </p>
+            </div>
           </div>
           <span className={cn(
             "inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border shrink-0",
@@ -301,85 +337,130 @@ function SubscriptionCard({ sub, t, isUpdating, onStatusChange }: SubscriptionCa
           </span>
         </div>
 
-        {/* Recipe */}
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <UtensilsCrossed className="w-3 h-3 shrink-0" />
-          <span className="line-clamp-1">{sub.recipe?.name ?? "—"}</span>
+        {/* Price + frequency */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <DollarSign className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span className="text-lg font-bold text-amber-600 dark:text-amber-400">
+              R$ {estimatedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className="text-xs text-muted-foreground">{t("per_cycle")}</span>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Repeat2 className="w-3 h-3 shrink-0" />
+            <span className="font-medium">{frequency}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Info grid ──────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-2 p-4 flex-1">
+        {/* Next delivery */}
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+            <Clock className="w-3 h-3" /> {t("next_delivery")}
+          </p>
+          {nextDate && status !== "cancelled" ? (
+            <div>
+              <p className="text-xs font-medium text-foreground">{nextDate}</p>
+              {daysUntilNext !== null && (
+                <p className="text-[10px] text-muted-foreground">{daysUntilNext} {t("days_until_next")}</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">—</p>
+          )}
         </div>
 
-        {/* Next delivery */}
-        {nextDate && status !== "cancelled" && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="w-3 h-3 shrink-0" />
-            <span>
-              {t("next_delivery")}:{" "}
-              <span className="font-medium text-foreground">{nextDate}</span>
-              {daysUntilNext !== null && (
-                <span className="ml-1 text-muted-foreground/70">
-                  ({daysUntilNext} {t("days_until_next")})
-                </span>
-              )}
-            </span>
-          </div>
-        )}
+        {/* Orders count */}
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+            <Package className="w-3 h-3" /> {t("total_orders")}
+          </p>
+          <p className="text-xs font-medium text-foreground">
+            {sub.orders_count ?? 0} {t("orders_delivered")}
+          </p>
+          {lastOrderDate && (
+            <p className="text-[10px] text-muted-foreground">{t("last_order")}: {lastOrderDate}</p>
+          )}
+        </div>
 
-        {/* Actions */}
-        {status !== "cancelled" && (
-          <div className="flex items-center gap-2 pt-1 border-t border-border/50">
-            {isUpdating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-auto" />
-            ) : status === "active" ? (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50 dark:hover:bg-amber-900/20 h-8 px-3"
-                  onClick={() => onStatusChange(sub, "paused")}
-                >
-                  <PauseCircle className="w-3.5 h-3.5" />
-                  {t("pause_subscription")}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1.5 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 px-3"
-                  onClick={() => onStatusChange(sub, "cancelled")}
-                >
-                  <XCircle className="w-3.5 h-3.5" />
-                  {t("cancel_subscription")}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 h-8 px-3"
-                  onClick={() => onStatusChange(sub, "active")}
-                >
-                  <PlayCircle className="w-3.5 h-3.5" />
-                  {t("resume_subscription")}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1.5 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 px-3"
-                  onClick={() => onStatusChange(sub, "cancelled")}
-                >
-                  <XCircle className="w-3.5 h-3.5" />
-                  {t("cancel_subscription")}
-                </Button>
-              </>
-            )}
+        {/* Start date */}
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+            <CalendarDays className="w-3 h-3" /> {t("start_date")}
+          </p>
+          <p className="text-xs font-medium text-foreground">{startDate ?? "—"}</p>
+        </div>
+
+        {/* Recipe duration */}
+        {sub.recipe?.duration_days && (
+          <div className="space-y-0.5">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              <Clock className="w-3 h-3" /> {t("duration_days")}
+            </p>
+            <p className="text-xs font-medium text-foreground">{sub.recipe.duration_days} dias</p>
           </div>
         )}
       </div>
+
+      {/* ── Actions ────────────────────────────────────────── */}
+      {status !== "cancelled" && (
+        <div className="flex items-center gap-2 px-4 pb-4">
+          {isUpdating ? (
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-auto" />
+          ) : status === "active" ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50 dark:hover:bg-amber-900/20 h-8 px-3"
+                onClick={() => onStatusChange(sub, "paused")}
+              >
+                <PauseCircle className="w-3.5 h-3.5" />
+                {t("pause_subscription")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 px-3"
+                onClick={() => onStatusChange(sub, "cancelled")}
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                {t("cancel_subscription")}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 h-8 px-3"
+                onClick={() => onStatusChange(sub, "active")}
+              >
+                <PlayCircle className="w-3.5 h-3.5" />
+                {t("resume_subscription")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 px-3"
+                onClick={() => onStatusChange(sub, "cancelled")}
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                {t("cancel_subscription")}
+              </Button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 /**
  * Compact list row for a single subscription in list view mode.
+ * Shows pet, recipe, price, frequency, next delivery and action icons.
  *
  * @param sub - The subscription data.
  * @param t - Subscriptions namespace translator.
@@ -391,10 +472,16 @@ function SubscriptionRow({ sub, t, isUpdating, onStatusChange }: SubscriptionCar
   const status = sub.status as SubStatus;
   const style = STATUS_STYLE[status] ?? STATUS_STYLE.active;
   const PetIcon = sub.pet?.type === "cat" ? Cat : Dog;
+  const frequency = frequencyLabel(sub.recipe?.duration_days, t);
+  const estimatedPrice = sub.estimated_price ?? 0;
 
   const nextDate = sub.next_delivery_date
     ? new Date(sub.next_delivery_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
     : "—";
+
+  const lastOrderDate = sub.orders_max_created_at
+    ? new Date(sub.orders_max_created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+    : null;
 
   return (
     <div className={cn(
@@ -406,7 +493,7 @@ function SubscriptionRow({ sub, t, isUpdating, onStatusChange }: SubscriptionCar
         <PetIcon className="w-4 h-4" />
       </div>
 
-      {/* Pet + recipe */}
+      {/* Pet + recipe + meta */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-foreground line-clamp-1">{sub.pet?.name ?? "—"}</span>
@@ -418,15 +505,25 @@ function SubscriptionRow({ sub, t, isUpdating, onStatusChange }: SubscriptionCar
             {t(`status_${status}` as `status_${SubStatus}`)}
           </span>
         </div>
-        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
           <span className="flex items-center gap-1 min-w-0">
             <UtensilsCrossed className="w-3 h-3 shrink-0" />
             <span className="line-clamp-1">{sub.recipe?.name ?? "—"}</span>
           </span>
+          <span className="flex items-center gap-1 shrink-0 text-amber-600 dark:text-amber-400 font-semibold">
+            R$ {estimatedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+          <span className="flex items-center gap-1 shrink-0">
+            <Repeat2 className="w-3 h-3" />{frequency}
+          </span>
           {status !== "cancelled" && (
             <span className="flex items-center gap-1 shrink-0">
-              <Clock className="w-3 h-3" />
-              {nextDate}
+              <Clock className="w-3 h-3" />{nextDate}
+            </span>
+          )}
+          {lastOrderDate && (
+            <span className="flex items-center gap-1 shrink-0 text-muted-foreground/70">
+              <Package className="w-3 h-3" />{sub.orders_count ?? 0} • {t("last_order")}: {lastOrderDate}
             </span>
           )}
         </div>

@@ -14,7 +14,14 @@ export interface Subscription {
   next_delivery_date?: string;
   created_at: string;
   updated_at: string;
-  
+
+  /** Computed by backend via withCount('orders'). */
+  orders_count?: number;
+  /** Computed by backend via withMax('orders', 'created_at'). */
+  orders_max_created_at?: string;
+  /** Computed by Subscription::getEstimatedPriceAttribute() using live ingredient costs. */
+  estimated_price?: number;
+
   pet?: Pet;
   recipe?: Recipe;
   user?: { id: number; name: string; email: string };

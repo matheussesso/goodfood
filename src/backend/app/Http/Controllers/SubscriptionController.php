@@ -13,9 +13,19 @@ class SubscriptionController extends Controller
     public function index(Request $request)
     {
         if ($request->user()->isAdmin()) {
-            $subscriptions = Subscription::with(['user', 'pet', 'recipe'])->latest()->get();
+            $subscriptions = Subscription::with(['user', 'pet', 'recipe.ingredients'])
+                ->withCount('orders')
+                ->withMax('orders', 'created_at')
+                ->latest()
+                ->get();
         } else {
-            $subscriptions = $request->user()->subscriptions()->with(['pet', 'recipe'])->latest()->get();
+            $subscriptions = $request->user()
+                ->subscriptions()
+                ->with(['pet', 'recipe.ingredients'])
+                ->withCount('orders')
+                ->withMax('orders', 'created_at')
+                ->latest()
+                ->get();
         }
 
         return response()->json([

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Recipe;
@@ -24,11 +25,11 @@ class OrderController extends Controller
     public function index(Request $request): JsonResponse
     {
         if ($request->user()->isAdmin()) {
-            $orders = Order::with(['user', 'pet', 'items.recipe.ingredients', 'items.pet', 'subscription'])->latest()->get();
+            $orders = Order::with(['user', 'pet', 'items.recipe.ingredients', 'items.pet', 'subscription', 'invoice'])->latest()->get();
         } else {
             $orders = $request->user()
                 ->orders()
-                ->with(['pet', 'items.recipe.ingredients', 'items.pet', 'subscription'])
+                ->with(['pet', 'items.recipe.ingredients', 'items.pet', 'subscription', 'invoice'])
                 ->latest()
                 ->get();
         }
@@ -76,8 +77,16 @@ class OrderController extends Controller
 
         $order = $request->user()->orders()->create([
             'total_price'      => $total,
-            'status'           => 'pending',
+            'status'           => 'pending_payment',
             'delivery_address' => $validated['delivery_address'] ?? null,
+        ]);
+
+        Invoice::create([
+            'order_id'       => $order->id,
+            'user_id'        => $request->user()->id,
+            'amount'         => $total,
+            'status'         => 'pending',
+            'due_date'       => Carbon::today()->addDays(3),
         ]);
 
         $subscriptionsCreated = 0;
@@ -123,7 +132,7 @@ class OrderController extends Controller
         return response()->json([
             'success'               => true,
             'message'               => 'Order created successfully',
-            'data'                  => $order->load(['items.recipe', 'items.pet']),
+            'data'                  => $order->load(['items.recipe', 'items.pet', 'invoice']),
             'subscriptions_created' => $subscriptionsCreated,
         ], 201);
     }
@@ -144,7 +153,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Order fetched successfully',
-            'data'    => $order->load(['user', 'pet', 'items.recipe.ingredients', 'items.pet', 'subscription']),
+            'data'    => $order->load(['user', 'pet', 'items.recipe.ingredients', 'items.pet', 'subscription', 'invoice']),
         ]);
     }
 
@@ -167,7 +176,7 @@ class OrderController extends Controller
         ];
 
         if ($request->user()->isAdmin()) {
-            $rules['status'] = 'sometimes|required|in:pending,in_production,ready,out_for_delivery,delivered,cancelled';
+            $rules['status'] = 'sometimes|required|in:pending_payment,pending,in_production,ready,out_for_delivery,delivered,cancelled';
             $rules['scheduled_reposicao_date'] = 'sometimes|nullable|date';
         }
 

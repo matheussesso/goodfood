@@ -22,10 +22,28 @@ import {
   FilterX,
   LayoutGrid,
   List as ListIcon,
+  Repeat2,
+  Package,
+  DollarSign,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type SubStatus = "active" | "paused" | "cancelled";
+
+/**
+ * Returns a human-readable frequency label based on recipe duration_days.
+ *
+ * @param durationDays - The recipe's duration in days.
+ * @param t - Subscriptions namespace translator.
+ */
+function frequencyLabel(durationDays: number | undefined, t: ReturnType<typeof useTranslations>): string {
+  if (!durationDays) return t("frequency_monthly");
+  if (durationDays <= 7)  return t("frequency_weekly");
+  if (durationDays <= 14) return t("frequency_biweekly");
+  if (durationDays <= 31) return t("frequency_monthly");
+  return t("frequency_custom", { days: durationDays });
+}
 
 const STATUS_STYLE: Record<SubStatus, { badge: string; dot: string }> = {
   active:    { badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800", dot: "bg-emerald-500" },
@@ -237,10 +255,12 @@ export default function AdminSubscriptionsPage() {
       ) : (
         <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
           {/* Table header — desktop only */}
-          <div className="hidden md:grid grid-cols-[1fr_1fr_1fr_160px_180px] gap-4 px-5 py-3 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <div className="hidden md:grid grid-cols-[1fr_1fr_1fr_120px_110px_160px_160px] gap-4 px-5 py-3 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />{t("customer")}</span>
             <span className="flex items-center gap-1.5"><Dog className="w-3.5 h-3.5" />{t("pet")}</span>
             <span className="flex items-center gap-1.5"><UtensilsCrossed className="w-3.5 h-3.5" />{t("recipe")}</span>
+            <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5" />{t("estimated_price")}</span>
+            <span className="flex items-center gap-1.5"><Package className="w-3.5 h-3.5" />{t("total_orders")}</span>
             <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{t("next_delivery")}</span>
             <span>{tCommon("status")}</span>
           </div>
@@ -287,24 +307,35 @@ function AdminSubscriptionCard({ sub, t, isUpdating, onStatusChange }: AdminSubR
   const style = STATUS_STYLE[status] ?? STATUS_STYLE.active;
   const PetIcon = sub.pet?.type === "cat" ? Cat : Dog;
   const customerName = sub.user?.name ?? "—";
+  const frequency = frequencyLabel(sub.recipe?.duration_days, t);
+  const estimatedPrice = sub.estimated_price ?? 0;
 
   const nextDate = sub.next_delivery_date
     ? new Date(sub.next_delivery_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
     : "—";
 
+  const startDate = sub.start_date
+    ? new Date(sub.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+    : "—";
+
+  const lastOrderDate = sub.orders_max_created_at
+    ? new Date(sub.orders_max_created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+    : null;
+
   return (
     <div className={cn(
-      "bg-card border rounded-xl shadow-sm overflow-hidden hover:border-primary/30 transition-colors",
+      "bg-card border rounded-xl shadow-sm overflow-hidden hover:border-primary/30 transition-colors flex flex-col",
       status === "cancelled" && "opacity-60"
     )}>
-      <div className="flex flex-col gap-3 p-4">
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div className="p-4 border-b">
         {/* Customer + status */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0">
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
             </div>
-            <span className="text-sm font-medium text-foreground line-clamp-1">{customerName}</span>
+            <span className="text-sm font-semibold text-foreground line-clamp-1">{customerName}</span>
           </div>
           <span className={cn(
             "inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border shrink-0",
@@ -316,66 +347,111 @@ function AdminSubscriptionCard({ sub, t, isUpdating, onStatusChange }: AdminSubR
         </div>
 
         {/* Pet + recipe */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-              <PetIcon className="w-3 h-3" />
-            </div>
-            <span className="text-sm text-foreground line-clamp-1">{sub.pet?.name ?? "—"}</span>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <PetIcon className="w-3 h-3" />
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <UtensilsCrossed className="w-3 h-3 shrink-0" />
-            <span className="line-clamp-1">{sub.recipe?.name ?? "—"}</span>
-          </div>
+          <span className="text-sm text-foreground line-clamp-1 font-medium">{sub.pet?.name ?? "—"}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+          <UtensilsCrossed className="w-3 h-3 shrink-0" />
+          <span className="line-clamp-1">{sub.recipe?.name ?? "—"}</span>
         </div>
 
-        {/* Next delivery */}
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Clock className="w-3 h-3 shrink-0" />
-          <span>{t("next_delivery")}: <span className="font-medium text-foreground">{nextDate}</span></span>
+        {/* Price + frequency */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <DollarSign className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-base font-bold text-amber-600 dark:text-amber-400">
+              R$ {estimatedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className="text-[10px] text-muted-foreground">{t("per_cycle")}</span>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Repeat2 className="w-3 h-3" />
+            <span className="font-medium">{frequency}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Info grid ──────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-2 p-4 flex-1">
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+            <Clock className="w-3 h-3" />{t("next_delivery")}
+          </p>
+          <p className="text-xs font-medium text-foreground">{nextDate}</p>
         </div>
 
-        {/* Actions */}
-        {status !== "cancelled" && (
-          <div className="flex items-center gap-1 pt-1 border-t border-border/50">
-            {isUpdating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-auto" />
-            ) : (
-              <>
-                {status === "active" ? (
-                  <button
-                    type="button"
-                    title={t("pause_subscription")}
-                    onClick={() => onStatusChange(sub, "paused")}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/20 transition-colors text-xs font-medium"
-                  >
-                    <PauseCircle className="w-3.5 h-3.5" />
-                    {t("pause_subscription")}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    title={t("resume_subscription")}
-                    onClick={() => onStatusChange(sub, "active")}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-emerald-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 transition-colors text-xs font-medium"
-                  >
-                    <PlayCircle className="w-3.5 h-3.5" />
-                    {t("resume_subscription")}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  title={t("cancel_subscription")}
-                  onClick={() => onStatusChange(sub, "cancelled")}
-                  className="p-1.5 rounded text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
-                >
-                  <XCircle className="w-4 h-4" />
-                </button>
-              </>
-            )}
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+            <Package className="w-3 h-3" />{t("total_orders")}
+          </p>
+          <p className="text-xs font-medium text-foreground">
+            {sub.orders_count ?? 0} {t("orders_delivered")}
+          </p>
+          {lastOrderDate && (
+            <p className="text-[10px] text-muted-foreground">{t("last_order")}: {lastOrderDate}</p>
+          )}
+        </div>
+
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+            <CalendarDays className="w-3 h-3" />{t("start_date")}
+          </p>
+          <p className="text-xs font-medium text-foreground">{startDate}</p>
+        </div>
+
+        {sub.recipe?.duration_days && (
+          <div className="space-y-0.5">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              <Clock className="w-3 h-3" />{t("duration_days")}
+            </p>
+            <p className="text-xs font-medium text-foreground">{sub.recipe.duration_days} dias</p>
           </div>
         )}
       </div>
+
+      {/* ── Actions ────────────────────────────────────────── */}
+      {status !== "cancelled" && (
+        <div className="flex items-center gap-1 px-4 pb-4 pt-1 border-t border-border/50">
+          {isUpdating ? (
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-auto" />
+          ) : (
+            <>
+              {status === "active" ? (
+                <button
+                  type="button"
+                  title={t("pause_subscription")}
+                  onClick={() => onStatusChange(sub, "paused")}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/20 transition-colors text-xs font-medium"
+                >
+                  <PauseCircle className="w-3.5 h-3.5" />
+                  {t("pause_subscription")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  title={t("resume_subscription")}
+                  onClick={() => onStatusChange(sub, "active")}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-emerald-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 transition-colors text-xs font-medium"
+                >
+                  <PlayCircle className="w-3.5 h-3.5" />
+                  {t("resume_subscription")}
+                </button>
+              )}
+              <button
+                type="button"
+                title={t("cancel_subscription")}
+                onClick={() => onStatusChange(sub, "cancelled")}
+                className="p-1.5 rounded text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -396,14 +472,19 @@ function AdminSubscriptionRow({ sub, t, isUpdating, onStatusChange }: AdminSubRo
   const style = STATUS_STYLE[status] ?? STATUS_STYLE.active;
   const PetIcon = sub.pet?.type === "cat" ? Cat : Dog;
   const customerName = sub.user?.name ?? "—";
+  const estimatedPrice = sub.estimated_price ?? 0;
 
   const nextDate = sub.next_delivery_date
     ? new Date(sub.next_delivery_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
     : "—";
 
+  const lastOrderDate = sub.orders_max_created_at
+    ? new Date(sub.orders_max_created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+    : null;
+
   return (
     <div className={cn(
-      "flex flex-col md:grid md:grid-cols-[1fr_1fr_1fr_160px_180px] gap-3 md:gap-4 px-5 py-4 items-start md:items-center hover:bg-muted/20 transition-colors",
+      "flex flex-col md:grid md:grid-cols-[1fr_1fr_1fr_120px_110px_160px_160px] gap-3 md:gap-4 px-5 py-4 items-start md:items-center hover:bg-muted/20 transition-colors",
       status === "cancelled" && "opacity-60"
     )}>
       {/* Customer */}
@@ -426,6 +507,19 @@ function AdminSubscriptionRow({ sub, t, isUpdating, onStatusChange }: AdminSubRo
       <div className="flex items-center gap-2 min-w-0">
         <UtensilsCrossed className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         <span className="text-sm text-foreground line-clamp-1">{sub.recipe?.name ?? "—"}</span>
+      </div>
+
+      {/* Estimated price */}
+      <div className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+        R$ {estimatedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </div>
+
+      {/* Orders count */}
+      <div className="text-sm text-foreground">
+        <span className="font-medium">{sub.orders_count ?? 0}</span>
+        {lastOrderDate && (
+          <p className="text-[11px] text-muted-foreground">{lastOrderDate}</p>
+        )}
       </div>
 
       {/* Next delivery */}
