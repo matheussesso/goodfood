@@ -19,10 +19,13 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/profile/password', [AuthController::class, 'updatePassword']);
 
     // Admin routes
     Route::middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
         Route::get('/customers', [CustomerController::class, 'index']);
+        Route::post('/customers', [CustomerController::class, 'store']);
         Route::get('/customers/{id}', [CustomerController::class, 'show']);
         Route::put('/customers/{id}', [CustomerController::class, 'update']);
         

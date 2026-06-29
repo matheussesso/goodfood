@@ -73,3 +73,35 @@ export function useUpdateCustomer() {
     },
   });
 }
+
+/** Payload for creating a new customer via admin. */
+export interface CreateCustomerPayload {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipcode?: string;
+}
+
+/**
+ * Mutation hook for creating a new customer (admin only).
+ *
+ * @returns Mutation object with `mutateAsync` for submitting the new customer form.
+ */
+export function useCreateCustomer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: CreateCustomerPayload) => {
+      const response = await apiClient.post<{ success: boolean; data: Customer }>("/customers", payload);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    },
+  });
+}

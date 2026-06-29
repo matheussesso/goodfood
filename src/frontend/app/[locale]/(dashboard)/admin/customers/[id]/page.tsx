@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { useCustomer, useUpdateCustomer } from "@/hooks/useCustomers";
 import { usePets } from "@/hooks/usePets";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useRecipes, calculateRecipeCost } from "@/hooks/useRecipes";
+import { BRAZIL_STATES } from "@/lib/brazil-states";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, User, Phone, Mail, Calendar, PawPrint, Package, CalendarDays, Edit2, Loader2, Plus, Dog, UtensilsCrossed, MapPin, LayoutGrid, List as ListIcon, Info, Search, CheckCircle2, Check, Trash2, ChevronDown, ChevronUp, DollarSign, FileText, CalendarClock, Layers, Eye, ShoppingBag } from "lucide-react";
 
@@ -76,6 +78,11 @@ export default function CustomerDetailPage() {
   
   const [isEditCustomerModalOpen, setIsEditCustomerModalOpen] = useState(false);
   const [customerForm, setCustomerForm] = useState({ name: "", email: "", phone: "", address: "", city: "", state: "", zipcode: "" });
+  const [cepSearching,    setCepSearching]    = useState(false);
+  const [cepError,        setCepError]        = useState("");
+  const [editErrors,      setEditErrors]      = useState<Record<string, string>>({});
+  const [editSaveError,   setEditSaveError]   = useState("");
+  const [editSaveOk,      setEditSaveOk]      = useState("");
 
   const [isPetModalOpen, setIsPetModalOpen] = useState(false);
   const [editingPet, setEditingPet] = useState<any>(null);
@@ -142,14 +149,73 @@ export default function CustomerDetailPage() {
     return <div className="p-8 text-center text-destructive">{t("customer_not_found")}</div>;
   }
 
+  /** Formats raw digit string as XXXXX-XXX. */
+  function formatCep(raw: string) {
+    const d = raw.replace(/\D/g, "").slice(0, 8);
+    return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+  }
+
+  /** Queries ViaCEP and auto-fills address, city and state in the customer form. */
+  const fetchCepForCustomer = useCallback(async (digits: string) => {
+    setCepSearching(true);
+    setCepError("");
+    try {
+      const res  = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        setCepError("CEP não encontrado.");
+      } else {
+        setCustomerForm((f) => ({
+          ...f,
+          address: data.logradouro ?? f.address,
+          city:    data.localidade  ?? f.city,
+          state:   data.uf          ?? f.state,
+        }));
+      }
+    } catch {
+      setCepError("CEP não encontrado.");
+    } finally {
+      setCepSearching(false);
+    }
+  }, []);
+
+  function handleZipcodeChange(raw: string) {
+    const formatted = formatCep(raw);
+    setCustomerForm((f) => ({ ...f, zipcode: formatted }));
+    const digits = formatted.replace(/\D/g, "");
+    if (digits.length === 8) fetchCepForCustomer(digits);
+    else setCepError("");
+  }
+
+  function isValidEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function validateEditCustomer(): Record<string, string> {
+    const errs: Record<string, string> = {};
+    if (!customerForm.name.trim()) errs.name = "Campo obrigatório.";
+    if (!customerForm.email.trim()) errs.email = "Campo obrigatório.";
+    else if (!isValidEmail(customerForm.email)) errs.email = "E-mail inválido.";
+    return errs;
+  }
+
+  function clearEditError(field: string) {
+    if (editErrors[field])
+      setEditErrors((e) => { const { [field]: _, ...rest } = e; return rest; });
+  }
+
   const handleOpenEditCustomer = () => {
-    setCustomerForm({ 
-      name: customer.name, 
-      email: customer.email, 
-      phone: customer.phone || "",
+    setCepError("");
+    setEditErrors({});
+    setEditSaveError("");
+    setEditSaveOk("");
+    setCustomerForm({
+      name:    customer.name,
+      email:   customer.email,
+      phone:   customer.phone   || "",
       address: customer.address || "",
-      city: customer.city || "",
-      state: customer.state || "",
+      city:    customer.city    || "",
+      state:   customer.state   || "",
       zipcode: customer.zipcode || "",
     });
     setIsEditCustomerModalOpen(true);
@@ -157,8 +223,18 @@ export default function CustomerDetailPage() {
 
   const handleSaveCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateCustomer({ id: customer.id, data: customerForm });
-    setIsEditCustomerModalOpen(false);
+    const errs = validateEditCustomer();
+    if (Object.keys(errs).length) { setEditErrors(errs); return; }
+    setEditErrors({});
+    setEditSaveError("");
+    setEditSaveOk("");
+    try {
+      await updateCustomer({ id: customer.id, data: customerForm });
+      setEditSaveOk("Cliente atualizado com sucesso!");
+      setTimeout(() => setIsEditCustomerModalOpen(false), 1000);
+    } catch (err: any) {
+      setEditSaveError(err?.response?.data?.message || "Erro ao atualizar cliente.");
+    }
   };
 
   const handleOpenPetModal = (pet?: any) => {
@@ -1099,51 +1175,124 @@ export default function CustomerDetailPage() {
       </Modal>
 
       <Modal isOpen={isEditCustomerModalOpen} onClose={() => setIsEditCustomerModalOpen(false)} title="Editar Informações do Cliente">
-        <form onSubmit={handleSaveCustomer} className="space-y-4">
-          <div className="space-y-4">
-            <div className="flex items-center text-sm font-semibold text-primary border-b pb-2"><User className="w-4 h-4 mr-2"/> Dados Básicos</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
+        <form onSubmit={handleSaveCustomer} className="space-y-5" noValidate>
+          {editSaveError && (
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20">
+              {editSaveError}
+            </div>
+          )}
+          {editSaveOk && (
+            <div className="rounded-md bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+              {editSaveOk}
+            </div>
+          )}
+          {/* ── Dados básicos ── */}
+          <div className="space-y-3">
+            <div className="flex items-center text-sm font-semibold text-primary border-b pb-2">
+              <User className="w-4 h-4 mr-2" /> Dados Básicos
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <Label htmlFor="c-name">Nome</Label>
-                <Input id="c-name" value={customerForm.name} onChange={e => setCustomerForm({...customerForm, name: e.target.value})} required />
+                <Input
+                  id="c-name"
+                  value={customerForm.name}
+                  onChange={(e) => { setCustomerForm({ ...customerForm, name: e.target.value }); clearEditError("name"); }}
+                  className={editErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                {editErrors.name && <p className="text-xs text-destructive mt-0.5">{editErrors.name}</p>}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="c-email">E-mail</Label>
-                <Input id="c-email" type="email" value={customerForm.email} onChange={e => setCustomerForm({...customerForm, email: e.target.value})} required />
+                <Input
+                  id="c-email"
+                  type="email"
+                  value={customerForm.email}
+                  onChange={(e) => { setCustomerForm({ ...customerForm, email: e.target.value }); clearEditError("email"); }}
+                  className={editErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                {editErrors.email && <p className="text-xs text-destructive mt-0.5">{editErrors.email}</p>}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="c-phone">Telefone</Label>
-                <Input id="c-phone" value={customerForm.phone} onChange={e => setCustomerForm({...customerForm, phone: e.target.value})} />
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-4 mt-6">
-            <div className="flex items-center text-sm font-semibold text-primary border-b pb-2"><MapPin className="w-4 h-4 mr-2"/> Endereço</div>
-            <div className="space-y-2">
-              <Label htmlFor="c-address">Rua, Número e Complemento</Label>
-              <Input id="c-address" value={customerForm.address} onChange={e => setCustomerForm({...customerForm, address: e.target.value})} placeholder="Ex: Av Paulista, 1000 - Apto 21" />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="c-city">Cidade</Label>
-                <Input id="c-city" value={customerForm.city} onChange={e => setCustomerForm({...customerForm, city: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="c-state">Estado</Label>
-                <Input id="c-state" value={customerForm.state} onChange={e => setCustomerForm({...customerForm, state: e.target.value})} placeholder="SP" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="c-zipcode">CEP</Label>
-                <Input id="c-zipcode" value={customerForm.zipcode} onChange={e => setCustomerForm({...customerForm, zipcode: e.target.value})} />
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label htmlFor="c-phone">Celular</Label>
+                <PhoneInput
+                  id="c-phone"
+                  value={customerForm.phone}
+                  onChange={(v) => setCustomerForm({ ...customerForm, phone: v })}
+                />
               </div>
             </div>
           </div>
 
-          <div className="pt-6 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsEditCustomerModalOpen(false)}>Cancelar</Button>
+          {/* ── Endereço ── */}
+          <div className="space-y-3">
+            <div className="flex items-center text-sm font-semibold text-primary border-b pb-2">
+              <MapPin className="w-4 h-4 mr-2" /> Endereço
+            </div>
+
+            {/* CEP — primeiro, dispara ViaCEP */}
+            <div className="space-y-1.5">
+              <Label htmlFor="c-zipcode">CEP</Label>
+              <div className="relative">
+                <Input
+                  id="c-zipcode"
+                  inputMode="numeric"
+                  placeholder="00000-000"
+                  value={customerForm.zipcode}
+                  onChange={(e) => handleZipcodeChange(e.target.value)}
+                  className={cn("pr-9", cepError && "border-destructive")}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                  {cepSearching
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Search className="w-4 h-4 opacity-40" />
+                  }
+                </div>
+              </div>
+              {cepSearching && <p className="text-xs text-muted-foreground">Buscando endereço...</p>}
+              {cepError    && <p className="text-xs text-destructive">{cepError}</p>}
+            </div>
+
+            {/* Rua, número e complemento */}
+            <div className="space-y-1.5">
+              <Label htmlFor="c-address">Rua / Logradouro</Label>
+              <Input
+                id="c-address"
+                placeholder="Ex.: Av. Paulista"
+                value={customerForm.address}
+                onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
+              />
+            </div>
+
+            {/* Cidade + Estado */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="c-city">Cidade</Label>
+                <Input id="c-city" value={customerForm.city} onChange={(e) => setCustomerForm({ ...customerForm, city: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="c-state">Estado</Label>
+                <select
+                  id="c-state"
+                  value={customerForm.state}
+                  onChange={(e) => setCustomerForm({ ...customerForm, state: e.target.value })}
+                  className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="">Selecione o estado</option>
+                  {BRAZIL_STATES.map((s) => (
+                    <option key={s.uf} value={s.uf}>{s.uf} — {s.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setIsEditCustomerModalOpen(false)}>
+              Cancelar
+            </Button>
             <Button type="submit" disabled={isUpdatingCustomer}>
-              {isUpdatingCustomer ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {isUpdatingCustomer && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Salvar Alterações
             </Button>
           </div>

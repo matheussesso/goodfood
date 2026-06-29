@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-interface User {
+export interface User {
   id: number;
   name: string;
   email: string;
@@ -10,6 +10,8 @@ interface User {
   city?: string;
   state?: string;
   zipcode?: string;
+  whatsapp_notifications?: boolean;
+  created_at?: string;
 }
 
 interface AuthState {
@@ -17,6 +19,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   setAuth: (user: User, token: string) => void;
+  updateUser: (user: User) => void;
   logout: () => void;
   restoreSession: (user: User, token: string) => void;
 }
@@ -31,6 +34,10 @@ export const useAuth = create<AuthState>((set) => ({
       localStorage.setItem("auth_token", token);
     }
     set({ user, token, isAuthenticated: true });
+  },
+
+  updateUser: (user) => {
+    set({ user });
   },
 
   logout: () => {

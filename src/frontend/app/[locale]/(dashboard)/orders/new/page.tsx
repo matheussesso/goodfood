@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { Link } from "@/i18n/routing";
@@ -8,6 +8,7 @@ import { useOrders, CreateOrderPayload, OrderItemPayload } from "@/hooks/useOrde
 import { usePets } from "@/hooks/usePets";
 import { useAuth } from "@/hooks/useAuth";
 import { Recipe } from "@/hooks/useRecipes";
+import { BRAZIL_STATES } from "@/lib/brazil-states";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +30,7 @@ import {
   Layers,
   PartyPopper,
   RefreshCw,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -64,12 +66,15 @@ export default function NewOrderPage() {
   /** Set of itemKeys for which the user enabled auto-subscription. */
   const [subscribeItems, setSubscribeItems] = useState<Set<string>>(new Set());
 
-  const [addrStreet, setAddrStreet] = useState("");
-  const [addrNumber, setAddrNumber] = useState("");
-  const [addrComplement, setAddrComplement] = useState("");
-  const [addrCity, setAddrCity] = useState("");
-  const [addrState, setAddrState] = useState("");
-  const [addrZipcode, setAddrZipcode] = useState("");
+  const [addrZipcode,      setAddrZipcode]      = useState("");
+  const [addrStreet,       setAddrStreet]        = useState("");
+  const [addrNumber,       setAddrNumber]        = useState("");
+  const [addrComplement,   setAddrComplement]    = useState("");
+  const [addrNeighborhood, setAddrNeighborhood]  = useState("");
+  const [addrCity,         setAddrCity]          = useState("");
+  const [addrState,        setAddrState]         = useState("");
+  const [cepSearching,     setCepSearching]      = useState(false);
+  const [cepError,         setCepError]          = useState("");
 
   /** Field-level validation errors. */
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -153,22 +158,65 @@ export default function NewOrderPage() {
     });
   }
 
+  /** Formats raw digits as XXXXX-XXX CEP. */
+  function formatCep(raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, 8);
+    return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+  }
+
+  /** Fetches address data from ViaCEP and auto-fills the address fields. */
+  const fetchCep = useCallback(async (digits: string) => {
+    setCepSearching(true);
+    setCepError("");
+    try {
+      const res  = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        setCepError(t("cep_not_found"));
+      } else {
+        setAddrStreet(data.logradouro ?? "");
+        setAddrNeighborhood(data.bairro    ?? "");
+        setAddrCity(data.localidade   ?? "");
+        setAddrState(data.uf           ?? "");
+        setErrors((p) => ({ ...p, addrStreet: "", addrCity: "", addrState: "", addrZipcode: "" }));
+      }
+    } catch {
+      setCepError(t("cep_not_found"));
+    } finally {
+      setCepSearching(false);
+    }
+  }, [t]);
+
+  // Auto-fetch when CEP reaches 8 digits
+  useEffect(() => {
+    const digits = addrZipcode.replace(/\D/g, "");
+    if (digits.length === 8) {
+      fetchCep(digits);
+    } else {
+      setCepError("");
+    }
+  }, [addrZipcode, fetchCep]);
+
   /** Fill address fields from the user's registered address. */
   function fillRegisteredAddress() {
     if (!user) return;
     setAddrStreet(user.address ?? "");
     setAddrNumber("");
     setAddrComplement("");
+    setAddrNeighborhood("");
     setAddrCity(user.city ?? "");
     setAddrState(user.state ?? "");
-    setAddrZipcode(user.zipcode ?? "");
+    const rawZip = user.zipcode ?? "";
+    setAddrZipcode(formatCep(rawZip));
   }
 
   /** Build a formatted address string from the individual fields, or undefined if empty. */
   function buildAddress(): string | undefined {
+    const streetLine = [addrStreet, addrNumber].filter(Boolean).join(", ");
     const parts = [
-      addrStreet && addrNumber ? `${addrStreet}, ${addrNumber}` : addrStreet,
+      streetLine,
       addrComplement,
+      addrNeighborhood,
       addrCity && addrState ? `${addrCity}/${addrState}` : addrCity,
       addrZipcode,
     ].filter(Boolean);
@@ -541,9 +589,45 @@ export default function NewOrderPage() {
               )}
             </div>
             <div className="px-5 py-4 space-y-3">
+              {/* CEP — first, triggers ViaCEP auto-fill */}
+              <div className="space-y-1.5">
+                <Label htmlFor="addr_zipcode">
+                  {t("addr_zipcode")}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="addr_zipcode"
+                    placeholder="00000-000"
+                    inputMode="numeric"
+                    value={addrZipcode}
+                    onChange={(e) => {
+                      setAddrZipcode(formatCep(e.target.value));
+                      setErrors((p) => ({ ...p, addrZipcode: "" }));
+                    }}
+                    className={cn(
+                      "pr-9",
+                      (errors.addrZipcode || cepError) && "border-destructive focus-visible:ring-destructive"
+                    )}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    {cepSearching
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <Search className="w-4 h-4 opacity-40" />
+                    }
+                  </div>
+                </div>
+                {cepSearching && (
+                  <p>{t("cep_searching")}</p>
+                )}
+                {(cepError || errors.addrZipcode) && (
+                  <p className="text-xs text-destructive">{cepError || errors.addrZipcode}</p>
+                )}
+              </div>
+
+              {/* Street + Number */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2 space-y-1.5">
-                  <Label htmlFor="addr_street" className="text-xs text-muted-foreground">
+                  <Label htmlFor="addr_street">
                     {t("addr_street")}
                   </Label>
                   <Input
@@ -556,7 +640,7 @@ export default function NewOrderPage() {
                   {errors.addrStreet && <p className="text-xs text-destructive">{errors.addrStreet}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="addr_number" className="text-xs text-muted-foreground">
+                  <Label htmlFor="addr_number">
                     {t("addr_number")}
                   </Label>
                   <Input
@@ -570,8 +654,9 @@ export default function NewOrderPage() {
                 </div>
               </div>
 
+              {/* Complement */}
               <div className="space-y-1.5">
-                <Label htmlFor="addr_complement" className="text-xs text-muted-foreground">
+                <Label htmlFor="addr_complement">
                   {t("addr_complement")}
                 </Label>
                 <Input
@@ -582,9 +667,23 @@ export default function NewOrderPage() {
                 />
               </div>
 
+              {/* Neighborhood (auto-filled from ViaCEP) */}
+              <div className="space-y-1.5">
+                <Label htmlFor="addr_neighborhood">
+                  {t("addr_neighborhood")}
+                </Label>
+                <Input
+                  id="addr_neighborhood"
+                  placeholder="Ex.: Bela Vista"
+                  value={addrNeighborhood}
+                  onChange={(e) => setAddrNeighborhood(e.target.value)}
+                />
+              </div>
+
+              {/* City + State select */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="addr_city" className="text-xs text-muted-foreground">
+                  <Label htmlFor="addr_city">
                     {t("addr_city")}
                   </Label>
                   <Input
@@ -597,33 +696,27 @@ export default function NewOrderPage() {
                   {errors.addrCity && <p className="text-xs text-destructive">{errors.addrCity}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="addr_state" className="text-xs text-muted-foreground">
+                  <Label htmlFor="addr_state">
                     {t("addr_state")}
                   </Label>
-                  <Input
+                  <select
                     id="addr_state"
-                    placeholder="SP"
-                    maxLength={2}
                     value={addrState}
-                    onChange={(e) => { setAddrState(e.target.value.toUpperCase()); setErrors((p) => ({ ...p, addrState: "" })); }}
-                    className={errors.addrState ? "border-destructive focus-visible:ring-destructive" : ""}
-                  />
+                    onChange={(e) => { setAddrState(e.target.value); setErrors((p) => ({ ...p, addrState: "" })); }}
+                    className={cn(
+                      "flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      errors.addrState && "border-destructive"
+                    )}
+                  >
+                    <option value="">{t("select_state")}</option>
+                    {BRAZIL_STATES.map((s) => (
+                      <option key={s.uf} value={s.uf}>
+                        {s.uf} — {s.name}
+                      </option>
+                    ))}
+                  </select>
                   {errors.addrState && <p className="text-xs text-destructive">{errors.addrState}</p>}
                 </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="addr_zipcode" className="text-xs text-muted-foreground">
-                  {t("addr_zipcode")}
-                </Label>
-                <Input
-                  id="addr_zipcode"
-                  placeholder="00000-000"
-                  value={addrZipcode}
-                  onChange={(e) => { setAddrZipcode(e.target.value); setErrors((p) => ({ ...p, addrZipcode: "" })); }}
-                  className={errors.addrZipcode ? "border-destructive focus-visible:ring-destructive" : ""}
-                />
-                {errors.addrZipcode && <p className="text-xs text-destructive">{errors.addrZipcode}</p>}
               </div>
             </div>
           </div>

@@ -4,11 +4,11 @@ import { useState } from "react";
 import { Link, usePathname } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/useAuth";
-import { 
-  LayoutDashboard, 
-  Dog, 
-  CalendarCheck, 
-  ShoppingBag, 
+import {
+  LayoutDashboard,
+  Dog,
+  CalendarCheck,
+  ShoppingBag,
   PackageSearch,
   Factory,
   Truck,
@@ -17,7 +17,8 @@ import {
   X,
   Users,
   Settings2,
-  UtensilsCrossed
+  UtensilsCrossed,
+  UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -124,7 +125,35 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             })}
           </div>
 
-          <div className="pt-4 mt-4 border-t">
+          <div className="pt-4 mt-4 border-t space-y-1">
+            {/* User avatar + name */}
+            <div className="flex items-center gap-2.5 px-3 py-2 rounded-md bg-muted/40 mb-2">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 text-xs font-bold">
+                {user?.name
+                  ? user.name.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase()).join("")
+                  : <UserCircle className="h-4 w-4" />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
+                <p className="text-[11px] text-muted-foreground capitalize">{user?.role}</p>
+              </div>
+            </div>
+
+            <Link
+              href="/profile"
+              onClick={() => setIsOpen(false)}
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                pathname === "/profile"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <UserCircle className="h-4 w-4" />
+              {t("my_account")}
+            </Link>
+
             <button
               onClick={() => logout()}
               className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"

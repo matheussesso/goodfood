@@ -2,9 +2,9 @@
 
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { UserDropdown } from "@/components/layout/UserDropdown";
 import {
   Menu,
-  UserCircle,
   Columns,
   Rows,
   LayoutDashboard,
@@ -15,7 +15,6 @@ import {
   Dog,
   Factory,
   Truck,
-  LogOut,
   UtensilsCrossed,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -34,12 +33,12 @@ export function Navbar({
   layoutMode = "vertical",
   toggleLayout,
 }: NavbarProps) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const locale = useLocale();
-  const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations("Navigation");
 
+  const router = useRouter();
   const handleLanguageChange = (newLocale: string) => {
     router.replace(pathname, { locale: newLocale });
   };
@@ -183,26 +182,8 @@ export function Navbar({
               </select>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4 border-l pl-2 sm:pl-4">
-              <div className="hidden flex-col items-end sm:flex">
-                <span className="text-sm font-medium">{user?.name}</span>
-                <span className="text-xs text-muted-foreground capitalize">
-                  {user?.role}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 sm:gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <UserCircle className="h-5 w-5" />
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => logout()}
-                  title={t("logout")}
-                >
-                  <LogOut className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
+            <div className="border-l pl-2 sm:pl-4">
+              <UserDropdown />
             </div>
           </div>
         </div>
