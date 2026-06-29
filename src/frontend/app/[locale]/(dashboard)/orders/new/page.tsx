@@ -200,10 +200,10 @@ export default function NewOrderPage() {
   /** Fill address fields from the user's registered address. */
   function fillRegisteredAddress() {
     if (!user) return;
-    setAddrStreet(user.address ?? "");
-    setAddrNumber("");
-    setAddrComplement("");
-    setAddrNeighborhood("");
+    setAddrStreet(user.street ?? "");
+    setAddrNumber(user.number ?? "");
+    setAddrComplement(user.complement ?? "");
+    setAddrNeighborhood(user.neighborhood ?? "");
     setAddrCity(user.city ?? "");
     setAddrState(user.state ?? "");
     const rawZip = user.zipcode ?? "";
@@ -271,7 +271,7 @@ export default function NewOrderPage() {
     return map;
   }, [pets]);
 
-  const hasRegisteredAddress = !!(user?.address || user?.city);
+  const hasRegisteredAddress = !!(user?.street || user?.city);
 
   /* ── Success screen ──────────────────────────────────────────────── */
   if (confirmedOrderId !== null) {

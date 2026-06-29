@@ -71,13 +71,13 @@ export default function ProfilePage() {
   const [profileFeedback, setProfileFeedback] = useState<FeedbackState>(null);
 
   // ── Address form ──────────────────────────────────────────────────────────
-  const [addrZipcode,      setAddrZipcode]      = useState(user?.zipcode ?? "");
-  const [addrStreet,       setAddrStreet]        = useState(user?.address ?? "");
-  const [addrNumber,       setAddrNumber]        = useState("");
-  const [addrComplement,   setAddrComplement]    = useState("");
-  const [addrNeighborhood, setAddrNeighborhood]  = useState("");
-  const [addrCity,         setAddrCity]          = useState(user?.city    ?? "");
-  const [addrState,        setAddrState]         = useState(user?.state   ?? "");
+  const [addrZipcode,      setAddrZipcode]      = useState(user?.zipcode      ?? "");
+  const [addrStreet,       setAddrStreet]        = useState(user?.street       ?? "");
+  const [addrNumber,       setAddrNumber]        = useState(user?.number       ?? "");
+  const [addrComplement,   setAddrComplement]    = useState(user?.complement   ?? "");
+  const [addrNeighborhood, setAddrNeighborhood]  = useState(user?.neighborhood ?? "");
+  const [addrCity,         setAddrCity]          = useState(user?.city         ?? "");
+  const [addrState,        setAddrState]         = useState(user?.state        ?? "");
   const [cepSearching,     setCepSearching]      = useState(false);
   const [cepError,         setCepError]          = useState("");
   const [addrErrors,       setAddrErrors]        = useState<FormErrors>({});
@@ -202,17 +202,17 @@ export default function ProfilePage() {
     if (Object.keys(errs).length) { setAddrErrors(errs); return; }
     setAddrErrors({});
     setAddrFeedback(null);
-    const combinedAddress = [addrStreet, addrNumber, addrComplement]
-      .filter(Boolean)
-      .join(", ");
     try {
       await updateProfile({
-        name:    profileForm.name,
-        email:   profileForm.email,
-        address: combinedAddress,
-        city:    addrCity,
-        state:   addrState,
-        zipcode: addrZipcode.replace(/\D/g, ""),
+        name:         profileForm.name,
+        email:        profileForm.email,
+        street:       addrStreet,
+        number:       addrNumber,
+        complement:   addrComplement  || undefined,
+        neighborhood: addrNeighborhood,
+        city:         addrCity,
+        state:        addrState,
+        zipcode:      addrZipcode.replace(/\D/g, ""),
       });
       setAddrFeedback({ type: "success", message: t("address_updated") });
     } catch (err: any) {

@@ -124,13 +124,15 @@ export default function RegisterPage() {
 
   const registerMutation = useMutation({
     mutationFn: async () => {
-      const addressParts = [addrStreet, addrNumber, addrComplement].filter(Boolean);
       const payload = {
         ...formData,
-        address: addressParts.join(", "),
-        city:    addrCity,
-        state:   addrState,
-        zipcode: addrZipcode.replace(/\D/g, ""),
+        street:       addrStreet,
+        number:       addrNumber,
+        complement:   addrComplement   || undefined,
+        neighborhood: addrNeighborhood,
+        city:         addrCity,
+        state:        addrState,
+        zipcode:      addrZipcode.replace(/\D/g, ""),
       };
       const response = await apiClient.post("/register", payload);
       return response.data;

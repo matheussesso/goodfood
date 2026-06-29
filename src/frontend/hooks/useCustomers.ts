@@ -12,7 +12,10 @@ export interface Customer {
   email: string;
   phone: string;
   role: string;
-  address?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
   city?: string;
   state?: string;
   zipcode?: string;
@@ -81,7 +84,10 @@ export interface CreateCustomerPayload {
   password: string;
   password_confirmation: string;
   phone?: string;
-  address?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
   city?: string;
   state?: string;
   zipcode?: string;

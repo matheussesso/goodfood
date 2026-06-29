@@ -11,17 +11,20 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Fillable([
-    'name', 
-    'email', 
-    'password', 
-    'phone', 
-    'address', 
-    'city', 
-    'state', 
-    'zipcode', 
-    'delivery_preferences', 
-    'role', 
-    'whatsapp_notifications'
+    'name',
+    'email',
+    'password',
+    'phone',
+    'street',
+    'number',
+    'complement',
+    'neighborhood',
+    'city',
+    'state',
+    'zipcode',
+    'delivery_preferences',
+    'role',
+    'whatsapp_notifications',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable

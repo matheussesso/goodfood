@@ -18,26 +18,32 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'phone'    => 'nullable|string|max:30',
-            'address'  => 'nullable|string|max:500',
-            'city'     => 'nullable|string|max:100',
-            'state'    => 'nullable|string|max:2',
-            'zipcode'  => 'nullable|string|max:10',
+            'name'         => 'required|string|max:255',
+            'email'        => 'required|string|email|max:255|unique:users',
+            'password'     => 'required|string|min:8|confirmed',
+            'phone'        => 'nullable|string|max:30',
+            'street'       => 'nullable|string|max:255',
+            'number'       => 'nullable|string|max:20',
+            'complement'   => 'nullable|string|max:100',
+            'neighborhood' => 'nullable|string|max:100',
+            'city'         => 'nullable|string|max:100',
+            'state'        => 'nullable|string|max:2',
+            'zipcode'      => 'nullable|string|max:10',
         ]);
 
         $user = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'phone'    => $validated['phone']   ?? null,
-            'address'  => $validated['address'] ?? null,
-            'city'     => $validated['city']    ?? null,
-            'state'    => $validated['state']   ?? null,
-            'zipcode'  => $validated['zipcode'] ?? null,
-            'role'     => 'customer',
+            'name'         => $validated['name'],
+            'email'        => $validated['email'],
+            'password'     => Hash::make($validated['password']),
+            'phone'        => $validated['phone']        ?? null,
+            'street'       => $validated['street']       ?? null,
+            'number'       => $validated['number']       ?? null,
+            'complement'   => $validated['complement']   ?? null,
+            'neighborhood' => $validated['neighborhood'] ?? null,
+            'city'         => $validated['city']         ?? null,
+            'state'        => $validated['state']        ?? null,
+            'zipcode'      => $validated['zipcode']      ?? null,
+            'role'         => 'customer',
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -122,13 +128,16 @@ class AuthController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|max:255|unique:users,email,' . $user->id,
-            'phone'    => 'nullable|string|max:30',
-            'address'  => 'nullable|string|max:500',
-            'city'     => 'nullable|string|max:100',
-            'state'    => 'nullable|string|max:2',
-            'zipcode'  => 'nullable|string|max:10',
+            'name'         => 'required|string|max:255',
+            'email'        => 'required|email|max:255|unique:users,email,' . $user->id,
+            'phone'        => 'nullable|string|max:30',
+            'street'       => 'nullable|string|max:255',
+            'number'       => 'nullable|string|max:20',
+            'complement'   => 'nullable|string|max:100',
+            'neighborhood' => 'nullable|string|max:100',
+            'city'         => 'nullable|string|max:100',
+            'state'        => 'nullable|string|max:2',
+            'zipcode'      => 'nullable|string|max:10',
             'whatsapp_notifications' => 'sometimes|boolean',
         ]);
 

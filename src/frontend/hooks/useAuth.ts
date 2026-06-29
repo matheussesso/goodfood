@@ -6,7 +6,10 @@ export interface User {
   email: string;
   role: "customer" | "admin" | "producer" | "delivery";
   phone?: string;
-  address?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
   city?: string;
   state?: string;
   zipcode?: string;

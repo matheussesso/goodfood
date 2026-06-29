@@ -44,26 +44,32 @@ class CustomerController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|max:255|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-            'phone'    => 'nullable|string|max:30',
-            'address'  => 'nullable|string|max:500',
-            'city'     => 'nullable|string|max:100',
-            'state'    => 'nullable|string|max:2',
-            'zipcode'  => 'nullable|string|max:10',
+            'name'         => 'required|string|max:255',
+            'email'        => 'required|email|max:255|unique:users,email',
+            'password'     => 'required|string|min:8|confirmed',
+            'phone'        => 'nullable|string|max:30',
+            'street'       => 'nullable|string|max:255',
+            'number'       => 'nullable|string|max:20',
+            'complement'   => 'nullable|string|max:100',
+            'neighborhood' => 'nullable|string|max:100',
+            'city'         => 'nullable|string|max:100',
+            'state'        => 'nullable|string|max:2',
+            'zipcode'      => 'nullable|string|max:10',
         ]);
 
         $customer = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'phone'    => $validated['phone']   ?? null,
-            'address'  => $validated['address'] ?? null,
-            'city'     => $validated['city']    ?? null,
-            'state'    => $validated['state']   ?? null,
-            'zipcode'  => $validated['zipcode'] ?? null,
-            'role'     => 'customer',
+            'name'         => $validated['name'],
+            'email'        => $validated['email'],
+            'password'     => Hash::make($validated['password']),
+            'phone'        => $validated['phone']        ?? null,
+            'street'       => $validated['street']       ?? null,
+            'number'       => $validated['number']       ?? null,
+            'complement'   => $validated['complement']   ?? null,
+            'neighborhood' => $validated['neighborhood'] ?? null,
+            'city'         => $validated['city']         ?? null,
+            'state'        => $validated['state']        ?? null,
+            'zipcode'      => $validated['zipcode']      ?? null,
+            'role'         => 'customer',
         ]);
 
         return response()->json([
@@ -100,13 +106,16 @@ class CustomerController extends Controller
         $customer = User::where('role', 'customer')->findOrFail($id);
 
         $validated = $request->validate([
-            'name'    => 'sometimes|required|string|max:255',
-            'email'   => 'sometimes|required|email|max:255|unique:users,email,' . $id,
-            'phone'   => 'nullable|string|max:30',
-            'address' => 'nullable|string|max:500',
-            'city'    => 'nullable|string|max:100',
-            'state'   => 'nullable|string|max:2',
-            'zipcode' => 'nullable|string|max:10',
+            'name'         => 'sometimes|required|string|max:255',
+            'email'        => 'sometimes|required|email|max:255|unique:users,email,' . $id,
+            'phone'        => 'nullable|string|max:30',
+            'street'       => 'nullable|string|max:255',
+            'number'       => 'nullable|string|max:20',
+            'complement'   => 'nullable|string|max:100',
+            'neighborhood' => 'nullable|string|max:100',
+            'city'         => 'nullable|string|max:100',
+            'state'        => 'nullable|string|max:2',
+            'zipcode'      => 'nullable|string|max:10',
         ]);
 
         $customer->update($validated);

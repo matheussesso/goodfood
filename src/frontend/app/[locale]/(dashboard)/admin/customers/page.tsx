@@ -208,16 +208,18 @@ export default function CustomersPage() {
     setCreateError("");
     setCreateOk("");
     try {
-      const addressParts = [addr.street, addr.number, addr.complement].filter(Boolean);
       await createCustomer.mutateAsync({
         name:                  createForm.name,
         email:                 createForm.email,
         password:              createForm.password,
         password_confirmation: createForm.password_confirmation,
-        phone:                 createForm.phone   || undefined,
-        address:               addressParts.length ? addressParts.join(", ") : undefined,
-        city:                  addr.city          || undefined,
-        state:                 addr.state         || undefined,
+        phone:                 createForm.phone         || undefined,
+        street:                addr.street              || undefined,
+        number:                addr.number              || undefined,
+        complement:            addr.complement          || undefined,
+        neighborhood:          addr.neighborhood        || undefined,
+        city:                  addr.city                || undefined,
+        state:                 addr.state               || undefined,
         zipcode:               addr.zipcode.replace(/\D/g, "") || undefined,
       });
       setCreateOk(t("customer_created"));
