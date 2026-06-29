@@ -141,14 +141,6 @@ export default function CustomerDetailPage() {
     return () => clearTimeout(timeoutId);
   }, [recipeIngredients, recForm.duration_days, recForm.daily_portions]);
 
-  if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground flex justify-center"><Loader2 className="animate-spin w-8 h-8" /></div>;
-  }
-
-  if (!customer) {
-    return <div className="p-8 text-center text-destructive">{t("customer_not_found")}</div>;
-  }
-
   /** Formats raw digit string as XXXXX-XXX. */
   function formatCep(raw: string) {
     const d = raw.replace(/\D/g, "").slice(0, 8);
@@ -179,6 +171,14 @@ export default function CustomerDetailPage() {
     }
   }, []);
 
+  if (isLoading) {
+    return <div className="p-8 text-center text-muted-foreground flex justify-center"><Loader2 className="animate-spin w-8 h-8" /></div>;
+  }
+
+  if (!customer) {
+    return <div className="p-8 text-center text-destructive">{t("customer_not_found")}</div>;
+  }
+
   function handleZipcodeChange(raw: string) {
     const formatted = formatCep(raw);
     setCustomerForm((f) => ({ ...f, zipcode: formatted }));
@@ -191,11 +191,22 @@ export default function CustomerDetailPage() {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
+  function hasPhoneNumber(phone: string): boolean {
+    const idx = phone.indexOf(" ");
+    if (idx === -1) return false;
+    return phone.slice(idx + 1).replace(/\D/g, "").length >= 4;
+  }
+
   function validateEditCustomer(): Record<string, string> {
     const errs: Record<string, string> = {};
-    if (!customerForm.name.trim()) errs.name = "Campo obrigatório.";
-    if (!customerForm.email.trim()) errs.email = "Campo obrigatório.";
-    else if (!isValidEmail(customerForm.email)) errs.email = "E-mail inválido.";
+    if (!customerForm.name.trim()) errs.name = tCommon("validation_required");
+    if (!customerForm.email.trim()) errs.email = tCommon("validation_required");
+    else if (!isValidEmail(customerForm.email)) errs.email = tCommon("validation_email");
+    if (!hasPhoneNumber(customerForm.phone)) errs.phone = tCommon("validation_phone");
+    if (!customerForm.zipcode.replace(/\D/g, "")) errs.zipcode = tCommon("validation_required");
+    if (!customerForm.address.trim()) errs.address = tCommon("validation_required");
+    if (!customerForm.city.trim()) errs.city = tCommon("validation_required");
+    if (!customerForm.state) errs.state = tCommon("validation_required");
     return errs;
   }
 
@@ -445,35 +456,48 @@ export default function CustomerDetailPage() {
 
             {/* Address card */}
             <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
-              <div className="flex items-center px-5 py-4 border-b bg-muted/20">
+              <div className="flex items-center justify-between px-5 py-4 border-b bg-muted/20">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-primary" /> {t("address_title")}
                 </h3>
+                <Button variant="outline" size="sm" onClick={handleOpenEditCustomer} className="h-8 text-xs gap-1.5">
+                  <Edit2 className="w-3.5 h-3.5" /> Editar
+                </Button>
               </div>
               {customer.address || customer.city || customer.state || customer.zipcode ? (
-                <div className="px-5 py-4 space-y-3">
-                  {customer.address && (
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("street")}</p>
-                      <p className="text-sm font-medium text-foreground">{customer.address}</p>
+                <div className="divide-y divide-border/50">
+                  <div className="flex items-center gap-4 px-5 py-3.5">
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
                     </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("city_label")}</p>
-                      <p className="text-sm font-medium text-foreground">{customer.city || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("state_label")}</p>
-                      <p className="text-sm font-medium text-foreground">{customer.state || "—"}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("zipcode")}</p>
+                      <p className="text-sm font-medium text-foreground">{customer.zipcode || "—"}</p>
                     </div>
                   </div>
-                  {customer.zipcode && (
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("zipcode")}</p>
-                      <p className="text-sm font-medium text-foreground">{customer.zipcode}</p>
+                  <div className="flex items-center gap-4 px-5 py-3.5">
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <MapPin className="w-4 h-4 text-muted-foreground opacity-0" />
                     </div>
-                  )}
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("street")}</p>
+                      <p className="text-sm font-medium text-foreground">{customer.address || "—"}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 divide-x divide-border/50">
+                    <div className="flex items-center gap-4 px-5 py-3.5">
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("city_label")}</p>
+                        <p className="text-sm font-medium text-foreground">{customer.city || "—"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 px-5 py-3.5">
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("state_label")}</p>
+                        <p className="text-sm font-medium text-foreground">{customer.state || "—"}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
@@ -1218,8 +1242,10 @@ export default function CustomerDetailPage() {
                 <PhoneInput
                   id="c-phone"
                   value={customerForm.phone}
-                  onChange={(v) => setCustomerForm({ ...customerForm, phone: v })}
+                  onChange={(v) => { setCustomerForm({ ...customerForm, phone: v }); clearEditError("phone"); }}
+                  className={editErrors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                {editErrors.phone && <p className="text-xs text-destructive mt-0.5">{editErrors.phone}</p>}
               </div>
             </div>
           </div>
@@ -1239,8 +1265,8 @@ export default function CustomerDetailPage() {
                   inputMode="numeric"
                   placeholder="00000-000"
                   value={customerForm.zipcode}
-                  onChange={(e) => handleZipcodeChange(e.target.value)}
-                  className={cn("pr-9", cepError && "border-destructive")}
+                  onChange={(e) => { handleZipcodeChange(e.target.value); clearEditError("zipcode"); }}
+                  className={cn("pr-9", (cepError || editErrors.zipcode) && "border-destructive")}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
                   {cepSearching
@@ -1250,39 +1276,52 @@ export default function CustomerDetailPage() {
                 </div>
               </div>
               {cepSearching && <p className="text-xs text-muted-foreground">Buscando endereço...</p>}
-              {cepError    && <p className="text-xs text-destructive">{cepError}</p>}
+              {cepError && <p className="text-xs text-destructive">{cepError}</p>}
+              {!cepError && editErrors.zipcode && <p className="text-xs text-destructive mt-0.5">{editErrors.zipcode}</p>}
             </div>
 
-            {/* Rua, número e complemento */}
+            {/* Rua / Logradouro */}
             <div className="space-y-1.5">
               <Label htmlFor="c-address">Rua / Logradouro</Label>
               <Input
                 id="c-address"
                 placeholder="Ex.: Av. Paulista"
                 value={customerForm.address}
-                onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
+                onChange={(e) => { setCustomerForm({ ...customerForm, address: e.target.value }); clearEditError("address"); }}
+                className={editErrors.address ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+              {editErrors.address && <p className="text-xs text-destructive mt-0.5">{editErrors.address}</p>}
             </div>
 
             {/* Cidade + Estado */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="c-city">Cidade</Label>
-                <Input id="c-city" value={customerForm.city} onChange={(e) => setCustomerForm({ ...customerForm, city: e.target.value })} />
+                <Input
+                  id="c-city"
+                  value={customerForm.city}
+                  onChange={(e) => { setCustomerForm({ ...customerForm, city: e.target.value }); clearEditError("city"); }}
+                  className={editErrors.city ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                {editErrors.city && <p className="text-xs text-destructive mt-0.5">{editErrors.city}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="c-state">Estado</Label>
                 <select
                   id="c-state"
                   value={customerForm.state}
-                  onChange={(e) => setCustomerForm({ ...customerForm, state: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  onChange={(e) => { setCustomerForm({ ...customerForm, state: e.target.value }); clearEditError("state"); }}
+                  className={cn(
+                    "flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    editErrors.state && "border-destructive"
+                  )}
                 >
                   <option value="">Selecione o estado</option>
                   {BRAZIL_STATES.map((s) => (
                     <option key={s.uf} value={s.uf}>{s.uf} — {s.name}</option>
                   ))}
                 </select>
+                {editErrors.state && <p className="text-xs text-destructive mt-0.5">{editErrors.state}</p>}
               </div>
             </div>
           </div>

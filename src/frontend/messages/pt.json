@@ -69,7 +69,8 @@
     "validation_required": "Campo obrigatório.",
     "validation_email": "E-mail inválido.",
     "validation_password_min": "Mínimo 8 caracteres.",
-    "validation_password_match": "As senhas não coincidem."
+    "validation_password_match": "As senhas não coincidem.",
+    "validation_phone": "Informe um número de telefone válido."
   },
   "Catalog": {
     "title": "Catálogo",
@@ -481,6 +482,7 @@
     "addr_state": "Estado",
     "cep_searching": "Buscando endereço...",
     "cep_not_found": "CEP não encontrado.",
+    "addr_zipcode": "CEP",
     "save_address": "Salvar Endereço",
     "address_updated": "Endereço atualizado com sucesso!",
     "select_state": "Selecione o estado"

@@ -39,6 +39,13 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/** Returns true if a PhoneInput value contains at least 4 digits after the country code. */
+function hasPhoneNumber(phone: string): boolean {
+  const idx = phone.indexOf(" ");
+  if (idx === -1) return false;
+  return phone.slice(idx + 1).replace(/\D/g, "").length >= 4;
+}
+
 /**
  * User account management page.
  * Personal section shows info card + address card stacked.
@@ -73,6 +80,7 @@ export default function ProfilePage() {
   const [addrState,        setAddrState]         = useState(user?.state   ?? "");
   const [cepSearching,     setCepSearching]      = useState(false);
   const [cepError,         setCepError]          = useState("");
+  const [addrErrors,       setAddrErrors]        = useState<FormErrors>({});
   const [addrFeedback,     setAddrFeedback]      = useState<FeedbackState>(null);
 
   // ── Password form ─────────────────────────────────────────────────────────
@@ -133,6 +141,18 @@ export default function ProfilePage() {
     if (!profileForm.name.trim()) errs.name = tC("validation_required");
     if (!profileForm.email.trim()) errs.email = tC("validation_required");
     else if (!isValidEmail(profileForm.email)) errs.email = tC("validation_email");
+    if (!hasPhoneNumber(profileForm.phone)) errs.phone = tC("validation_phone");
+    return errs;
+  }
+
+  function validateAddress(): FormErrors {
+    const errs: FormErrors = {};
+    if (!addrZipcode.replace(/\D/g, "")) errs.zipcode      = tC("validation_required");
+    if (!addrStreet.trim())               errs.street       = tC("validation_required");
+    if (!addrNumber.trim())               errs.number       = tC("validation_required");
+    if (!addrNeighborhood.trim())         errs.neighborhood = tC("validation_required");
+    if (!addrCity.trim())                 errs.city         = tC("validation_required");
+    if (!addrState)                       errs.state        = tC("validation_required");
     return errs;
   }
 
@@ -148,6 +168,10 @@ export default function ProfilePage() {
 
   function clearProfileError(field: string) {
     if (profileErrors[field]) setProfileErrors((e) => { const { [field]: _, ...rest } = e; return rest; });
+  }
+
+  function clearAddrError(field: string) {
+    if (addrErrors[field]) setAddrErrors((e) => { const { [field]: _, ...rest } = e; return rest; });
   }
 
   function clearPasswordError(field: string) {
@@ -166,8 +190,7 @@ export default function ProfilePage() {
       await updateProfile(profileForm);
       setProfileFeedback({ type: "success", message: t("profile_updated") });
     } catch (err: any) {
-      const msg = err?.response?.data?.message || t("profile_error");
-      setProfileFeedback({ type: "error", message: msg });
+      setProfileFeedback({ type: "error", message: err?.response?.data?.message || t("profile_error") });
     } finally {
       setTimeout(() => setProfileFeedback(null), 4000);
     }
@@ -175,6 +198,9 @@ export default function ProfilePage() {
 
   async function handleAddressSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const errs = validateAddress();
+    if (Object.keys(errs).length) { setAddrErrors(errs); return; }
+    setAddrErrors({});
     setAddrFeedback(null);
     const combinedAddress = [addrStreet, addrNumber, addrComplement]
       .filter(Boolean)
@@ -190,8 +216,7 @@ export default function ProfilePage() {
       });
       setAddrFeedback({ type: "success", message: t("address_updated") });
     } catch (err: any) {
-      const msg = err?.response?.data?.message || t("profile_error");
-      setAddrFeedback({ type: "error", message: msg });
+      setAddrFeedback({ type: "error", message: err?.response?.data?.message || t("profile_error") });
     } finally {
       setTimeout(() => setAddrFeedback(null), 4000);
     }
@@ -208,8 +233,7 @@ export default function ProfilePage() {
       setPasswordFeedback({ type: "success", message: t("password_updated") });
       setPasswordForm({ current_password: "", password: "", password_confirmation: "" });
     } catch (err: any) {
-      const msg = err?.response?.data?.message || t("password_error");
-      setPasswordFeedback({ type: "error", message: msg });
+      setPasswordFeedback({ type: "error", message: err?.response?.data?.message || t("password_error") });
     } finally {
       setTimeout(() => setPasswordFeedback(null), 4000);
     }
@@ -223,8 +247,7 @@ export default function ProfilePage() {
       await updateProfile({ ...profileForm, whatsapp_notifications: whatsapp });
       setPrefFeedback({ type: "success", message: t("preferences_updated") });
     } catch (err: any) {
-      const msg = err?.response?.data?.message || t("profile_error");
-      setPrefFeedback({ type: "error", message: msg });
+      setPrefFeedback({ type: "error", message: err?.response?.data?.message || t("profile_error") });
     } finally {
       setIsSavingPref(false);
       setTimeout(() => setPrefFeedback(null), 4000);
@@ -241,7 +264,7 @@ export default function ProfilePage() {
     ? user.name.split(" ").slice(0, 2).map((w) => w[0]?.toUpperCase()).join("")
     : "";
 
-  const inputError = (field: string, errors: FormErrors) =>
+  const inputErr = (field: string, errors: FormErrors) =>
     errors[field] ? "border-destructive focus-visible:ring-destructive" : "";
 
   return (
@@ -303,6 +326,7 @@ export default function ProfilePage() {
           {/* ─ Personal info ─────────────────────────────────────────────── */}
           {activeSection === "personal" && (
             <>
+              {/* Card 1: name / email / phone */}
               <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b">
                   <h2 className="font-semibold text-foreground flex items-center gap-2">
@@ -320,11 +344,8 @@ export default function ProfilePage() {
                       <Input
                         id="name"
                         value={profileForm.name}
-                        onChange={(e) => {
-                          setProfileForm((f) => ({ ...f, name: e.target.value }));
-                          clearProfileError("name");
-                        }}
-                        className={inputError("name", profileErrors)}
+                        onChange={(e) => { setProfileForm((f) => ({ ...f, name: e.target.value })); clearProfileError("name"); }}
+                        className={inputErr("name", profileErrors)}
                       />
                       {profileErrors.name && <FieldError msg={profileErrors.name} />}
                     </div>
@@ -335,11 +356,8 @@ export default function ProfilePage() {
                         id="email"
                         type="email"
                         value={profileForm.email}
-                        onChange={(e) => {
-                          setProfileForm((f) => ({ ...f, email: e.target.value }));
-                          clearProfileError("email");
-                        }}
-                        className={inputError("email", profileErrors)}
+                        onChange={(e) => { setProfileForm((f) => ({ ...f, email: e.target.value })); clearProfileError("email"); }}
+                        className={inputErr("email", profileErrors)}
                       />
                       {profileErrors.email && <FieldError msg={profileErrors.email} />}
                     </div>
@@ -349,8 +367,10 @@ export default function ProfilePage() {
                       <PhoneInput
                         id="phone"
                         value={profileForm.phone}
-                        onChange={(v) => setProfileForm((f) => ({ ...f, phone: v }))}
+                        onChange={(v) => { setProfileForm((f) => ({ ...f, phone: v })); clearProfileError("phone"); }}
+                        className={inputErr("phone", profileErrors)}
                       />
+                      {profileErrors.phone && <FieldError msg={profileErrors.phone} />}
                     </div>
                   </div>
 
@@ -363,7 +383,7 @@ export default function ProfilePage() {
                 </form>
               </div>
 
-              {/* Address card */}
+              {/* Card 2: address */}
               <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b">
                   <h2 className="font-semibold text-foreground flex items-center gap-2">
@@ -372,7 +392,7 @@ export default function ProfilePage() {
                   </h2>
                 </div>
 
-                <form onSubmit={handleAddressSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleAddressSubmit} className="p-6 space-y-4" noValidate>
                   {addrFeedback && <FeedbackBanner feedback={addrFeedback} />}
 
                   {/* CEP */}
@@ -384,17 +404,16 @@ export default function ProfilePage() {
                         placeholder="00000-000"
                         inputMode="numeric"
                         value={addrZipcode}
-                        onChange={(e) => setAddrZipcode(formatCep(e.target.value))}
-                        className={cn("pr-9", cepError && "border-destructive focus-visible:ring-destructive")}
+                        onChange={(e) => { setAddrZipcode(formatCep(e.target.value)); clearAddrError("zipcode"); }}
+                        className={cn("pr-9", (addrErrors.zipcode || cepError) && "border-destructive focus-visible:ring-destructive")}
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
-                        {cepSearching
-                          ? <Loader2 className="w-4 h-4 animate-spin" />
-                          : <Search className="w-4 h-4 opacity-40" />}
+                        {cepSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 opacity-40" />}
                       </div>
                     </div>
                     {cepSearching && <p className="text-xs text-muted-foreground">{t("cep_searching")}</p>}
-                    {cepError    && <FieldError msg={cepError} />}
+                    {cepError && <FieldError msg={cepError} />}
+                    {!cepError && addrErrors.zipcode && <FieldError msg={addrErrors.zipcode} />}
                   </div>
 
                   {/* Street + Number */}
@@ -405,8 +424,10 @@ export default function ProfilePage() {
                         id="addr_street"
                         placeholder="Av. Paulista"
                         value={addrStreet}
-                        onChange={(e) => setAddrStreet(e.target.value)}
+                        onChange={(e) => { setAddrStreet(e.target.value); clearAddrError("street"); }}
+                        className={inputErr("street", addrErrors)}
                       />
+                      {addrErrors.street && <FieldError msg={addrErrors.street} />}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="addr_number">{t("addr_number")}</Label>
@@ -414,8 +435,10 @@ export default function ProfilePage() {
                         id="addr_number"
                         placeholder="123"
                         value={addrNumber}
-                        onChange={(e) => setAddrNumber(e.target.value)}
+                        onChange={(e) => { setAddrNumber(e.target.value); clearAddrError("number"); }}
+                        className={inputErr("number", addrErrors)}
                       />
+                      {addrErrors.number && <FieldError msg={addrErrors.number} />}
                     </div>
                   </div>
 
@@ -437,8 +460,10 @@ export default function ProfilePage() {
                       id="addr_neighborhood"
                       placeholder="Bela Vista"
                       value={addrNeighborhood}
-                      onChange={(e) => setAddrNeighborhood(e.target.value)}
+                      onChange={(e) => { setAddrNeighborhood(e.target.value); clearAddrError("neighborhood"); }}
+                      className={inputErr("neighborhood", addrErrors)}
                     />
+                    {addrErrors.neighborhood && <FieldError msg={addrErrors.neighborhood} />}
                   </div>
 
                   {/* City + State */}
@@ -449,22 +474,28 @@ export default function ProfilePage() {
                         id="addr_city"
                         placeholder="São Paulo"
                         value={addrCity}
-                        onChange={(e) => setAddrCity(e.target.value)}
+                        onChange={(e) => { setAddrCity(e.target.value); clearAddrError("city"); }}
+                        className={inputErr("city", addrErrors)}
                       />
+                      {addrErrors.city && <FieldError msg={addrErrors.city} />}
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="addr_state">{t("addr_state")}</Label>
                       <select
                         id="addr_state"
                         value={addrState}
-                        onChange={(e) => setAddrState(e.target.value)}
-                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        onChange={(e) => { setAddrState(e.target.value); clearAddrError("state"); }}
+                        className={cn(
+                          "flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                          addrErrors.state && "border-destructive"
+                        )}
                       >
                         <option value="">{t("select_state")}</option>
                         {BRAZIL_STATES.map((s) => (
                           <option key={s.uf} value={s.uf}>{s.uf} — {s.name}</option>
                         ))}
                       </select>
+                      {addrErrors.state && <FieldError msg={addrErrors.state} />}
                     </div>
                   </div>
 
@@ -499,12 +530,9 @@ export default function ProfilePage() {
                       id="current_password"
                       type="password"
                       value={passwordForm.current_password}
-                      onChange={(e) => {
-                        setPasswordForm((f) => ({ ...f, current_password: e.target.value }));
-                        clearPasswordError("current_password");
-                      }}
+                      onChange={(e) => { setPasswordForm((f) => ({ ...f, current_password: e.target.value })); clearPasswordError("current_password"); }}
                       autoComplete="current-password"
-                      className={inputError("current_password", passwordErrors)}
+                      className={inputErr("current_password", passwordErrors)}
                     />
                     {passwordErrors.current_password && <FieldError msg={passwordErrors.current_password} />}
                   </div>
@@ -515,12 +543,9 @@ export default function ProfilePage() {
                       id="new_password"
                       type="password"
                       value={passwordForm.password}
-                      onChange={(e) => {
-                        setPasswordForm((f) => ({ ...f, password: e.target.value }));
-                        clearPasswordError("password");
-                      }}
+                      onChange={(e) => { setPasswordForm((f) => ({ ...f, password: e.target.value })); clearPasswordError("password"); }}
                       autoComplete="new-password"
-                      className={inputError("password", passwordErrors)}
+                      className={inputErr("password", passwordErrors)}
                     />
                     {passwordErrors.password && <FieldError msg={passwordErrors.password} />}
                   </div>
@@ -531,12 +556,9 @@ export default function ProfilePage() {
                       id="confirm_password"
                       type="password"
                       value={passwordForm.password_confirmation}
-                      onChange={(e) => {
-                        setPasswordForm((f) => ({ ...f, password_confirmation: e.target.value }));
-                        clearPasswordError("password_confirmation");
-                      }}
+                      onChange={(e) => { setPasswordForm((f) => ({ ...f, password_confirmation: e.target.value })); clearPasswordError("password_confirmation"); }}
                       autoComplete="new-password"
-                      className={inputError("password_confirmation", passwordErrors)}
+                      className={inputErr("password_confirmation", passwordErrors)}
                     />
                     {passwordErrors.password_confirmation && <FieldError msg={passwordErrors.password_confirmation} />}
                   </div>

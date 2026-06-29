@@ -27,6 +27,13 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+/** Returns true if a PhoneInput value contains at least 4 digits after the country code. */
+function hasPhoneNumber(phone: string): boolean {
+  const idx = phone.indexOf(" ");
+  if (idx === -1) return false;
+  return phone.slice(idx + 1).replace(/\D/g, "").length >= 4;
+}
+
 /** Inline field error message. */
 function FieldError({ msg }: { msg: string }) {
   return <p className="text-xs text-destructive mt-0.5">{msg}</p>;
@@ -34,7 +41,7 @@ function FieldError({ msg }: { msg: string }) {
 
 /**
  * Customer registration page.
- * Collects name, email, phone (with country code + mask), password, and optional address.
+ * Collects name, email, phone (with country code + mask), password, and address.
  *
  * @returns The registration page element.
  */
@@ -89,6 +96,7 @@ export default function RegisterPage() {
   useEffect(() => {
     const digits = addrZipcode.replace(/\D/g, "");
     if (digits.length === 8) fetchCep(digits);
+    else setCepError("");
   }, [addrZipcode, fetchCep]);
 
   function validate(): FormErrors {
@@ -96,10 +104,17 @@ export default function RegisterPage() {
     if (!formData.name.trim()) errs.name = tC("validation_required");
     if (!formData.email.trim()) errs.email = tC("validation_required");
     else if (!isValidEmail(formData.email)) errs.email = tC("validation_email");
+    if (!hasPhoneNumber(formData.phone)) errs.phone = tC("validation_phone");
     if (!formData.password) errs.password = tC("validation_required");
     else if (formData.password.length < 8) errs.password = tC("validation_password_min");
     if (formData.password !== formData.password_confirmation)
       errs.password_confirmation = tC("validation_password_match");
+    if (!addrZipcode.replace(/\D/g, "")) errs.zipcode      = tC("validation_required");
+    if (!addrStreet.trim())               errs.street       = tC("validation_required");
+    if (!addrNumber.trim())               errs.number       = tC("validation_required");
+    if (!addrNeighborhood.trim())         errs.neighborhood = tC("validation_required");
+    if (!addrCity.trim())                 errs.city         = tC("validation_required");
+    if (!addrState)                       errs.state        = tC("validation_required");
     return errs;
   }
 
@@ -112,11 +127,10 @@ export default function RegisterPage() {
       const addressParts = [addrStreet, addrNumber, addrComplement].filter(Boolean);
       const payload = {
         ...formData,
-        phone:   formData.phone || undefined,
-        address: addressParts.length ? addressParts.join(", ") : undefined,
-        city:    addrCity    || undefined,
-        state:   addrState   || undefined,
-        zipcode: addrZipcode.replace(/\D/g, "") || undefined,
+        address: addressParts.join(", "),
+        city:    addrCity,
+        state:   addrState,
+        zipcode: addrZipcode.replace(/\D/g, ""),
       };
       const response = await apiClient.post("/register", payload);
       return response.data;
@@ -144,8 +158,10 @@ export default function RegisterPage() {
   const inputCls = (field: string) =>
     errors[field] ? "border-destructive focus-visible:ring-destructive" : "";
 
-  const selectClass =
-    "flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+  const selectClass = cn(
+    "flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm",
+    "ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+  );
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
@@ -171,10 +187,7 @@ export default function RegisterPage() {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => {
-                  setFormData((p) => ({ ...p, name: e.target.value }));
-                  clearError("name");
-                }}
+                onChange={(e) => { setFormData((p) => ({ ...p, name: e.target.value })); clearError("name"); }}
                 placeholder="Seu nome completo"
                 className={inputCls("name")}
               />
@@ -187,10 +200,7 @@ export default function RegisterPage() {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => {
-                  setFormData((p) => ({ ...p, email: e.target.value }));
-                  clearError("email");
-                }}
+                onChange={(e) => { setFormData((p) => ({ ...p, email: e.target.value })); clearError("email"); }}
                 placeholder="seu@email.com"
                 className={inputCls("email")}
               />
@@ -202,8 +212,10 @@ export default function RegisterPage() {
               <PhoneInput
                 id="phone"
                 value={formData.phone}
-                onChange={(v) => setFormData((p) => ({ ...p, phone: v }))}
+                onChange={(v) => { setFormData((p) => ({ ...p, phone: v })); clearError("phone"); }}
+                className={inputCls("phone")}
               />
+              {errors.phone && <FieldError msg={errors.phone} />}
             </div>
 
             <div className="space-y-2">
@@ -212,10 +224,7 @@ export default function RegisterPage() {
                 id="password"
                 type="password"
                 value={formData.password}
-                onChange={(e) => {
-                  setFormData((p) => ({ ...p, password: e.target.value }));
-                  clearError("password");
-                }}
+                onChange={(e) => { setFormData((p) => ({ ...p, password: e.target.value })); clearError("password"); }}
                 placeholder="••••••••"
                 className={inputCls("password")}
               />
@@ -228,10 +237,7 @@ export default function RegisterPage() {
                 id="password_confirmation"
                 type="password"
                 value={formData.password_confirmation}
-                onChange={(e) => {
-                  setFormData((p) => ({ ...p, password_confirmation: e.target.value }));
-                  clearError("password_confirmation");
-                }}
+                onChange={(e) => { setFormData((p) => ({ ...p, password_confirmation: e.target.value })); clearError("password_confirmation"); }}
                 placeholder="••••••••"
                 className={inputCls("password_confirmation")}
               />
@@ -239,24 +245,22 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Address section (optional) */}
+          {/* Address section */}
           <div className="space-y-4 pt-2 border-t border-border/60">
-            <p className="text-sm font-medium text-foreground">
-              {tP("address_section")}{" "}
-              <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
-            </p>
+            <p className="text-sm font-medium text-foreground">{tP("address_section")}</p>
 
             {/* CEP */}
             <div className="space-y-2">
-              <Label htmlFor="reg-zipcode">CEP</Label>
+              <Label htmlFor="reg-zipcode">{tP("addr_zipcode")}</Label>
               <div className="relative">
                 <Input
                   id="reg-zipcode"
                   value={addrZipcode}
-                  onChange={(e) => setAddrZipcode(formatCep(e.target.value))}
+                  onChange={(e) => { setAddrZipcode(formatCep(e.target.value)); clearError("zipcode"); }}
                   placeholder="00000-000"
+                  inputMode="numeric"
                   maxLength={9}
-                  className={cn("pr-10", cepError && "border-destructive focus-visible:ring-destructive")}
+                  className={cn("pr-10", (errors.zipcode || cepError) && "border-destructive focus-visible:ring-destructive")}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
                   {cepSearching
@@ -265,7 +269,8 @@ export default function RegisterPage() {
                 </div>
               </div>
               {cepSearching && <p className="text-xs text-muted-foreground">{tP("cep_searching")}</p>}
-              {cepError    && <FieldError msg={cepError} />}
+              {cepError && <FieldError msg={cepError} />}
+              {!cepError && errors.zipcode && <FieldError msg={errors.zipcode} />}
             </div>
 
             {/* Street + Number */}
@@ -275,18 +280,22 @@ export default function RegisterPage() {
                 <Input
                   id="reg-street"
                   value={addrStreet}
-                  onChange={(e) => setAddrStreet(e.target.value)}
+                  onChange={(e) => { setAddrStreet(e.target.value); clearError("street"); }}
                   placeholder="Av. Paulista"
+                  className={inputCls("street")}
                 />
+                {errors.street && <FieldError msg={errors.street} />}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="reg-number">{tP("addr_number")}</Label>
                 <Input
                   id="reg-number"
                   value={addrNumber}
-                  onChange={(e) => setAddrNumber(e.target.value)}
+                  onChange={(e) => { setAddrNumber(e.target.value); clearError("number"); }}
                   placeholder="123"
+                  className={inputCls("number")}
                 />
+                {errors.number && <FieldError msg={errors.number} />}
               </div>
             </div>
 
@@ -307,9 +316,11 @@ export default function RegisterPage() {
               <Input
                 id="reg-neighborhood"
                 value={addrNeighborhood}
-                onChange={(e) => setAddrNeighborhood(e.target.value)}
+                onChange={(e) => { setAddrNeighborhood(e.target.value); clearError("neighborhood"); }}
                 placeholder="Bela Vista"
+                className={inputCls("neighborhood")}
               />
+              {errors.neighborhood && <FieldError msg={errors.neighborhood} />}
             </div>
 
             {/* City + State */}
@@ -319,23 +330,26 @@ export default function RegisterPage() {
                 <Input
                   id="reg-city"
                   value={addrCity}
-                  onChange={(e) => setAddrCity(e.target.value)}
+                  onChange={(e) => { setAddrCity(e.target.value); clearError("city"); }}
                   placeholder="São Paulo"
+                  className={inputCls("city")}
                 />
+                {errors.city && <FieldError msg={errors.city} />}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="reg-state">{tP("addr_state")}</Label>
                 <select
                   id="reg-state"
                   value={addrState}
-                  onChange={(e) => setAddrState(e.target.value)}
-                  className={selectClass}
+                  onChange={(e) => { setAddrState(e.target.value); clearError("state"); }}
+                  className={cn(selectClass, errors.state && "border-destructive")}
                 >
                   <option value="">{tP("select_state")}</option>
                   {BRAZIL_STATES.map((s) => (
                     <option key={s.uf} value={s.uf}>{s.uf} — {s.name}</option>
                   ))}
                 </select>
+                {errors.state && <FieldError msg={errors.state} />}
               </div>
             </div>
           </div>

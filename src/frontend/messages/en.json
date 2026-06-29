@@ -69,7 +69,8 @@
     "validation_required": "Required field.",
     "validation_email": "Invalid email address.",
     "validation_password_min": "Minimum 8 characters.",
-    "validation_password_match": "Passwords do not match."
+    "validation_password_match": "Passwords do not match.",
+    "validation_phone": "Please enter a valid phone number."
   },
   "Catalog": {
     "title": "Catalog",
@@ -481,6 +482,7 @@
     "addr_state": "State",
     "cep_searching": "Looking up address...",
     "cep_not_found": "ZIP code not found.",
+    "addr_zipcode": "ZIP Code",
     "save_address": "Save Address",
     "address_updated": "Address updated successfully!",
     "select_state": "Select state"

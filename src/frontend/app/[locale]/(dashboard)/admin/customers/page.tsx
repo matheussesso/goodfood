@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 /** Returns two uppercase initials from a full name. */
 function getInitials(name: string): string {
@@ -66,12 +67,18 @@ function useDebounce<T>(value: T, delay: number): T {
   return dv;
 }
 
-/** Formats a raw string as XXXXX-XXX (max 8 digits). */
 type FormErrors = Partial<Record<string, string>>;
 
 /** Validates email format. */
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/** Returns true if a PhoneInput value contains at least 4 digits after the country code. */
+function hasPhoneNumber(phone: string): boolean {
+  const idx = phone.indexOf(" ");
+  if (idx === -1) return false;
+  return phone.slice(idx + 1).replace(/\D/g, "").length >= 4;
 }
 
 /** Inline field error message. */
@@ -164,10 +171,17 @@ export default function CustomersPage() {
     if (!createForm.name.trim()) errs.name = tC("validation_required");
     if (!createForm.email.trim()) errs.email = tC("validation_required");
     else if (!isValidEmail(createForm.email)) errs.email = tC("validation_email");
+    if (!hasPhoneNumber(createForm.phone)) errs.phone = tC("validation_phone");
     if (!createForm.password) errs.password = tC("validation_required");
     else if (createForm.password.length < 8) errs.password = tC("validation_password_min");
     if (createForm.password !== createForm.password_confirmation)
       errs.password_confirmation = tC("validation_password_match");
+    if (!addr.zipcode.replace(/\D/g, "")) errs.zipcode      = tC("validation_required");
+    if (!addr.street.trim())               errs.street       = tC("validation_required");
+    if (!addr.number.trim())               errs.number       = tC("validation_required");
+    if (!addr.neighborhood.trim())         errs.neighborhood = tC("validation_required");
+    if (!addr.city.trim())                 errs.city         = tC("validation_required");
+    if (!addr.state)                       errs.state        = tC("validation_required");
     return errs;
   }
 
@@ -551,8 +565,10 @@ export default function CustomersPage() {
             <PhoneInput
               id="c-phone"
               value={createForm.phone}
-              onChange={(v) => setCreateForm((f) => ({ ...f, phone: v }))}
+              onChange={(v) => { setCreateForm((f) => ({ ...f, phone: v })); clearCreateError("phone"); }}
+              className={createErrors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {createErrors.phone && <FieldError msg={createErrors.phone} />}
           </div>
 
           {/* Password */}
@@ -585,9 +601,7 @@ export default function CustomersPage() {
 
           {/* Address divider */}
           <div className="pt-2 border-t border-border/60">
-            <p className="text-sm font-medium text-foreground mb-3">
-              {t("address_title")} <span className="text-muted-foreground font-normal text-xs">(opcional)</span>
-            </p>
+            <p className="text-sm font-medium text-foreground mb-3">{t("address_title")}</p>
 
             {/* CEP */}
             <div className="space-y-2 mb-3">
@@ -596,19 +610,21 @@ export default function CustomersPage() {
                 <Input
                   id="c-zipcode"
                   value={addr.zipcode}
-                  onChange={(e) => setAddr((a) => ({ ...a, zipcode: formatCep(e.target.value) }))}
+                  onChange={(e) => { setAddr((a) => ({ ...a, zipcode: formatCep(e.target.value) })); clearCreateError("zipcode"); }}
                   placeholder="00000-000"
+                  inputMode="numeric"
                   maxLength={9}
-                  className="pr-10"
+                  className={cn("pr-10", (createErrors.zipcode || cepError) && "border-destructive focus-visible:ring-destructive")}
                 />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
                   {cepSearching
                     ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : <Search className="h-4 w-4" />}
+                    : <Search className="h-4 w-4 opacity-40" />}
                 </div>
               </div>
               {cepSearching && <p className="text-xs text-muted-foreground">{t("cep_searching")}</p>}
-              {cepError    && <p className="text-xs text-destructive">{cepError}</p>}
+              {cepError && <FieldError msg={cepError} />}
+              {!cepError && createErrors.zipcode && <FieldError msg={createErrors.zipcode} />}
             </div>
 
             {/* Street + Number */}
@@ -618,18 +634,22 @@ export default function CustomersPage() {
                 <Input
                   id="c-street"
                   value={addr.street}
-                  onChange={(e) => setAddr((a) => ({ ...a, street: e.target.value }))}
+                  onChange={(e) => { setAddr((a) => ({ ...a, street: e.target.value })); clearCreateError("street"); }}
                   placeholder="Av. Paulista"
+                  className={createErrors.street ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                {createErrors.street && <FieldError msg={createErrors.street} />}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="c-number">{t("addr_number")}</Label>
                 <Input
                   id="c-number"
                   value={addr.number}
-                  onChange={(e) => setAddr((a) => ({ ...a, number: e.target.value }))}
+                  onChange={(e) => { setAddr((a) => ({ ...a, number: e.target.value })); clearCreateError("number"); }}
                   placeholder="123"
+                  className={createErrors.number ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                {createErrors.number && <FieldError msg={createErrors.number} />}
               </div>
             </div>
 
@@ -650,9 +670,11 @@ export default function CustomersPage() {
               <Input
                 id="c-neighborhood"
                 value={addr.neighborhood}
-                onChange={(e) => setAddr((a) => ({ ...a, neighborhood: e.target.value }))}
+                onChange={(e) => { setAddr((a) => ({ ...a, neighborhood: e.target.value })); clearCreateError("neighborhood"); }}
                 placeholder="Bela Vista"
+                className={createErrors.neighborhood ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+              {createErrors.neighborhood && <FieldError msg={createErrors.neighborhood} />}
             </div>
 
             {/* City + State */}
@@ -662,23 +684,26 @@ export default function CustomersPage() {
                 <Input
                   id="c-city"
                   value={addr.city}
-                  onChange={(e) => setAddr((a) => ({ ...a, city: e.target.value }))}
+                  onChange={(e) => { setAddr((a) => ({ ...a, city: e.target.value })); clearCreateError("city"); }}
                   placeholder="São Paulo"
+                  className={createErrors.city ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                {createErrors.city && <FieldError msg={createErrors.city} />}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="c-state">{t("addr_state")}</Label>
                 <select
                   id="c-state"
                   value={addr.state}
-                  onChange={(e) => setAddr((a) => ({ ...a, state: e.target.value }))}
-                  className={selectClass}
+                  onChange={(e) => { setAddr((a) => ({ ...a, state: e.target.value })); clearCreateError("state"); }}
+                  className={cn(selectClass, createErrors.state && "border-destructive")}
                 >
                   <option value="">{t("select_state")}</option>
                   {BRAZIL_STATES.map((s) => (
                     <option key={s.uf} value={s.uf}>{s.uf} — {s.name}</option>
                   ))}
                 </select>
+                {createErrors.state && <FieldError msg={createErrors.state} />}
               </div>
             </div>
           </div>
