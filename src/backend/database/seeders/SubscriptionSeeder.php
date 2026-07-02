@@ -22,18 +22,32 @@ class SubscriptionSeeder extends Seeder
 
         $pet1 = Pet::where('name', 'Rex')->where('user_id', $customer->id)->first();
         $recipeCarne = Recipe::where('name', 'Mix Carne Premium')->first();
+        $recipeFrango = Recipe::where('name', '!=', 'Mix Carne Premium')->first();
 
-        if ($pet1 && $recipeCarne) {
-            Subscription::firstOrCreate([
-                'user_id' => $customer->id,
-                'pet_id' => $pet1->id,
-            ], [
-                'recipe_id' => $recipeCarne->id,
-                'frequency' => 'weekly',
-                'status' => 'active',
-                'start_date' => Carbon::now()->addDays(2)->toDateString(),
-                'next_delivery_date' => Carbon::now()->addDays(2)->toDateString(),
-            ]);
+        if (!$pet1 || !$recipeCarne) {
+            return;
+        }
+
+        $startDate = Carbon::now()->addDays(2);
+        $intervalDays = 14;
+
+        $subscription = Subscription::firstOrCreate([
+            'user_id' => $customer->id,
+            'pet_id' => $pet1->id,
+        ], [
+            'interval_days' => $intervalDays,
+            'status' => 'active',
+            'start_date' => $startDate->toDateString(),
+            'next_delivery_date' => $startDate->copy()->addDays($intervalDays)->toDateString(),
+        ]);
+
+        if ($subscription->recipes()->exists()) {
+            return;
+        }
+
+        $subscription->recipes()->attach($recipeCarne->id, ['position' => 0]);
+        if ($recipeFrango) {
+            $subscription->recipes()->attach($recipeFrango->id, ['position' => 1]);
         }
     }
 }

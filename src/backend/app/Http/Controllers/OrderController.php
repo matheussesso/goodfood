@@ -8,7 +8,6 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Recipe;
-use App\Models\Subscription;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,7 +54,6 @@ class OrderController extends Controller
             'items'                => 'required|array|min:1',
             'items.*.recipe_id'    => 'required|integer|exists:recipes,id',
             'items.*.pet_id'       => 'nullable|integer|exists:pets,id',
-            'items.*.subscribe'    => 'sometimes|boolean',
             'delivery_address'     => 'nullable|string|max:1000',
         ]);
 
@@ -89,8 +87,6 @@ class OrderController extends Controller
             'due_date'       => Carbon::today()->addDays(3),
         ]);
 
-        $subscriptionsCreated = 0;
-
         foreach ($validated['items'] as $item) {
             /** @var Recipe|null $recipe */
             $recipe = $recipesById->get($item['recipe_id']);
@@ -102,38 +98,12 @@ class OrderController extends Controller
                 'unit_price' => $currentPrice,
                 'quantity'   => 1,
             ]);
-
-            if (!empty($item['subscribe']) && $recipe !== null && !empty($item['pet_id'])) {
-                try {
-                    $durationDays  = (int) ($recipe->duration_days ?? 30);
-                    $daysUntilNext = max(1, $durationDays - 7);
-
-                    $request->user()->subscriptions()->create([
-                        'pet_id'             => $item['pet_id'],
-                        'recipe_id'          => $item['recipe_id'],
-                        'frequency'          => 'monthly',
-                        'status'             => 'active',
-                        'start_date'         => Carbon::today(),
-                        'next_delivery_date' => Carbon::today()->addDays($daysUntilNext),
-                    ]);
-
-                    $subscriptionsCreated++;
-                } catch (\Throwable $e) {
-                    \Log::error('Subscription creation failed', [
-                        'order_id'  => $order->id,
-                        'recipe_id' => $item['recipe_id'],
-                        'pet_id'    => $item['pet_id'],
-                        'error'     => $e->getMessage(),
-                    ]);
-                }
-            }
         }
 
         return response()->json([
-            'success'               => true,
-            'message'               => 'Order created successfully',
-            'data'                  => $order->load(['items.recipe', 'items.pet', 'invoice']),
-            'subscriptions_created' => $subscriptionsCreated,
+            'success' => true,
+            'message' => 'Order created successfully',
+            'data'    => $order->load(['items.recipe', 'items.pet', 'invoice']),
         ], 201);
     }
 

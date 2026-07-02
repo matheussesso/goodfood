@@ -29,6 +29,22 @@ services:
     networks:
       - goodfood_network
 
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: goodfood_scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php artisan schedule:work
+    volumes:
+      - ./src/backend:/var/www/html
+      - ./docker/backend/php.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on:
+      - db
+    networks:
+      - goodfood_network
+
   nginx:
     image: nginx:alpine
     container_name: goodfood_nginx

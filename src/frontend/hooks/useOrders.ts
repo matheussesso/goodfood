@@ -59,8 +59,6 @@ export interface Order {
 export interface OrderItemPayload {
   recipe_id: number;
   pet_id?: number;
-  /** When true, a recurring subscription will be created for this item. */
-  subscribe?: boolean;
 }
 
 /** Payload for creating a new order. */
@@ -128,11 +126,8 @@ export function useOrders() {
       const response = await apiClient.post("/orders", data);
       return response.data;
     },
-    onSuccess: (result) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      if ((result?.subscriptions_created ?? 0) > 0) {
-        queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
-      }
     },
   });
 

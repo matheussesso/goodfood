@@ -32,17 +32,31 @@ import { cn } from "@/lib/utils";
 type SubStatus = "active" | "paused" | "cancelled";
 
 /**
- * Returns a human-readable frequency label based on recipe duration_days.
+ * Renders the ordered recipe rotation as a compact chip list.
  *
- * @param durationDays - The recipe's duration in days.
+ * @param recipes - The subscription's recipe rotation, ordered by pivot.position.
  * @param t - Subscriptions namespace translator.
+ * @returns The rotation chip list element.
  */
-function frequencyLabel(durationDays: number | undefined, t: ReturnType<typeof useTranslations>): string {
-  if (!durationDays) return t("frequency_monthly");
-  if (durationDays <= 7)  return t("frequency_weekly");
-  if (durationDays <= 14) return t("frequency_biweekly");
-  if (durationDays <= 31) return t("frequency_monthly");
-  return t("frequency_custom", { days: durationDays });
+function RotationChips({ recipes, t }: { recipes: Subscription["recipes"]; t: ReturnType<typeof useTranslations> }) {
+  const ordered = [...(recipes ?? [])].sort((a, b) => (a.pivot?.position ?? 0) - (b.pivot?.position ?? 0));
+
+  if (ordered.length === 0) {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {ordered.map((recipe, index) => (
+        <span
+          key={`${recipe.id}-${index}`}
+          className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground"
+        >
+          {t("rotation_order", { n: String(index + 1) })}: {recipe.name}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 const STATUS_STYLE: Record<SubStatus, { badge: string; dot: string }> = {
@@ -78,7 +92,7 @@ export default function AdminSubscriptionsPage() {
       const matchSearch =
         !q ||
         s.pet?.name?.toLowerCase().includes(q) ||
-        s.recipe?.name?.toLowerCase().includes(q) ||
+        s.recipes?.some((r) => r.name?.toLowerCase().includes(q)) ||
         s.user?.name?.toLowerCase().includes(q);
       return matchStatus && matchSearch;
     });
@@ -307,7 +321,6 @@ function AdminSubscriptionCard({ sub, t, isUpdating, onStatusChange }: AdminSubR
   const style = STATUS_STYLE[status] ?? STATUS_STYLE.active;
   const PetIcon = sub.pet?.type === "cat" ? Cat : Dog;
   const customerName = sub.user?.name ?? "—";
-  const frequency = frequencyLabel(sub.recipe?.duration_days, t);
   const estimatedPrice = sub.estimated_price ?? 0;
 
   const nextDate = sub.next_delivery_date
@@ -355,10 +368,10 @@ function AdminSubscriptionCard({ sub, t, isUpdating, onStatusChange }: AdminSubR
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
           <UtensilsCrossed className="w-3 h-3 shrink-0" />
-          <span className="line-clamp-1">{sub.recipe?.name ?? "—"}</span>
+          <RotationChips recipes={sub.recipes} t={t} />
         </div>
 
-        {/* Price + frequency */}
+        {/* Price + cadence */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <DollarSign className="w-3.5 h-3.5 text-amber-500" />
@@ -369,7 +382,7 @@ function AdminSubscriptionCard({ sub, t, isUpdating, onStatusChange }: AdminSubR
           </div>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Repeat2 className="w-3 h-3" />
-            <span className="font-medium">{frequency}</span>
+            <span className="font-medium">{t("cadence_label", { days: String(sub.interval_days) })}</span>
           </div>
         </div>
       </div>
@@ -401,15 +414,6 @@ function AdminSubscriptionCard({ sub, t, isUpdating, onStatusChange }: AdminSubR
           </p>
           <p className="text-xs font-medium text-foreground">{startDate}</p>
         </div>
-
-        {sub.recipe?.duration_days && (
-          <div className="space-y-0.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-              <Clock className="w-3 h-3" />{t("duration_days")}
-            </p>
-            <p className="text-xs font-medium text-foreground">{sub.recipe.duration_days} dias</p>
-          </div>
-        )}
       </div>
 
       {/* ── Actions ────────────────────────────────────────── */}
@@ -503,10 +507,10 @@ function AdminSubscriptionRow({ sub, t, isUpdating, onStatusChange }: AdminSubRo
         <span className="text-sm text-foreground line-clamp-1">{sub.pet?.name ?? "—"}</span>
       </div>
 
-      {/* Recipe */}
+      {/* Recipe rotation */}
       <div className="flex items-center gap-2 min-w-0">
         <UtensilsCrossed className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-        <span className="text-sm text-foreground line-clamp-1">{sub.recipe?.name ?? "—"}</span>
+        <RotationChips recipes={sub.recipes} t={t} />
       </div>
 
       {/* Estimated price */}

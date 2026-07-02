@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useSubscriptions, Subscription } from "@/hooks/useSubscriptions";
+import { usePets } from "@/hooks/usePets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Modal } from "@/components/ui/modal";
 import {
   CalendarCheck,
   RefreshCw,
@@ -25,24 +28,16 @@ import {
   Package,
   DollarSign,
   CalendarDays,
+  Plus,
+  X,
+  GripVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type SubStatus = "active" | "paused" | "cancelled";
 
-/**
- * Returns a human-readable frequency label based on recipe duration_days.
- *
- * @param durationDays - The recipe's duration in days.
- * @param t - Subscriptions namespace translator.
- */
-function frequencyLabel(durationDays: number | undefined, t: ReturnType<typeof useTranslations>): string {
-  if (!durationDays) return t("frequency_monthly");
-  if (durationDays <= 7)  return t("frequency_weekly");
-  if (durationDays <= 14) return t("frequency_biweekly");
-  if (durationDays <= 31) return t("frequency_monthly");
-  return t("frequency_custom", { days: durationDays });
-}
+/** Cycle intervals offered in the creation form — multiples of 7, minimum 14. */
+const INTERVAL_OPTIONS = [14, 21, 28, 35, 42];
 
 const STATUS_STYLE: Record<SubStatus, { badge: string; dot: string }> = {
   active:    { badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800", dot: "bg-emerald-500" },
@@ -52,7 +47,8 @@ const STATUS_STYLE: Record<SubStatus, { badge: string; dot: string }> = {
 
 /**
  * Customer-facing subscriptions page.
- * Lists all auto-replenishment subscriptions and allows pausing, resuming, or cancelling.
+ * Lets the customer create a new subscription (pet + ordered recipe rotation + cycle
+ * interval), lists all their subscriptions, and allows pausing, resuming, or cancelling.
  * Supports card and list view modes.
  *
  * @returns The subscriptions management page element.
@@ -61,12 +57,21 @@ export default function SubscriptionsPage() {
   const t = useTranslations("Subscriptions");
   const tCommon = useTranslations("Common");
 
-  const { subscriptions, isLoading, updateSubscription, isUpdating } = useSubscriptions();
+  const { subscriptions, isLoading, createSubscription, isCreating, updateSubscription, isUpdating } = useSubscriptions();
+  const { pets } = usePets();
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<SubStatus | "all">("all");
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
+  const [rotationRecipeIds, setRotationRecipeIds] = useState<number[]>([]);
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [intervalDays, setIntervalDays] = useState(14);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const filtered = (subscriptions ?? []).filter((s) => {
     const matchStatus = statusFilter === "all" || s.status === statusFilter;
@@ -74,12 +79,78 @@ export default function SubscriptionsPage() {
     const matchSearch =
       !q ||
       s.pet?.name?.toLowerCase().includes(q) ||
-      s.recipe?.name?.toLowerCase().includes(q);
+      s.recipes?.some((r) => r.name?.toLowerCase().includes(q));
     return matchStatus && matchSearch;
   });
 
   const hasSubscriptions = !!(subscriptions && subscriptions.length > 0);
   const hasFilters = search !== "" || statusFilter !== "all";
+
+  const selectedPet = pets?.find((p) => p.id === selectedPetId);
+  const petRecipeOptions = (selectedPet?.recipes ?? []).filter((r) => !r.is_template);
+
+  const firstDeliveryPreview = useMemo(() => {
+    if (!startDate) return null;
+    const date = new Date(`${startDate}T00:00:00`);
+    date.setDate(date.getDate() + intervalDays);
+    return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+  }, [startDate, intervalDays]);
+
+  /** Resets the creation form to its default state. */
+  function resetForm() {
+    setSelectedPetId(null);
+    setRotationRecipeIds([]);
+    setStartDate(new Date().toISOString().slice(0, 10));
+    setIntervalDays(14);
+    setFormError(null);
+  }
+
+  function openCreateModal() {
+    resetForm();
+    setIsModalOpen(true);
+  }
+
+  function addRecipeToRotation(recipeId: number) {
+    setRotationRecipeIds((prev) => [...prev, recipeId]);
+  }
+
+  function removeRecipeFromRotation(index: number) {
+    setRotationRecipeIds((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  /**
+   * Submits the new subscription form.
+   *
+   * @param e - The form submit event.
+   */
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+
+    if (!selectedPetId) {
+      setFormError(t("select_pet"));
+      return;
+    }
+    if (rotationRecipeIds.length === 0) {
+      setFormError(t("min_one_recipe_error"));
+      return;
+    }
+
+    try {
+      await createSubscription({
+        pet_id: selectedPetId,
+        recipe_ids: rotationRecipeIds,
+        start_date: startDate,
+        interval_days: intervalDays,
+      });
+      setIsModalOpen(false);
+      setFeedback({ type: "success", message: t("subscription_created_success") });
+    } catch {
+      setFormError(t("invalid_interval_error"));
+    } finally {
+      setTimeout(() => setFeedback(null), 3000);
+    }
+  }
 
   /**
    * Updates a subscription's status and shows a feedback banner.
@@ -147,6 +218,10 @@ export default function SubscriptionsPage() {
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">{t("description")}</p>
         </div>
+        <Button onClick={openCreateModal} className="gap-2 w-full sm:w-auto">
+          <Plus className="w-4 h-4" />
+          {t("create_subscription")}
+        </Button>
       </div>
 
       {/* ── Feedback banner ────────────────────────────────────────── */}
@@ -230,6 +305,10 @@ export default function SubscriptionsPage() {
             <p className="font-semibold text-foreground">{t("no_subscriptions")}</p>
             <p className="text-sm text-muted-foreground max-w-sm">{t("no_subscriptions_desc")}</p>
           </div>
+          <Button onClick={openCreateModal} className="gap-2">
+            <Plus className="w-4 h-4" />
+            {t("create_subscription")}
+          </Button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 bg-card border rounded-xl gap-3 text-center px-6">
@@ -263,6 +342,138 @@ export default function SubscriptionsPage() {
           </div>
         </div>
       )}
+
+      {/* ── Create subscription modal ─────────────────────────────── */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={t("create_subscription")}
+        className="max-w-lg"
+      >
+        <form onSubmit={handleCreate} className="space-y-4">
+          {/* Pet selection */}
+          <div className="space-y-2">
+            <Label htmlFor="sub_pet">{t("select_pet")}</Label>
+            <select
+              id="sub_pet"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              value={selectedPetId ?? ""}
+              onChange={(e) => {
+                setSelectedPetId(e.target.value ? Number(e.target.value) : null);
+                setRotationRecipeIds([]);
+              }}
+            >
+              <option value="">{t("select_pet")}</option>
+              {(pets ?? []).map((pet) => (
+                <option key={pet.id} value={pet.id}>{pet.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Recipe rotation builder */}
+          {selectedPetId && (
+            <div className="space-y-2">
+              <Label>{t("select_recipes")}</Label>
+              <p className="text-xs text-muted-foreground">{t("rotation_hint")}</p>
+
+              {petRecipeOptions.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">—</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {petRecipeOptions.map((recipe) => (
+                    <button
+                      key={recipe.id}
+                      type="button"
+                      onClick={() => addRecipeToRotation(recipe.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+                    >
+                      <UtensilsCrossed className="w-3.5 h-3.5 text-muted-foreground" />
+                      {recipe.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {rotationRecipeIds.length > 0 && (
+                <div className="border rounded-lg divide-y divide-border/50 mt-2">
+                  {rotationRecipeIds.map((recipeId, index) => {
+                    const recipe = petRecipeOptions.find((r) => r.id === recipeId);
+                    return (
+                      <div key={`${recipeId}-${index}`} className="flex items-center gap-2 px-3 py-2">
+                        <GripVertical className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+                        <span className="text-xs font-semibold text-primary shrink-0">
+                          {t("rotation_order", { n: String(index + 1) })}
+                        </span>
+                        <span className="text-sm text-foreground flex-1 min-w-0 truncate">
+                          {recipe?.name ?? `#${recipeId}`}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeRecipeFromRotation(index)}
+                          title={t("remove_recipe")}
+                          className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Start date + interval */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="sub_start_date">{t("start_date_label")}</Label>
+              <Input
+                id="sub_start_date"
+                type="date"
+                min={new Date().toISOString().slice(0, 10)}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sub_interval">{t("interval_days_label")}</Label>
+              <select
+                id="sub_interval"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                value={intervalDays}
+                onChange={(e) => setIntervalDays(Number(e.target.value))}
+              >
+                {INTERVAL_OPTIONS.map((days) => (
+                  <option key={days} value={days}>{days}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-muted-foreground">{t("interval_days_hint")}</p>
+            </div>
+          </div>
+
+          {firstDeliveryPreview && (
+            <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+              {t("first_delivery_preview", { date: firstDeliveryPreview, days: String(intervalDays) })}
+            </p>
+          )}
+
+          {formError && (
+            <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
+              {formError}
+            </p>
+          )}
+
+          <div className="pt-2 flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+              {tCommon("cancel")}
+            </Button>
+            <Button type="submit" disabled={isCreating}>
+              {isCreating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {tCommon("save")}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
@@ -275,7 +486,35 @@ interface SubscriptionCardProps {
 }
 
 /**
- * Card displaying a single subscription with full details: pet, recipe, frequency,
+ * Renders the ordered recipe rotation as a compact chip list.
+ *
+ * @param recipes - The subscription's recipe rotation, ordered by pivot.position.
+ * @param t - Subscriptions namespace translator.
+ * @returns The rotation chip list element.
+ */
+function RotationChips({ recipes, t }: { recipes: Subscription["recipes"]; t: ReturnType<typeof useTranslations> }) {
+  const ordered = [...(recipes ?? [])].sort((a, b) => (a.pivot?.position ?? 0) - (b.pivot?.position ?? 0));
+
+  if (ordered.length === 0) {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {ordered.map((recipe, index) => (
+        <span
+          key={`${recipe.id}-${index}`}
+          className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground"
+        >
+          {t("rotation_order", { n: String(index + 1) })}: {recipe.name}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Card displaying a single subscription with full details: pet, recipe rotation, cadence,
  * estimated price, orders count, last order date, next delivery date and action buttons.
  *
  * @param sub - The subscription data.
@@ -305,7 +544,6 @@ function SubscriptionCard({ sub, t, isUpdating, onStatusChange }: SubscriptionCa
     ? new Date(sub.orders_max_created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
     : null;
 
-  const frequency = frequencyLabel(sub.recipe?.duration_days, t);
   const estimatedPrice = sub.estimated_price ?? 0;
 
   return (
@@ -322,10 +560,9 @@ function SubscriptionCard({ sub, t, isUpdating, onStatusChange }: SubscriptionCa
             </div>
             <div className="min-w-0">
               <p className="font-semibold text-foreground text-sm line-clamp-1">{sub.pet?.name ?? "—"}</p>
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                <UtensilsCrossed className="w-3 h-3 shrink-0" />
-                <span className="line-clamp-1">{sub.recipe?.name ?? "—"}</span>
-              </p>
+              <div className="mt-0.5">
+                <RotationChips recipes={sub.recipes} t={t} />
+              </div>
             </div>
           </div>
           <span className={cn(
@@ -337,7 +574,7 @@ function SubscriptionCard({ sub, t, isUpdating, onStatusChange }: SubscriptionCa
           </span>
         </div>
 
-        {/* Price + frequency */}
+        {/* Price + cadence */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <DollarSign className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -348,7 +585,7 @@ function SubscriptionCard({ sub, t, isUpdating, onStatusChange }: SubscriptionCa
           </div>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Repeat2 className="w-3 h-3 shrink-0" />
-            <span className="font-medium">{frequency}</span>
+            <span className="font-medium">{t("cadence_label", { days: String(sub.interval_days) })}</span>
           </div>
         </div>
       </div>
@@ -392,16 +629,6 @@ function SubscriptionCard({ sub, t, isUpdating, onStatusChange }: SubscriptionCa
           </p>
           <p className="text-xs font-medium text-foreground">{startDate ?? "—"}</p>
         </div>
-
-        {/* Recipe duration */}
-        {sub.recipe?.duration_days && (
-          <div className="space-y-0.5">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-              <Clock className="w-3 h-3" /> {t("duration_days")}
-            </p>
-            <p className="text-xs font-medium text-foreground">{sub.recipe.duration_days} dias</p>
-          </div>
-        )}
       </div>
 
       {/* ── Actions ────────────────────────────────────────── */}
@@ -460,7 +687,7 @@ function SubscriptionCard({ sub, t, isUpdating, onStatusChange }: SubscriptionCa
 
 /**
  * Compact list row for a single subscription in list view mode.
- * Shows pet, recipe, price, frequency, next delivery and action icons.
+ * Shows pet, recipe rotation, price, cadence, next delivery and action icons.
  *
  * @param sub - The subscription data.
  * @param t - Subscriptions namespace translator.
@@ -472,7 +699,6 @@ function SubscriptionRow({ sub, t, isUpdating, onStatusChange }: SubscriptionCar
   const status = sub.status as SubStatus;
   const style = STATUS_STYLE[status] ?? STATUS_STYLE.active;
   const PetIcon = sub.pet?.type === "cat" ? Cat : Dog;
-  const frequency = frequencyLabel(sub.recipe?.duration_days, t);
   const estimatedPrice = sub.estimated_price ?? 0;
 
   const nextDate = sub.next_delivery_date
@@ -493,7 +719,7 @@ function SubscriptionRow({ sub, t, isUpdating, onStatusChange }: SubscriptionCar
         <PetIcon className="w-4 h-4" />
       </div>
 
-      {/* Pet + recipe + meta */}
+      {/* Pet + recipe rotation + meta */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-foreground line-clamp-1">{sub.pet?.name ?? "—"}</span>
@@ -506,15 +732,12 @@ function SubscriptionRow({ sub, t, isUpdating, onStatusChange }: SubscriptionCar
           </span>
         </div>
         <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
-          <span className="flex items-center gap-1 min-w-0">
-            <UtensilsCrossed className="w-3 h-3 shrink-0" />
-            <span className="line-clamp-1">{sub.recipe?.name ?? "—"}</span>
-          </span>
+          <RotationChips recipes={sub.recipes} t={t} />
           <span className="flex items-center gap-1 shrink-0 text-amber-600 dark:text-amber-400 font-semibold">
             R$ {estimatedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
           <span className="flex items-center gap-1 shrink-0">
-            <Repeat2 className="w-3 h-3" />{frequency}
+            <Repeat2 className="w-3 h-3" />{t("cadence_label", { days: String(sub.interval_days) })}
           </span>
           {status !== "cancelled" && (
             <span className="flex items-center gap-1 shrink-0">
