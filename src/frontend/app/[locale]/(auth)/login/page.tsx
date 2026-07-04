@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
+import Image from "next/image";
 
 export default function LoginPage() {
   const t = useTranslations("Auth");
@@ -59,8 +60,8 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-md space-y-8 rounded-xl bg-card p-8 shadow-lg border border-border">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">{t("login_title")}</h2>
+        <div className="text-center flex flex-col items-center">
+          <Image src="/goodfood-logo.png" alt="GoodFood" width={200} height={46} className="h-10 w-auto object-contain mb-2" priority />
           <p className="mt-2 text-sm text-muted-foreground">
             {t("login_subtitle")}
           </p>

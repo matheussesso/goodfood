@@ -20,7 +20,7 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, usePathname, Link } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import Image from "next/image";
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -140,15 +140,25 @@ export function Navbar({
             {layoutMode === "horizontal" && (
               <Link
                 href={user?.role === "admin" ? "/admin" : "/dashboard"}
-                className="flex items-center gap-2 mr-4"
+                className="flex items-center mr-4"
               >
-                <span className="text-xl font-bold text-primary">GoodFood</span>
+                <Image src="/goodfood-logo.png" alt="GoodFood" width={140} height={32} className="h-8 w-auto object-contain" priority />
               </Link>
             )}
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-            <ThemeToggle />
+            <div className="flex items-center gap-2 text-sm">
+              <select
+                value={locale}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className="bg-transparent text-sm border-none focus:ring-0 cursor-pointer outline-none font-medium"
+              >
+                <option value="pt">PT</option>
+                <option value="en">EN</option>
+                <option value="es">ES</option>
+              </select>
+            </div>
 
             {toggleLayout && (
               <Button
@@ -169,18 +179,6 @@ export function Navbar({
                 )}
               </Button>
             )}
-
-            <div className="flex items-center gap-2 text-sm">
-              <select
-                value={locale}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-                className="bg-transparent text-sm border-none focus:ring-0 cursor-pointer outline-none"
-              >
-                <option value="pt">PT</option>
-                <option value="en">EN</option>
-                <option value="es">ES</option>
-              </select>
-            </div>
 
             <div className="border-l pl-2 sm:pl-4">
               <UserDropdown />

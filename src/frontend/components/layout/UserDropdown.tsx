@@ -4,7 +4,8 @@ import { useRef, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { useAuth } from "@/hooks/useAuth";
-import { UserCircle, User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { UserCircle, User, Settings, LogOut, ChevronDown, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 /**
@@ -44,6 +45,7 @@ export function UserDropdown() {
   const { user, logout } = useAuth();
   const t = useTranslations("Navigation");
   const router = useRouter();
+  const { setTheme, theme } = useTheme();
 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -126,6 +128,21 @@ export function UserDropdown() {
               <Settings className="w-4 h-4 text-muted-foreground" />
               {t("settings_menu")}
             </Link>
+            
+            <button
+              type="button"
+              onClick={() => {
+                setTheme(theme === "light" ? "dark" : "light");
+              }}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              {theme === "light" ? (
+                <Moon className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <Sun className="w-4 h-4 text-muted-foreground" />
+              )}
+              {t("theme")}
+            </button>
           </div>
 
           {/* Divider + logout */}
