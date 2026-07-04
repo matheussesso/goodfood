@@ -457,7 +457,6 @@ export default function CatalogPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {settingsSections.map((section, idx) => (
                   <div key={idx} className="bg-card border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                    <div className="h-1 bg-gradient-to-r from-primary to-primary/20" />
                     <div className="p-5">
                       <div className="flex items-center gap-2 mb-4">
                         <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">

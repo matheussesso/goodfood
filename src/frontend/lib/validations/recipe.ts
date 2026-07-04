@@ -20,7 +20,7 @@ export const recipeFormSchema = z.object({
   pet_type: z.string(),
   duration_days: z.number().int().min(1),
   daily_portions: z.number().int().min(1),
-  instructions: z.string(),
+  instructions: z.string().optional(),
   is_template: z.boolean(),
   pet_ids: z.array(z.number()),
   ingredients: z.array(recipeIngredientSchema),

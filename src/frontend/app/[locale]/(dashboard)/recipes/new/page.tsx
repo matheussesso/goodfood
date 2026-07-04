@@ -13,7 +13,7 @@ import { Ingredient } from "@/hooks/useIngredients";
 import { calculateRecipeCost, Recipe } from "@/hooks/useRecipes";
 import { usePets } from "@/hooks/usePets";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp, DollarSign } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp, DollarSign, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -42,6 +42,7 @@ export default function NewRecipePage() {
   const [focusedIngIdx, setFocusedIngIdx] = useState<number | null>(null);
   const [recipeDetailOpen, setRecipeDetailOpen] = useState(false);
   const [costDetailOpen, setCostDetailOpen] = useState(false);
+  const [confirmedRecipeId, setConfirmedRecipeId] = useState<number | null>(null);
 
   // Fetch data
   const { data: ingredients, isLoading: loadingIngredients } = useQuery({
@@ -68,6 +69,7 @@ export default function NewRecipePage() {
       pet_type: "dog",
       duration_days: 15,
       daily_portions: 2,
+      instructions: "",
       is_template: false,
       pet_ids: petId ? [parseInt(petId)] : [],
       ingredients: []
@@ -138,13 +140,9 @@ export default function NewRecipePage() {
       const response = await apiClient.post("/recipes", data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      if (petId) {
-        router.push(`/pets/${petId}`);
-      } else {
-        router.push("/dashboard");
-      }
+      setConfirmedRecipeId(data?.data?.id ?? 0);
     }
   });
 
@@ -165,6 +163,7 @@ export default function NewRecipePage() {
     setValue("pet_type", template.pet_type || "dog");
     setValue("duration_days", template.duration_days || 15);
     setValue("daily_portions", template.daily_portions || 2);
+    setValue("instructions", template.instructions || "");
     setValue("ingredients", template.ingredients.map(i => ({
       id: i.id,
       quantity: Number(i.pivot.quantity),
@@ -175,12 +174,47 @@ export default function NewRecipePage() {
 
   const handleStartScratch = () => {
     reset({
-      name: "", description: "", pet_type: "dog", duration_days: 15, daily_portions: 2,
+      name: "", description: "", instructions: "", pet_type: "dog", duration_days: 15, daily_portions: 2,
       is_template: false, pet_ids: petId ? [parseInt(petId)] : [],
       ingredients: []
     });
     setStep("builder");
   };
+
+  // Success redirect timer
+  useEffect(() => {
+    if (confirmedRecipeId === null) return;
+    const timer = setTimeout(() => router.push(petId ? `/pets/${petId}` : "/recipes"), 3000);
+    return () => clearTimeout(timer);
+  }, [confirmedRecipeId, router, petId]);
+
+  if (confirmedRecipeId !== null) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-6 px-4">
+        <div className="w-24 h-24 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center animate-bounce">
+          <PartyPopper className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-foreground">{t("recipe_confirmed_title")}</h1>
+          <p className="text-muted-foreground max-w-sm mx-auto">
+            {t("recipe_confirmed_desc")}
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap justify-center">
+            <Button size="lg" className="gap-2" onClick={() => router.push(petId ? `/pets/${petId}` : "/recipes")}>
+              <UtensilsCrossed className="w-5 h-5" />
+              {t("my_recipes")}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            {t("recipe_confirmed_redirect")}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (loadingIngredients || loadingTemplates) return <div className="p-8 text-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mx-auto" /></div>;
 
@@ -311,8 +345,21 @@ export default function NewRecipePage() {
                     >
                       <option value="dog">{tCat("dog")}</option>
                       <option value="cat">{tCat("cat")}</option>
+                      <option value="both">{tCat("both")}</option>
                     </select>
+                    {errors.pet_type && <span className="text-xs text-destructive">{tCommon("validation_required")}</span>}
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">{tCat("instructions")}</label>
+                  <textarea
+                    {...register("instructions")}
+                    rows={3}
+                    placeholder="Opcional. Ex: Cozinhar a vapor..."
+                    className={`w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50 ${errors.instructions ? "border-destructive" : ""}`}
+                  />
+                  {errors.instructions && <span className="text-xs text-destructive">{errors.instructions.message}</span>}
                 </div>
               </div>
             </div>
@@ -454,8 +501,9 @@ export default function NewRecipePage() {
                     type="number"
                     min="1"
                     {...register("duration_days", { valueAsNumber: true })}
-                    className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+                    className={`w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50 ${errors.duration_days ? "border-destructive" : ""}`}
                   />
+                  {errors.duration_days && <span className="text-xs text-destructive">{tCommon("validation_positive_number")}</span>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">{t("daily_portions")}</label>
@@ -463,8 +511,9 @@ export default function NewRecipePage() {
                     type="number"
                     min="1"
                     {...register("daily_portions", { valueAsNumber: true })}
-                    className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+                    className={`w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50 ${errors.daily_portions ? "border-destructive" : ""}`}
                   />
+                  {errors.daily_portions && <span className="text-xs text-destructive">{tCommon("validation_positive_number")}</span>}
                 </div>
               </div>
             </div>

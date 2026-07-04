@@ -213,9 +213,6 @@ export default function CustomerDetailPage() {
                 <div className="divide-y divide-border/50">
                   {/* CEP */}
                   <div className="flex items-center gap-4 px-5 py-3.5">
-                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                      <MapPin className="w-4 h-4 text-muted-foreground" />
-                    </div>
                     <div className="min-w-0">
                       <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{t("zipcode")}</p>
                       <p className="text-sm font-medium text-foreground">{customer.zipcode || "—"}</p>

@@ -245,11 +245,24 @@ export default function EditRecipePage() {
                 <label className="block text-sm font-medium mb-1">{t("pet_type")}</label>
                 <select
                   {...register("pet_type")}
-                  className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+                  className={`w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50 ${errors.pet_type ? "border-destructive" : ""}`}
                 >
                   <option value="dog">{tCat("dog")}</option>
                   <option value="cat">{tCat("cat")}</option>
+                  <option value="both">{tCat("both")}</option>
                 </select>
+                {errors.pet_type && <span className="text-xs text-destructive">{tCommon("validation_required")}</span>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">{tCat("instructions")}</label>
+                <textarea
+                  {...register("instructions")}
+                  rows={3}
+                  placeholder="Opcional. Ex: Cozinhar a vapor..."
+                  className={`w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50 ${errors.instructions ? "border-destructive" : ""}`}
+                />
+                {errors.instructions && <span className="text-xs text-destructive">{errors.instructions.message}</span>}
               </div>
             </div>
           </div>
@@ -386,8 +399,9 @@ export default function EditRecipePage() {
                   type="number"
                   min="1"
                   {...register("duration_days", { valueAsNumber: true })}
-                  className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+                  className={`w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50 ${errors.duration_days ? "border-destructive" : ""}`}
                 />
+                {errors.duration_days && <span className="text-xs text-destructive">{tCommon("validation_positive_number")}</span>}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">{t("daily_portions")}</label>
@@ -395,8 +409,9 @@ export default function EditRecipePage() {
                   type="number"
                   min="1"
                   {...register("daily_portions", { valueAsNumber: true })}
-                  className="w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50"
+                  className={`w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50 ${errors.daily_portions ? "border-destructive" : ""}`}
                 />
+                {errors.daily_portions && <span className="text-xs text-destructive">{tCommon("validation_positive_number")}</span>}
               </div>
             </div>
           </div>

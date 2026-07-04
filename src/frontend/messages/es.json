@@ -123,6 +123,7 @@
     "pet_type": "Especie (Mascota)",
     "dog": "Perro",
     "cat": "Gato",
+    "both": "Perro y Gato",
     "daily_portions": "Porciones Diarias",
     "instructions": "Instrucciones/Notas",
     "estimated_cost": "Coste Base Estimado:",
@@ -239,7 +240,10 @@
     "daily_portions_label": "Porciones diarias:",
     "save_changes": "Guardar Cambios",
     "copy_suffix": " (Copia)",
-    "base_cost": "Coste Base"
+    "base_cost": "Coste Base",
+    "recipe_confirmed_title": "¡Receta Guardada!",
+    "recipe_confirmed_desc": "Su receta fue creada con éxito.",
+    "recipe_confirmed_redirect": "Redirigiendo a sus recetas..."
   },
   "Pets": {
     "title": "Mis Mascotas",
