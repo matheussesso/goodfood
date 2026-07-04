@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Ingredient\StoreIngredientRequest;
 use App\Http\Requests\Ingredient\UpdateIngredientRequest;
+use App\Http\Resources\IngredientResource;
 use App\Models\Ingredient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class IngredientController extends Controller
             $ingredients = Ingredient::where('is_active', true)->get();
         }
 
-        return $this->respondSuccess($ingredients, 'Ingredients fetched successfully');
+        return $this->respondSuccess(IngredientResource::collection($ingredients), 'Ingredients fetched successfully');
     }
 
     /**
@@ -46,7 +47,7 @@ class IngredientController extends Controller
 
         $ingredient = Ingredient::create($validated);
 
-        return $this->respondSuccess($ingredient, 'Ingredient created successfully', 201);
+        return $this->respondSuccess(IngredientResource::make($ingredient), 'Ingredient created successfully', 201);
     }
 
     /**
@@ -60,7 +61,7 @@ class IngredientController extends Controller
     {
         $this->authorize('view', $ingredient);
 
-        return $this->respondSuccess($ingredient, 'Ingredient fetched successfully');
+        return $this->respondSuccess(IngredientResource::make($ingredient), 'Ingredient fetched successfully');
     }
 
     /**
@@ -80,7 +81,7 @@ class IngredientController extends Controller
 
         $ingredient->update($validated);
 
-        return $this->respondSuccess($ingredient, 'Ingredient updated successfully');
+        return $this->respondSuccess(IngredientResource::make($ingredient), 'Ingredient updated successfully');
     }
 
     /**

@@ -22,7 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Authenticate the Next.js SPA via Sanctum's stateful session cookies
+        // (httpOnly) instead of bearer tokens stored in the browser.
+        $middleware->statefulApi();
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('subscriptions:generate-orders')->daily();

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Settings\UpdateGeneralSettingRequest;
+use App\Http\Resources\GeneralSettingResource;
 use App\Models\GeneralSetting;
 use Illuminate\Http\JsonResponse;
 
@@ -21,7 +22,7 @@ class GeneralSettingController extends Controller
      */
     public function index(): JsonResponse
     {
-        return $this->respondSuccess(GeneralSetting::getInstance(), 'Settings fetched successfully');
+        return $this->respondSuccess(GeneralSettingResource::make(GeneralSetting::getInstance()), 'Settings fetched successfully');
     }
 
     /**
@@ -35,6 +36,6 @@ class GeneralSettingController extends Controller
         $settings = GeneralSetting::getInstance();
         $settings->update($request->validated());
 
-        return $this->respondSuccess($settings, 'Settings updated successfully.');
+        return $this->respondSuccess(GeneralSettingResource::make($settings), 'Settings updated successfully.');
     }
 }

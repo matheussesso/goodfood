@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Customer\StoreCustomerRequest;
 use App\Http\Requests\Customer\UpdateCustomerRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,7 +39,7 @@ class CustomerController extends Controller
 
         $customers = $query->orderBy('created_at', 'desc')->get();
 
-        return $this->respondSuccess($customers, 'Customers fetched successfully');
+        return $this->respondSuccess(UserResource::collection($customers), 'Customers fetched successfully');
     }
 
     /**
@@ -58,7 +59,7 @@ class CustomerController extends Controller
         $customer->role = 'customer';
         $customer->save();
 
-        return $this->respondSuccess($customer, 'Customer created successfully', 201);
+        return $this->respondSuccess(UserResource::make($customer), 'Customer created successfully', 201);
     }
 
     /**
@@ -73,7 +74,7 @@ class CustomerController extends Controller
             ->with(['pets', 'orders', 'subscriptions', 'recipes.ingredients', 'recipes.pets'])
             ->findOrFail($id);
 
-        return $this->respondSuccess($customer, 'Customer fetched successfully');
+        return $this->respondSuccess(UserResource::make($customer), 'Customer fetched successfully');
     }
 
     /**
@@ -89,6 +90,6 @@ class CustomerController extends Controller
 
         $customer->update($request->validated());
 
-        return $this->respondSuccess($customer, 'Customer updated successfully');
+        return $this->respondSuccess(UserResource::make($customer), 'Customer updated successfully');
     }
 }

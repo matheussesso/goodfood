@@ -8,19 +8,25 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\UpdatePasswordRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 /**
  * Handles registration, authentication and self-service profile management.
+ *
+ * Authentication uses Sanctum's stateful SPA mode: the session lives in an
+ * httpOnly cookie issued by the backend, so no token is ever exposed to
+ * client-side JavaScript.
  */
 class AuthController extends Controller
 {
     /**
-     * Register a new customer account and issue an API token.
+     * Register a new customer account and start an authenticated session.
      *
      * @param  RegisterRequest  $request
      * @return JsonResponse
@@ -36,17 +42,17 @@ class AuthController extends Controller
         $user->role = 'customer';
         $user->save();
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $this->startSession($request, $user);
 
         return $this->respondSuccess(
-            ['user' => $user, 'token' => $token],
+            ['user' => UserResource::make($user)],
             'User registered successfully',
             201
         );
     }
 
     /**
-     * Authenticate a user and issue a fresh API token.
+     * Authenticate a user and start an authenticated session.
      *
      * @param  LoginRequest  $request
      * @return JsonResponse
@@ -62,13 +68,14 @@ class AuthController extends Controller
             ]);
         }
 
-        // Delete existing tokens for security
+        // Legacy cleanup: revoke any bearer tokens issued before the
+        // cookie-based session migration.
         $user->tokens()->delete();
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $this->startSession($request, $user);
 
         return $this->respondSuccess(
-            ['user' => $user, 'token' => $token],
+            ['user' => UserResource::make($user)],
             'User logged in successfully'
         );
     }
@@ -81,18 +88,22 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        return $this->respondSuccess($request->user(), 'User fetched successfully');
+        return $this->respondSuccess(UserResource::make($request->user()), 'User fetched successfully');
     }
 
     /**
-     * Revoke the current access token.
+     * End the authenticated session and invalidate its cookie.
      *
      * @param  Request  $request
      * @return JsonResponse
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        if ($request->hasSession()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return $this->respondSuccess(null, 'User logged out successfully');
     }
@@ -108,7 +119,7 @@ class AuthController extends Controller
         $user = $request->user();
         $user->update($request->validated());
 
-        return $this->respondSuccess($user->fresh(), 'Profile updated successfully');
+        return $this->respondSuccess(UserResource::make($user->fresh()), 'Profile updated successfully');
     }
 
     /**
@@ -130,5 +141,24 @@ class AuthController extends Controller
         $user->update(['password' => Hash::make($request->validated('password'))]);
 
         return $this->respondSuccess(null, 'Password updated successfully');
+    }
+
+    /**
+     * Log the user into the session guard and rotate the session id to
+     * prevent fixation. No-op when the request carries no session (e.g. a
+     * non-stateful API client).
+     *
+     * @param  Request  $request
+     * @param  User     $user
+     * @return void
+     */
+    private function startSession(Request $request, User $user): void
+    {
+        if (! $request->hasSession()) {
+            return;
+        }
+
+        Auth::guard('web')->login($user);
+        $request->session()->regenerate();
     }
 }

@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Subscription\StoreSubscriptionRequest;
 use App\Http\Requests\Subscription\UpdateSubscriptionRequest;
+use App\Http\Resources\SubscriptionResource;
 use App\Models\Subscription;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -40,7 +41,7 @@ class SubscriptionController extends Controller
                 ->get();
         }
 
-        return $this->respondSuccess($subscriptions, 'Subscriptions fetched successfully');
+        return $this->respondSuccess(SubscriptionResource::collection($subscriptions), 'Subscriptions fetched successfully');
     }
 
     /**
@@ -72,7 +73,7 @@ class SubscriptionController extends Controller
         $this->syncRecipeRotation($subscription, $validated['recipe_ids']);
 
         return $this->respondSuccess(
-            $subscription->load(['pet', 'recipes']),
+            SubscriptionResource::make($subscription->load(['pet', 'recipes'])),
             'Subscription created successfully',
             201
         );
@@ -90,7 +91,7 @@ class SubscriptionController extends Controller
         $this->authorize('view', $subscription);
 
         return $this->respondSuccess(
-            $subscription->load(['pet', 'recipes', 'orders']),
+            SubscriptionResource::make($subscription->load(['pet', 'recipes', 'orders'])),
             'Subscription fetched successfully'
         );
     }
@@ -124,7 +125,7 @@ class SubscriptionController extends Controller
         }
 
         return $this->respondSuccess(
-            $subscription->load(['pet', 'recipes']),
+            SubscriptionResource::make($subscription->load(['pet', 'recipes'])),
             'Subscription updated successfully'
         );
     }
@@ -143,7 +144,7 @@ class SubscriptionController extends Controller
         $subscription->update(['status' => 'cancelled']);
 
         return $this->respondSuccess(
-            $subscription->load(['pet', 'recipes']),
+            SubscriptionResource::make($subscription->load(['pet', 'recipes'])),
             'Subscription cancelled successfully'
         );
     }

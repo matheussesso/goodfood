@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Order\StoreOrderRequest;
 use App\Http\Requests\Order\UpdateOrderRequest;
+use App\Http\Resources\OrderResource;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -38,7 +39,7 @@ class OrderController extends Controller
                 ->get();
         }
 
-        return $this->respondSuccess($orders, 'Orders fetched successfully');
+        return $this->respondSuccess(OrderResource::collection($orders), 'Orders fetched successfully');
     }
 
     /**
@@ -97,7 +98,7 @@ class OrderController extends Controller
         }
 
         return $this->respondSuccess(
-            $order->load(['items.recipe', 'items.pet', 'invoice']),
+            OrderResource::make($order->load(['items.recipe', 'items.pet', 'invoice'])),
             'Order created successfully',
             201
         );
@@ -115,7 +116,7 @@ class OrderController extends Controller
         $this->authorize('view', $order);
 
         return $this->respondSuccess(
-            $order->load(['user', 'pet', 'items.recipe.ingredients', 'items.pet', 'subscription', 'invoice']),
+            OrderResource::make($order->load(['user', 'pet', 'items.recipe.ingredients', 'items.pet', 'subscription', 'invoice'])),
             'Order fetched successfully'
         );
     }
@@ -133,7 +134,7 @@ class OrderController extends Controller
         $order->update($request->validated());
 
         return $this->respondSuccess(
-            $order->load(['user', 'pet', 'items.recipe']),
+            OrderResource::make($order->load(['user', 'pet', 'items.recipe'])),
             'Order updated successfully'
         );
     }

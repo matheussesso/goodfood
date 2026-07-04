@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Pet\StorePetRequest;
 use App\Http\Requests\Pet\UpdatePetRequest;
 use App\Http\Requests\Pet\UploadPetPhotoRequest;
+use App\Http\Resources\PetResource;
 use App\Models\Pet;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -31,7 +32,7 @@ class PetController extends Controller
             $pets = $request->user()->pets()->with('recipes.ingredients')->get();
         }
 
-        return $this->respondSuccess($pets, 'Pets fetched successfully');
+        return $this->respondSuccess(PetResource::collection($pets), 'Pets fetched successfully');
     }
 
     /**
@@ -52,7 +53,7 @@ class PetController extends Controller
 
         $pet = $owner->pets()->create($validated);
 
-        return $this->respondSuccess($pet, 'Pet created successfully', 201);
+        return $this->respondSuccess(PetResource::make($pet), 'Pet created successfully', 201);
     }
 
     /**
@@ -67,7 +68,7 @@ class PetController extends Controller
         $this->authorize('view', $pet);
 
         return $this->respondSuccess(
-            $pet->load(['recipes.ingredients', 'orders', 'subscriptions']),
+            PetResource::make($pet->load(['recipes.ingredients', 'orders', 'subscriptions'])),
             'Pet fetched successfully'
         );
     }
@@ -84,7 +85,7 @@ class PetController extends Controller
     {
         $pet->update($request->validated());
 
-        return $this->respondSuccess($pet, 'Pet updated successfully');
+        return $this->respondSuccess(PetResource::make($pet), 'Pet updated successfully');
     }
 
     /**

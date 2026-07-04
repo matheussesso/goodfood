@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Recipe\CalculateRecipeCostRequest;
 use App\Http\Requests\Recipe\StoreRecipeRequest;
 use App\Http\Requests\Recipe\UpdateRecipeRequest;
+use App\Http\Resources\RecipeResource;
 use App\Models\Recipe;
 use App\Services\RecipeCostCalculatorService;
 use Illuminate\Http\JsonResponse;
@@ -43,7 +44,7 @@ class RecipeController extends Controller
                              ->get();
         }
 
-        return $this->respondSuccess($recipes, 'Recipes fetched successfully');
+        return $this->respondSuccess(RecipeResource::collection($recipes), 'Recipes fetched successfully');
     }
 
     /**
@@ -75,7 +76,7 @@ class RecipeController extends Controller
         $recipe->updateBaseCost();
 
         return $this->respondSuccess(
-            $recipe->load(['ingredients', 'pets']),
+            RecipeResource::make($recipe->load(['ingredients', 'pets'])),
             'Recipe created successfully',
             201
         );
@@ -93,7 +94,7 @@ class RecipeController extends Controller
         $this->authorize('view', $recipe);
 
         return $this->respondSuccess(
-            $recipe->load(['ingredients', 'pets']),
+            RecipeResource::make($recipe->load(['ingredients', 'pets'])),
             'Recipe fetched successfully'
         );
     }
@@ -121,7 +122,7 @@ class RecipeController extends Controller
         $recipe->updateBaseCost();
 
         return $this->respondSuccess(
-            $recipe->load(['ingredients', 'pets']),
+            RecipeResource::make($recipe->load(['ingredients', 'pets'])),
             'Recipe updated successfully'
         );
     }
