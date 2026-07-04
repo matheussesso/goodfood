@@ -1,34 +1,33 @@
-# Configuração e Execução do Projeto
+# Setup e Execução Local
 
-Este guia aborda os pré-requisitos e os passos necessários para executar o ambiente de desenvolvimento local do GoodFood System utilizando o **Docker Compose**.
+Guia para subir o ambiente de desenvolvimento com **Docker Compose** e resolver os problemas mais comuns.
 
 ## Pré-requisitos
 
-Certifique-se de que sua máquina possui as seguintes ferramentas instaladas:
 - [Git](https://git-scm.com/)
-- [Docker](https://docs.docker.com/get-docker/) (ou Docker Desktop para Windows/Mac)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Docker](https://docs.docker.com/get-docker/) + [Docker Compose](https://docs.docker.com/compose/install/)
 
-*(Opcional: Caso você queira rodar scripts nativamente no host para IDEs, considere instalar PHP 8.4, Composer e Node.js 20+)*.
+*Opcional (tooling de IDE no host): PHP 8.4 com extensões PDO, Composer e Node.js 20+.*
 
 ---
 
-## Inicializando o Ambiente (Docker Compose)
+## Subindo o ambiente
 
-Como o projeto está fortemente orquestrado em contêineres, todo o fluxo principal se dá pelo `docker-compose`.
+### 1. Clonar o repositório
 
-### 1. Clonando o Repositório
 ```bash
 git clone <url-do-repositorio>
 cd goodfood-system-new
 ```
 
-### 2. Configurações Iniciais (.env)
-O backend exige variáveis de ambiente (especialmente para a conexão com o banco). Se o arquivo `/src/backend/.env` não existir, você precisa copiá-lo:
+### 2. Variáveis de ambiente do backend
+
 ```bash
 cp src/backend/.env.example src/backend/.env
 ```
-Verifique se os dados do banco de dados no seu `.env` do backend estão iguais aos do `docker-compose.yml`:
+
+Confirme que a conexão de banco casa com o `docker-compose.yml`:
+
 ```env
 DB_CONNECTION=pgsql
 DB_HOST=db
@@ -38,54 +37,90 @@ DB_USERNAME=root
 DB_PASSWORD=rootpassword
 ```
 
-### 3. Subindo os Contêineres
-Na raiz do projeto, execute:
+### 3. Subir os containers
+
 ```bash
 docker compose up -d
 ```
-O Docker irá:
-1. Realizar o *build* customizado da imagem PHP.
-2. Realizar o *build* da imagem Node.
-3. Subir o Postgres, Nginx, Backend e Frontend.
 
-### 4. Instalando Dependências
+Sobe `db` (Postgres), `backend` (PHP-FPM), `scheduler`, `nginx` e `frontend`.
 
-Após subirmos os containers pela primeira vez, as pastas `vendor` (Backend) e `node_modules` (Frontend) podem estar vazias. Execute os comandos abaixo dentro de seus respectivos containers:
+### 4. Dependências e banco (primeira vez)
 
-**Para o Backend (Laravel):**
 ```bash
+# Backend
 docker exec -it goodfood_backend composer install
 docker exec -it goodfood_backend php artisan key:generate
 docker exec -it goodfood_backend php artisan migrate --seed
+docker exec -it goodfood_backend php artisan storage:link   # fotos de pets
+
+# Frontend
+docker exec -it goodfood_frontend npm install
 ```
 
-**Para o Frontend (Next.js):**
+### 5. Acessos
+
+| Serviço | URL |
+| --- | --- |
+| Frontend | http://localhost:3000 |
+| API | http://localhost:8000/api |
+| PostgreSQL | `localhost:5432` (`root` / `rootpassword`) |
+
+---
+
+## Comandos do dia a dia
+
 ```bash
-docker exec -it goodfood_frontend npm install
+# Containers
+docker compose up -d          # iniciar
+docker compose stop           # parar (mantém volumes)
+docker compose down           # remover containers/rede (mantém volumes)
+docker compose down -v        # remover TUDO, inclusive o banco
+
+# Backend
+docker exec -it goodfood_backend php artisan optimize:clear
+docker exec -it goodfood_backend php artisan make:migration nome_da_migration
+docker compose run --rm --no-deps backend ./vendor/bin/pest    # testes (ver docs/testing.md)
+
+# Frontend
+docker exec -it goodfood_frontend npm run lint
+docker compose run --rm --no-deps frontend npm run build       # build de produção
 ```
 
 ---
 
-## Acessando a Aplicação
+## Troubleshooting
 
-Se todos os processos foram iniciados com sucesso, você terá acesso aos seguintes endereços na sua máquina local:
+### Arquivos com dono `root` no host (`EACCES` em npm/git/build)
 
-- 🌐 **Frontend (UI do Usuário):** [http://localhost:3000](http://localhost:3000)
-- 🚀 **Backend (API Base URL):** [http://localhost:8000](http://localhost:8000)
-- 🗄️ **Banco de Dados (Postgres):** Servidor em `localhost` na porta `5432`.
+Os containers rodam como root e os bind mounts fazem `node_modules`, `.next` e arquivos gerados no backend ficarem com dono `root` no host. Sintomas: `npm install` falha com `EACCES`, `next build` não escreve em `.next/trace`, `git stash`/`checkout` falham com `unable to unlink`.
 
-### Encerrando a Execução
-
-Para parar os contêineres e manter os dados salvos (volume do DB persistido):
 ```bash
-docker compose stop
+sudo chown -R $USER:$USER src/frontend/node_modules src/frontend/.next src/backend
 ```
 
-Para remover e desligar os contêineres, a rede criada e (opcionalmente) os volumes:
-```bash
-# Apaga os contêineres
-docker compose down
+Alternativas sem `chown`: rodar o comando dentro do container (`docker compose run --rm --no-deps frontend npm run build`) ou, para mudanças só de dependências, `npm install --package-lock-only`.
 
-# Apaga os contêineres e reseta o volume do banco de dados!
-docker compose down -v
+### Testes do backend falham no host com `could not find driver`
+
+O PHP do host pode não ter `pdo_sqlite`/`pdo_pgsql`. Rode a suíte no container:
+
+```bash
+docker compose run --rm --no-deps backend ./vendor/bin/pest
 ```
+
+### Build do frontend falha em `/_global-error` (`useContext` null)
+
+Bug conhecido do Next 16 quando `NODE_ENV` não está definido no build ([vercel/next.js#86178](https://github.com/vercel/next.js/issues/86178)). O script `npm run build` já define `NODE_ENV=production` — não remova. Se invocar `next build` diretamente, exporte a variável antes.
+
+### Fotos de pets não aparecem (404 em `/storage/...`)
+
+Falta o symlink de storage:
+
+```bash
+docker exec -it goodfood_backend php artisan storage:link
+```
+
+### Porta em uso (3000/8000/5432)
+
+Outro processo local ocupa a porta. Pare-o ou ajuste o mapeamento em `docker-compose.yml`.

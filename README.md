@@ -1,152 +1,116 @@
-# Good Food System
+# GoodFood System
 
-## Visão Geral
+Plataforma de alimentação natural para pets por assinatura: tutores cadastram seus pets, montam receitas personalizadas com base nas necessidades de cada animal e recebem pedidos avulsos ou recorrentes. A empresa administra catálogo de ingredientes, precificação, produção e entregas.
 
-Bem-vindo ao **Good Food System**, uma aplicação moderna estruturada com backend em Laravel, frontend em Next.js e banco de dados PostgreSQL. O ambiente de desenvolvimento é totalmente conteinerizado utilizando Docker Compose, garantindo um setup rápido, previsível e isolado.
+## Stack
 
-## Objetivos do Projeto
+| Camada | Tecnologia |
+| --- | --- |
+| Frontend | Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS 4 · TanStack Query · next-intl (pt/en/es) |
+| Backend | Laravel 13 · PHP 8.4 · Sanctum (API tokens) · Pest |
+| Banco | PostgreSQL 16 (SQLite em memória nos testes) |
+| Infra | Docker Compose (db, backend, scheduler, nginx, frontend) |
 
-### Para Clientes (Tutores)
-- Cadastrar e gerenciar pets.
-- Visualizar receitas baseadas nas necessidades de seus pets.
-- Acompanhar pedidos e histórico de compras.
+## Início rápido
 
-### Para a Empresa
-- Cadastrar e gerenciar receitas para os pets.
-- Visualizar todos os pets e clientes cadastrados.
-- Gerenciar pedidos e visualizar histórico completo.
-- Ter controle total sobre o fluxo de produção e entregas.
-
-## Stack Tecnológica
-
-- **Frontend**: Next.js (App Router), React, Tailwind CSS, TypeScript
-- **Backend**: Laravel (API REST), PHP 8.4
-- **Banco de Dados**: PostgreSQL
-- **Infraestrutura**: Docker & Docker Compose
-
-## Documentação Relacionada
-
-Criamos guias separados para facilitar a integração e alinhar a qualidade e arquitetura da equipe de desenvolvimento:
-
-- **[Arquitetura do Sistema](docs/architecture.md)**
-- **[Setup e Execução Local](docs/setup.md)**
-- **[Boas Práticas e Qualidade](docs/best_practices.md)**
-- **[Git Flow](docs/git_flow.md)**
-
-## Estrutura do Projeto
-
-```text
-├── src/
-│   ├── backend/        # API REST desenvolvida em Laravel
-│   │   ├── app/        # Controladores, Models, Services, etc.
-│   │   ├── config/     # Configurações do framework
-│   │   ├── database/   # Migrations e Seeders
-│   │   ├── routes/     # Definição das rotas (api.php)
-│   │   └── tests/      # Testes unitários e de integração (Pest)
-│   └── frontend/       # Aplicação web desenvolvida em Next.js
-│       ├── app/        # App Router (páginas, layouts, api routes)
-│       ├── components/ # Componentes UI reutilizáveis
-│       ├── hooks/      # Hooks customizados
-│       ├── i18n/       # Configuração de internacionalização
-│       ├── lib/        # Utilitários e configurações de bibliotecas
-│       └── messages/   # Arquivos de tradução (pt, en, es)
-├── docs/               # Documentação detalhada do projeto
-└── docker/             # Configurações e Dockerfiles (nginx, php, etc)
-```
-
-## Módulos & Features do Sistema
-
-1. **Autenticação e Autorização**
-   - Sistema seguro de login para clientes e administradores.
-   - Controle de acesso baseado em roles (RBAC).
-
-2. **Cadastro e Gestão de Pets**
-   - Criação de perfis detalhados para os pets.
-   - Histórico de necessidades e restrições alimentares.
-
-3. **Catálogo e Gestão de Receitas**
-   - Listagem de receitas disponíveis.
-   - Associação de receitas às necessidades específicas dos pets.
-
-4. **Gestão de Pedidos e Fluxo de Produção**
-   - Carrinho de compras e checkout.
-   - Acompanhamento do status do pedido desde a preparação até a entrega.
-
-5. **Internacionalização (i18n)**
-   - Suporte multi-idioma (Português, Inglês e Espanhol) em toda a interface visual.
-
-## Instalação e Configuração (Docker)
-
-### Pré-requisitos
-- Docker e Docker Compose instalados.
-
-### Passos Básicos para Execução
-
-1. **Clonar o repositório:**
 ```bash
 git clone <url-do-repositorio>
 cd goodfood-system-new
-```
-
-2. **Configurar variáveis de ambiente do Backend:**
-```bash
 cp src/backend/.env.example src/backend/.env
-```
-*(Verifique se os dados do banco de dados estão iguais aos do `docker-compose.yml`)*
-
-3. **Subir os contêineres:**
-```bash
 docker compose up -d
-```
 
-4. **Instalar dependências e preparar o banco (Backend):**
-```bash
 docker exec -it goodfood_backend composer install
 docker exec -it goodfood_backend php artisan key:generate
 docker exec -it goodfood_backend php artisan migrate --seed
-```
-
-5. **Instalar dependências (Frontend):**
-```bash
+docker exec -it goodfood_backend php artisan storage:link
 docker exec -it goodfood_frontend npm install
 ```
 
-🌐 Acesse o **Frontend** em: [http://localhost:3000](http://localhost:3000)
-🚀 Acesse o **Backend API** em: [http://localhost:8000](http://localhost:8000)
+- 🌐 Frontend: http://localhost:3000
+- 🚀 API: http://localhost:8000/api
 
-*(Para mais detalhes, consulte o guia completo de [Setup](docs/setup.md))*
+Guia completo (incluindo **troubleshooting** de permissões do Docker, testes e build): [docs/setup.md](docs/setup.md).
 
-## Comandos Úteis do Dia a Dia
+## Documentação
 
-**Gerenciamento dos Contêineres:**
-```bash
-# Iniciar a aplicação em background
-docker compose up -d
+Toda a documentação técnica vive em [`docs/`](docs/README.md):
 
-# Parar os contêineres sem remover volumes
-docker compose stop
+| Documento | Conteúdo |
+| --- | --- |
+| [Setup e Troubleshooting](docs/setup.md) | Ambiente local, comandos do dia a dia, problemas comuns |
+| [Arquitetura](docs/architecture.md) | Camadas do backend, padrões do frontend, infraestrutura |
+| [Modelo de Domínio](docs/domain.md) | Entidades, relacionamentos e regras de negócio |
+| [API REST](docs/api.md) | Autenticação, contrato de resposta e todos os endpoints |
+| [Testes](docs/testing.md) | Como rodar e escrever testes (Pest) |
+| [Internacionalização](docs/i18n.md) | Fluxo obrigatório pt/en/es do frontend |
+| [Boas Práticas](docs/best_practices.md) | Padrões de código e qualidade |
+| [Git Flow](docs/git_flow.md) | Branches, commits e pull requests |
 
-# Remover contêineres e redes (mantém volumes)
-docker compose down
+## Funcionalidades
 
-# Remover contêineres e zerar o banco de dados
-docker compose down -v
+**Para tutores (clientes)**
+- Cadastro e gestão de pets (perfil, restrições alimentares, alergias, foto).
+- Receitas personalizadas por pet, com custo calculado a partir dos ingredientes.
+- Pedidos avulsos multi-pet e assinaturas com rotação de receitas e entrega recorrente.
+- Acompanhamento de pedidos e histórico; perfil com endereço (busca por CEP/ViaCEP).
+
+**Para a empresa (admin)**
+- Catálogo de ingredientes e receitas-modelo com parâmetros globais de precificação.
+- Gestão de clientes, pets, pedidos (fluxo de status até a entrega) e assinaturas.
+- Geração automática diária de pedidos de reposição para assinaturas vencidas (scheduler).
+- Painel de produção.
+
+**Transversal**
+- Autenticação Sanctum com controle de acesso por papel (customer/admin) via Policies.
+- Interface 100% internacionalizada (Português, Inglês e Espanhol).
+- API com contrato de resposta único `{success, message, data, errors?}` e tratamento centralizado de erros.
+
+## Estrutura do repositório
+
+```text
+├── src/
+│   ├── backend/            # API REST (Laravel)
+│   │   ├── app/
+│   │   │   ├── Http/       # Controllers, FormRequests, Middleware
+│   │   │   ├── Models/     # Eloquent models
+│   │   │   ├── Policies/   # Autorização por recurso
+│   │   │   ├── Services/   # Regras de negócio (custo, assinaturas)
+│   │   │   └── Console/    # Comandos agendados
+│   │   ├── database/       # Migrations, factories e seeders
+│   │   ├── routes/         # api.php
+│   │   └── tests/          # Suíte Pest (Feature/Unit)
+│   └── frontend/           # Aplicação web (Next.js)
+│       ├── app/[locale]/   # App Router: (auth) e (dashboard)
+│       ├── components/     # UI reutilizável (ui/, layout/, providers/)
+│       ├── hooks/          # TanStack Query hooks + useAuth (zustand)
+│       ├── lib/            # api-client, viacep, utils
+│       ├── i18n/           # Roteamento e request config do next-intl
+│       └── messages/       # pt.json / en.json / es.json
+├── docs/                   # Documentação técnica (índice em docs/README.md)
+├── docker/                 # Dockerfiles e configs (backend, frontend, nginx)
+└── docker-compose.yml
 ```
 
-**Comandos no Backend (Laravel):**
+## Comandos essenciais
+
 ```bash
-# Limpar cache geral da aplicação
-docker exec -it goodfood_backend php artisan optimize:clear
+# Testes do backend
+docker compose run --rm --no-deps backend ./vendor/bin/pest
 
-# Rodar os testes (Pest)
-docker exec -it goodfood_backend php artisan test
-
-# Criar uma nova migration
-docker exec -it goodfood_backend php artisan make:migration nome_da_migration
-```
-
-**Comandos no Frontend (Next.js):**
-```bash
-# Rodar linter
+# Lint e build do frontend
 docker exec -it goodfood_frontend npm run lint
+docker compose run --rm --no-deps frontend npm run build
+
+# Containers
+docker compose stop        # parar
+docker compose down -v     # zerar tudo (inclui banco)
 ```
+
+Mais comandos e soluções de problemas em [docs/setup.md](docs/setup.md).
+
+## Contribuindo
+
+1. Leia [docs/best_practices.md](docs/best_practices.md) e [docs/git_flow.md](docs/git_flow.md).
+2. Crie sua branch a partir da `develop` (`feature/...`, `bugfix/...`).
+3. Toda entrega exige testes ([docs/testing.md](docs/testing.md)), i18n completo ([docs/i18n.md](docs/i18n.md)) e validação de responsividade.
+4. Abra o PR para `develop` com descrição em português.

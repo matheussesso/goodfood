@@ -2,22 +2,26 @@
 
 A equipe do GoodFood System adota regras rigorosas para o desenvolvimento. A consistência no estilo de codificação, na arquitetura e na manutenção é a nossa prioridade.
 
-**Regra Dourada Geral**: Todo código-fonte (identificadores, pastas, variáveis, classes, componentes, hooks, logs) deve ser redigido puramente em **Inglês**. Toda documentação (tais como arquivos README e PRs) deve ser elaborada em **Português**.
+**Regra Dourada Geral**: Todo código-fonte (identificadores, pastas, variáveis, classes, componentes, hooks, logs, comentários e docblocks) deve ser redigido puramente em **Inglês**. Toda documentação (README, arquivos em `docs/`, descrições de PR) deve ser elaborada em **Português**.
 
 ---
 
 ## Princípios Arquiteturais e Padrões (SOLID e Clean Code)
+
 - Respeite o SRP (Single Responsibility Principle) e o DRY (Don't Repeat Yourself).
-- Favoreça **Early Returns** (ou Guard Clauses) em detrimento a múltiplos `if/else` aninhados.
-- Reutilize recursos já presentes na aplicação (componentes compartilhados, hooks customizados e services existentes) antes de decidir por criar novos equivalentes.
+- Favoreça **Early Returns** (Guard Clauses) em detrimento de múltiplos `if/else` aninhados.
+- Reutilize recursos já presentes na aplicação (componentes compartilhados, hooks customizados, utils e services existentes) antes de criar novos equivalentes.
+- Evite overengineering e abstrações prematuras.
 
 ---
 
-## Backend (Laravel PHP)
+## Backend (Laravel / PHP)
 
-- **Tipagem Estrita**: É obrigatório declarar `declare(strict_types=1);` na primeira linha de todo script PHP que for gerado. Retornos de funções e parâmetros devem sempre ser tipados.
-- **Sem Lógica em Controllers**: Controllers não processam lógicas de negócios e nem executam "queries raw". Eles existem apenas para extrair a requisição, validá-la (usando **FormRequest**), despachar o processamento para uma classe de **Service** ou **UseCase** e empacotar a resposta (usando **JsonResource**).
-- **Documentação PHPDoc OBRIGATÓRIA**: Você deve documentar as suas classes, interfaces, métodos públicos e métodos protegidos muito complexos usando *docblocks*.
+- **Tipagem estrita**: `declare(strict_types=1);` na primeira linha de todo arquivo PHP. Parâmetros e retornos sempre tipados.
+- **Controllers finos**: sem lógica de negócio nem queries complexas. Fluxo: **FormRequest** (validação + autorização) → Service/Model → resposta via trait `ApiResponses` (contrato `{success, message, data, errors?}`). A adoção de **JsonResource** para serialização é o próximo passo do roadmap — ao criar endpoints novos com payloads não triviais, prefira já criar o Resource.
+- **Autorização via Policies**: nunca escreva checks de ownership inline no controller — crie/estenda a Policy do model (`app/Policies/`).
+- **Mass assignment**: campos sensíveis (ex.: `role`) ficam fora do fillable e são atribuídos explicitamente.
+- **PHPDoc obrigatório** em classes, métodos públicos e protegidos complexos:
   ```php
   /**
    * Create a new order for the given customer.
@@ -28,29 +32,34 @@ A equipe do GoodFood System adota regras rigorosas para o desenvolvimento. A con
    */
   public function create(CreateOrderDTO $data): Order
   ```
-- **Performance de Banco**: Preze por otimizações. Use Eager Loading para evitar o clássico problema `N+1`. Evite queries inúteis dentro de laços de repetição.
-- **Testes com Pest**: Nenhum código deve ser promovido à ramificação principal sem testes utilizando a biblioteca de testes **Pest**.
+- **Performance de banco**: Eager Loading contra `N+1`; nada de queries dentro de laços.
+- **Testes com Pest**: nenhuma feature/refactor/correção sobe sem testes ([testing.md](testing.md)). Cobrir caso feliz, validação e autorização.
 
 ---
 
-## Frontend (Next.js TypeScript)
+## Frontend (Next.js / TypeScript)
 
-- **App Router e RSC**: Utilize a nova arquitetura do Next.js (pasta `app/`) com foco em React Server Components. Diretivas de cliente como `"use client"` são permitidas estritamente quando você for interagir com APIs do navegador (window, useEffect) ou manipulação complexa de estados.
-- **Documentação TSDoc OBRIGATÓRIA**: O Frontend não é isento de documentação em código. Documente as props de componentes, o valor de retorno de hooks customizados e lógicas de Services via TSDoc.
+- **App Router e RSC**: preferir Server Components; `"use client"` apenas quando houver interatividade, hooks ou APIs do browser. (Estado atual: maioria das telas ainda é client-side — ver [architecture.md](architecture.md); novas telas devem puxar na direção de RSC quando possível.)
+- **TSDoc obrigatório** em componentes, hooks, services e utils:
   ```tsx
   /**
    * Fetches the authenticated user's orders, paginated.
    *
    * @param page - The page number to fetch (1-indexed).
-   * @param pageSize - The number of items per page. Defaults to 20.
    * @returns A paginated list of orders.
    */
   ```
-- **Gerência de Estados de API**: Evite implementar lógicas soltas com `useEffect` ou `fetch` puramente do lado do cliente; aposte na biblioteca central **TanStack Query** (antigo React Query).
-- **Tratamento de Exceções**: Abrace funcionalidades do React Server Components como a implementação de `error.tsx` e `loading.tsx` aliados com Suspense Boundaries para fornecer um carregamento gracioso aos usuários.
+- **Estado de servidor**: sempre **TanStack Query** — nada de `fetch`/`useEffect` soltos para dados da API. HTTP exclusivamente via `apiClient` (`lib/api-client.ts`); APIs externas ganham wrapper em `lib/` (ex.: `lib/viacep.ts`).
+- **Formulários**: React Hook Form; a validação com **Zod + @hookform/resolvers** está no roadmap — novos formulários complexos devem adotá-la.
+- **Tratamento de erros/carregamento**: `error.tsx` e `loading.tsx` por route group + Suspense.
+- **i18n obrigatório**: nenhuma string de UI hardcoded — fluxo completo em [i18n.md](i18n.md).
+- **Imagens**: sempre `next/image` (nunca `<img>`), com `remotePatterns` configurado.
 
-### Critério Absoluto de Responsividade
-Em nosso Frontend, **nenhuma entrega de UI está completa se não for validada a responsividade**.
-- Utilize sempre o conceito de desenvolvimento **Mobile-First**.
-- O componente/visualização deve ser testado sob 3 quebras de dimensão essenciais: **Mobile (~375px), Tablet (~768px) e Desktop (~1280px+)**.
-- Prefira unidades relativas (`%`, `rem`, `auto`) e utilitários responsivos do Tailwind (como `md:`, `lg:`). Evite larguras absolutas de `pixels` sempre que puder.
+### Critério absoluto de responsividade
+
+**Nenhuma entrega de UI está completa sem validação de responsividade.**
+
+- Desenvolvimento **Mobile-First**.
+- Testar em 3 larguras: **Mobile (~375px), Tablet (~768px) e Desktop (~1280px+)**.
+- Unidades relativas (`%`, `rem`, `auto`) e utilitários responsivos do Tailwind (`md:`, `lg:`) em vez de larguras fixas em `px`.
+- Tabelas/grids largos precisam de scroll horizontal controlado ou layout alternativo em telas pequenas; alvos de toque ≥ 44×44px.
