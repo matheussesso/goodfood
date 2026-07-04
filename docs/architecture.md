@@ -11,7 +11,7 @@ Browser ──► Frontend (Next.js :3000) ──► Nginx (:8000) ──► Bac
 
 ## 1. Backend — API Laravel
 
-Local: `src/backend`. **Laravel 13** sobre **PHP 8.4** (imagem `php:8.4-fpm`), operando exclusivamente como API JSON (`routes/api.php`). Autenticação via **Sanctum** (tokens Bearer).
+Local: `src/backend`. **Laravel 13** sobre **PHP 8.4** (imagem `php:8.4-fpm`), operando exclusivamente como API JSON (`routes/api.php`). Autenticação via **Sanctum SPA stateful** (`statefulApi()` em `bootstrap/app.php`): sessão em cookie httpOnly + proteção CSRF — nenhum token exposto ao JavaScript do navegador.
 
 ### Camadas
 
@@ -21,6 +21,7 @@ Local: `src/backend`. **Laravel 13** sobre **PHP 8.4** (imagem `php:8.4-fpm`), o
 | **Controllers** | `app/Http/Controllers/` | Finos: recebem o FormRequest validado, orquestram Models/Services e respondem via trait `ApiResponses` |
 | **Policies** | `app/Policies/` | Autorização por recurso (dono ou admin; admin tem bypass via `before()`). Auto-descobertas por convenção `Models\X → Policies\XPolicy` |
 | **Services** | `app/Services/` | Regras de negócio: `RecipeCostCalculatorService` (precificação) e `SubscriptionOrderGenerationService` (pedidos recorrentes) |
+| **Resources** | `app/Http/Resources/` | Serialização das respostas (JsonResource por model, com `whenLoaded`/`whenCounted` para relações) |
 | **Models** | `app/Models/` | Relacionamentos, casts e accessors. Mass assignment restrito (ex.: `role` de `User` fora do fillable) |
 | **Middleware** | `app/Http/Middleware/AdminMiddleware.php` | Gate adicional das rotas administrativas |
 
@@ -39,7 +40,6 @@ Detalhes de endpoints em [api.md](api.md); entidades e regras em [domain.md](dom
 
 ### Evoluções planejadas
 
-- **JsonResources** para serialização das respostas (hoje os Models são serializados diretamente, com campos sensíveis protegidos por `#[Hidden]`).
 - **Repository pattern** apenas se/quando queries complexas justificarem.
 
 ---
@@ -52,17 +52,18 @@ Local: `src/frontend`. **Next.js 16 (App Router)** com **React 19** e **TypeScri
 
 - **Roteamento internacionalizado**: todo o app vive sob `app/[locale]/` (route groups `(auth)` e `(dashboard)`), com **next-intl** e middleware de locale. O root layout fica em `app/[locale]/layout.tsx`; por isso o 404 global usa `experimental.globalNotFound` + `app/global-not-found.tsx`, e `app/global-error.tsx` cobre erros que escapam do root layout (ambos fora da árvore de locale — texto estático). Ver [i18n.md](i18n.md).
 - **Estado de servidor**: **TanStack Query** (provider em `components/providers/QueryProvider.tsx`) para fetch, cache e invalidação.
-- **Estado de cliente**: **Zustand** apenas para a sessão de autenticação (`hooks/useAuth.ts`).
-- **HTTP**: instância única do Axios em `lib/api-client.ts` (`API_BASE_URL` + interceptors de token Bearer e 401). Única exceção de `fetch` direto: API externa ViaCEP, encapsulada em `lib/viacep.ts`.
+- **Estado de cliente**: **Zustand** apenas para a sessão de autenticação (`hooks/useAuth.ts`). A credencial em si é um cookie httpOnly; `AuthSessionProvider` restaura o usuário via `GET /me` no carregamento.
+- **HTTP**: instância única do Axios em `lib/api-client.ts` (`API_BASE_URL`, `withCredentials`, CSRF automático via `ensureCsrfCookie()` antes de mutações). Única exceção de `fetch` direto: API externa ViaCEP, encapsulada em `lib/viacep.ts`.
+- **Formulários**: React Hook Form + **Zod** (`@hookform/resolvers`), schemas em `lib/validations/`.
+- **Páginas decompostas**: componentes de feature em `features/<feature>/components` (ex.: `features/admin-customers/`).
 - **Boundaries**: `error.tsx` e `loading.tsx` por route group, com `unstable_retry` (Next 16).
 - **UI**: Tailwind CSS 4 + componentes em `components/ui/` (padrão shadcn sobre Base UI/cmdk), `clsx`/`tailwind-merge` via `lib/utils.ts`, ícones lucide-react, temas com next-themes.
 - **Imagens**: `next/image` com `remotePatterns` derivado de `NEXT_PUBLIC_API_URL` (fotos servidas pelo backend em `/storage`).
 
 ### Estado atual vs. alvo
 
-- A maioria das páginas é **Client Component** consumindo a API via TanStack Query; Server Components/Server Actions ainda não são usados para dados (o token em `localStorage` limita fetch no servidor — a migração para cookie httpOnly destravará isso).
-- Formulários: parte usa **React Hook Form**; a adoção de **Zod + @hookform/resolvers** está planejada, ainda não implementada.
-- Páginas grandes de admin estão em processo de decomposição para `features/<feature>/components`.
+- A maioria das páginas é **Client Component** consumindo a API via TanStack Query; com a autenticação agora em cookie httpOnly, a migração gradual de fetch de dados para **Server Components** ficou viável (próximo passo natural).
+- Páginas grandes de admin restantes (`admin/catalog`, `production`) ainda aguardam decomposição no padrão `features/`.
 
 ---
 

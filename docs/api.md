@@ -4,13 +4,14 @@ Base URL local: `http://localhost:8000/api` (Nginx → Laravel). O frontend cons
 
 ## Autenticação
 
-Laravel **Sanctum** com token Bearer:
+Laravel **Sanctum** em modo **SPA stateful** (cookie de sessão httpOnly):
 
-1. `POST /api/register` ou `POST /api/login` retornam `{ user, token }`.
-2. Enviar `Authorization: Bearer <token>` em todas as demais requisições.
-3. `POST /api/logout` revoga o token atual. O login revoga todos os tokens anteriores do usuário.
+1. `GET /sanctum/csrf-cookie` — obtém o cookie `XSRF-TOKEN` (o apiClient do frontend faz isso automaticamente antes de qualquer mutação).
+2. `POST /api/register` ou `POST /api/login` criam a sessão e retornam `{ user }` — **nenhum token é exposto ao JavaScript**.
+3. Requisições seguintes autenticam pelo cookie de sessão (`withCredentials`) + header `X-XSRF-TOKEN`.
+4. `POST /api/logout` invalida a sessão e rotaciona o CSRF token.
 
-> O frontend guarda o token em `localStorage` (`auth_token`) e o interceptor do Axios injeta o header automaticamente. Migração para cookie httpOnly está no roadmap.
+Requisitos: origem do frontend em `SANCTUM_STATEFUL_DOMAINS` (default inclui `localhost:3000`) e CORS com `supports_credentials` (já configurado em `config/cors.php`). Clientes não-stateful (sem `Origin`/`Referer` confiável) não recebem sessão.
 
 ## Contrato de resposta
 
