@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { usePets, Pet } from "@/hooks/usePets";
 import { apiClient } from "@/lib/api-client";
@@ -78,22 +79,11 @@ export default function PetsPage() {
       const formDataUpload = new FormData();
       formDataUpload.append("photo", file);
 
-      const token = localStorage.getItem("auth_token");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/pets/upload-photo`, {
-        method: "POST",
-        body: formDataUpload,
-        headers: token ? {
-          "Authorization": `Bearer ${token}`
-        } : {}
+      const { data } = await apiClient.post("/pets/upload-photo", formDataUpload, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      
-      const data = await response.json();
 
-      if (response.ok && data.success) {
-        setFormData(prev => ({ ...prev, photo_url: data.photo_url }));
-      } else {
-        throw new Error(data.message || "Upload failed");
-      }
+      setFormData(prev => ({ ...prev, photo_url: data.data.photo_url }));
     } catch (error) {
       console.error("Failed to upload photo:", error);
       alert(error instanceof Error ? error.message : tCommon("error"));
@@ -252,7 +242,7 @@ export default function PetsPage() {
                 <CardHeader className="pb-3 border-b border-border/50 bg-muted/10 relative">
                   <div className="flex items-center gap-4">
                     {pet.photo_url ? (
-                      <img src={pet.photo_url} alt={pet.name} className="w-16 h-16 rounded-full object-cover border-2 border-primary/20" />
+                      <Image src={pet.photo_url} alt={pet.name} width={64} height={64} className="w-16 h-16 rounded-full object-cover border-2 border-primary/20" />
                     ) : (
                       <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                         <Dog className="w-8 h-8" />
@@ -317,7 +307,7 @@ export default function PetsPage() {
                   <tr key={pet.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4 flex items-center gap-3">
                       {pet.photo_url ? (
-                        <img src={pet.photo_url} alt={pet.name} className="w-10 h-10 rounded-full object-cover" />
+                        <Image src={pet.photo_url} alt={pet.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover" />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                           <Dog className="w-5 h-5" />
@@ -371,7 +361,7 @@ export default function PetsPage() {
                 {isUploadingPhoto ? (
                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
                 ) : formData.photo_url ? (
-                  <img src={formData.photo_url} alt="Pet" className="w-full h-full object-cover" />
+                  <Image src={formData.photo_url} alt="Pet" fill sizes="96px" className="object-cover" />
                 ) : (
                   <Camera className="w-8 h-8 text-muted-foreground/50" />
                 )}
@@ -388,7 +378,7 @@ export default function PetsPage() {
               </div>
             </div>
             <span className="text-xs text-muted-foreground font-medium">
-              {isUploadingPhoto ? "Enviando..." : "Clique na imagem para alterar"}
+              {isUploadingPhoto ? t("photo_uploading") : t("photo_change_hint")}
             </span>
           </div>
 

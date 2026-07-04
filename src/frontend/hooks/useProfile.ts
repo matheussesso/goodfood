@@ -7,7 +7,10 @@ export interface UpdateProfilePayload {
   name: string;
   email: string;
   phone?: string;
-  address?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
   city?: string;
   state?: string;
   zipcode?: string;

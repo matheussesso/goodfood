@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Customer\StoreCustomerRequest;
+use App\Http\Requests\Customer\UpdateCustomerRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
+/**
+ * Admin management of customer accounts. Routes are protected by
+ * AdminMiddleware.
+ */
 class CustomerController extends Controller
 {
     /**
-     * Display a paginated listing of customers.
+     * List customers, optionally filtered by a name/email search term.
      *
      * @param  Request  $request
      * @return JsonResponse
@@ -23,7 +29,7 @@ class CustomerController extends Controller
             ->withCount(['pets', 'orders']);
 
         if ($request->filled('search')) {
-            $search = $request->search;
+            $search = $request->string('search')->toString();
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
@@ -32,51 +38,27 @@ class CustomerController extends Controller
 
         $customers = $query->orderBy('created_at', 'desc')->get();
 
-        return response()->json(['success' => true, 'data' => $customers]);
+        return $this->respondSuccess($customers, 'Customers fetched successfully');
     }
 
     /**
      * Create a new customer (admin action).
      *
-     * @param  Request  $request
+     * @param  StoreCustomerRequest  $request
      * @return JsonResponse
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreCustomerRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name'         => 'required|string|max:255',
-            'email'        => 'required|email|max:255|unique:users,email',
-            'password'     => 'required|string|min:8|confirmed',
-            'phone'        => 'nullable|string|max:30',
-            'street'       => 'nullable|string|max:255',
-            'number'       => 'nullable|string|max:20',
-            'complement'   => 'nullable|string|max:100',
-            'neighborhood' => 'nullable|string|max:100',
-            'city'         => 'nullable|string|max:100',
-            'state'        => 'nullable|string|max:2',
-            'zipcode'      => 'nullable|string|max:10',
-        ]);
+        $validated = $request->validated();
+        $validated['password'] = Hash::make($validated['password']);
 
-        $customer = User::create([
-            'name'         => $validated['name'],
-            'email'        => $validated['email'],
-            'password'     => Hash::make($validated['password']),
-            'phone'        => $validated['phone']        ?? null,
-            'street'       => $validated['street']       ?? null,
-            'number'       => $validated['number']       ?? null,
-            'complement'   => $validated['complement']   ?? null,
-            'neighborhood' => $validated['neighborhood'] ?? null,
-            'city'         => $validated['city']         ?? null,
-            'state'        => $validated['state']        ?? null,
-            'zipcode'      => $validated['zipcode']      ?? null,
-            'role'         => 'customer',
-        ]);
+        $customer = new User($validated);
+        // Role is intentionally not mass assignable; this endpoint only
+        // creates customer accounts.
+        $customer->role = 'customer';
+        $customer->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Customer created successfully',
-            'data'    => $customer,
-        ], 201);
+        return $this->respondSuccess($customer, 'Customer created successfully', 201);
     }
 
     /**
@@ -91,39 +73,22 @@ class CustomerController extends Controller
             ->with(['pets', 'orders', 'subscriptions', 'recipes.ingredients', 'recipes.pets'])
             ->findOrFail($id);
 
-        return response()->json(['success' => true, 'data' => $customer]);
+        return $this->respondSuccess($customer, 'Customer fetched successfully');
     }
 
     /**
      * Update the specified customer's information.
      *
-     * @param  Request     $request
-     * @param  int|string  $id
+     * @param  UpdateCustomerRequest  $request
+     * @param  int|string             $id
      * @return JsonResponse
      */
-    public function update(Request $request, $id): JsonResponse
+    public function update(UpdateCustomerRequest $request, $id): JsonResponse
     {
         $customer = User::where('role', 'customer')->findOrFail($id);
 
-        $validated = $request->validate([
-            'name'         => 'sometimes|required|string|max:255',
-            'email'        => 'sometimes|required|email|max:255|unique:users,email,' . $id,
-            'phone'        => 'nullable|string|max:30',
-            'street'       => 'nullable|string|max:255',
-            'number'       => 'nullable|string|max:20',
-            'complement'   => 'nullable|string|max:100',
-            'neighborhood' => 'nullable|string|max:100',
-            'city'         => 'nullable|string|max:100',
-            'state'        => 'nullable|string|max:2',
-            'zipcode'      => 'nullable|string|max:10',
-        ]);
+        $customer->update($request->validated());
 
-        $customer->update($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Customer updated successfully',
-            'data'    => $customer,
-        ]);
+        return $this->respondSuccess($customer, 'Customer updated successfully');
     }
 }

@@ -1,149 +1,121 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Pet\StorePetRequest;
+use App\Http\Requests\Pet\UpdatePetRequest;
+use App\Http\Requests\Pet\UploadPetPhotoRequest;
 use App\Models\Pet;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
+/**
+ * Manages pet resources. Ownership rules live in PetPolicy.
+ */
 class PetController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * List pets: admins see all, customers see only their own.
+     *
+     * @param  Request  $request
+     * @return JsonResponse
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        // Admin can see all pets, customer can see only theirs
         if ($request->user()->isAdmin()) {
             $pets = Pet::with('user')->get();
         } else {
             $pets = $request->user()->pets()->with('recipes.ingredients')->get();
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Pets fetched successfully',
-            'data' => $pets,
-        ]);
+        return $this->respondSuccess($pets, 'Pets fetched successfully');
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Create a pet. Admins may create on behalf of another user via user_id.
+     *
+     * @param  StorePetRequest  $request
+     * @return JsonResponse
      */
-    public function store(Request $request)
+    public function store(StorePetRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'nullable|string|in:dog,cat',
-            'breed' => 'nullable|string|max:255',
-            'weight' => 'nullable|numeric|min:0',
-            'age' => 'nullable|integer|min:0',
-            'birth_date' => 'nullable|date',
-            'restrictions' => 'nullable|string',
-            'allergies' => 'nullable|string',
-            'special_needs' => 'nullable|string',
-            'photo_url' => 'nullable|string',
-            'user_id' => 'nullable|exists:users,id',
-        ]);
+        $validated = $request->validated();
 
         if ($request->user()->isAdmin() && isset($validated['user_id'])) {
-            $user = \App\Models\User::findOrFail($validated['user_id']);
-            $pet = $user->pets()->create($validated);
+            $owner = User::findOrFail($validated['user_id']);
         } else {
-            $pet = $request->user()->pets()->create($validated);
+            $owner = $request->user();
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Pet created successfully',
-            'data' => $pet,
-        ], 201);
+        $pet = $owner->pets()->create($validated);
+
+        return $this->respondSuccess($pet, 'Pet created successfully', 201);
     }
 
     /**
-     * Display the specified resource.
+     * Show a pet with its recipes, orders and subscriptions.
+     *
+     * @param  Request  $request
+     * @param  Pet      $pet
+     * @return JsonResponse
      */
-    public function show(Request $request, Pet $pet)
+    public function show(Request $request, Pet $pet): JsonResponse
     {
-        if ($request->user()->id !== $pet->user_id && !$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('view', $pet);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Pet fetched successfully',
-            'data' => $pet->load(['recipes.ingredients', 'orders', 'subscriptions']),
-        ]);
+        return $this->respondSuccess(
+            $pet->load(['recipes.ingredients', 'orders', 'subscriptions']),
+            'Pet fetched successfully'
+        );
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update a pet. Reassignment (user_id) is admin-only and stripped for
+     * customers inside UpdatePetRequest::validated().
+     *
+     * @param  UpdatePetRequest  $request
+     * @param  Pet               $pet
+     * @return JsonResponse
      */
-    public function update(Request $request, Pet $pet)
+    public function update(UpdatePetRequest $request, Pet $pet): JsonResponse
     {
-        if ($request->user()->id !== $pet->user_id && !$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $pet->update($request->validated());
 
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'type' => 'nullable|string|in:dog,cat',
-            'breed' => 'nullable|string|max:255',
-            'weight' => 'nullable|numeric|min:0',
-            'age' => 'nullable|integer|min:0',
-            'birth_date' => 'nullable|date',
-            'restrictions' => 'nullable|string',
-            'allergies' => 'nullable|string',
-            'special_needs' => 'nullable|string',
-            'photo_url' => 'nullable|string',
-            'user_id' => 'nullable|exists:users,id',
-        ]);
-
-        if ($request->user()->isAdmin() && isset($validated['user_id'])) {
-            $pet->user_id = $validated['user_id'];
-        }
-
-        $pet->update($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Pet updated successfully',
-            'data' => $pet,
-        ]);
+        return $this->respondSuccess($pet, 'Pet updated successfully');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Delete a pet.
+     *
+     * @param  Request  $request
+     * @param  Pet      $pet
+     * @return JsonResponse
      */
-    public function destroy(Request $request, Pet $pet)
+    public function destroy(Request $request, Pet $pet): JsonResponse
     {
-        if ($request->user()->id !== $pet->user_id && !$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('delete', $pet);
 
         $pet->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Pet deleted successfully',
-            'data' => null,
-        ]);
+        return $this->respondSuccess(null, 'Pet deleted successfully');
     }
 
     /**
      * Upload a photo for a pet and return its URL.
+     *
+     * @param  UploadPetPhotoRequest  $request
+     * @return JsonResponse
      */
-    public function uploadPhoto(Request $request)
+    public function uploadPhoto(UploadPetPhotoRequest $request): JsonResponse
     {
-        $request->validate([
-            'photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
-        ]);
-
         $path = $request->file('photo')->store('pets', 'public');
 
-        return response()->json([
-            'success' => true,
-            'photo_url' => url('storage/' . $path),
-        ]);
+        return $this->respondSuccess(
+            ['photo_url' => url('storage/' . $path)],
+            'Photo uploaded successfully'
+        );
     }
 }

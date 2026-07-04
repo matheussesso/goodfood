@@ -39,6 +39,9 @@
   },
   "Common": {
     "save": "Save",
+    "save_changes": "Save Changes",
+    "something_went_wrong": "Something went wrong.",
+    "try_again": "Try again",
     "cancel": "Cancel",
     "add": "Add",
     "edit": "Edit",
@@ -74,6 +77,9 @@
   },
   "Catalog": {
     "title": "Catalog",
+    "search_template": "Search template recipe...",
+    "no_ingredients_found": "No ingredients found",
+    "no_ingredients_selected": "No ingredients selected",
     "description": "Manage ingredients and create recipe templates.",
     "ingredients": "ingredients",
     "recipes": "Recipe Templates",
@@ -237,6 +243,8 @@
   },
   "Pets": {
     "title": "My Pets",
+    "photo_uploading": "Uploading...",
+    "photo_change_hint": "Click the image to change it",
     "description": "Manage your pets' profiles to create custom recipes.",
     "new_pet": "New Pet",
     "edit_pet": "Edit Pet",
@@ -495,6 +503,13 @@
   },
   "admin": {
     "dashboard": "Admin Dashboard",
+    "save_pet": "Save Pet",
+    "add_pet": "Add Pet",
+    "add_first_pet": "Add first pet",
+    "save_recipe": "Save Recipe",
+    "no_pets_for_customer": "No pets found for this customer.",
+    "no_recipes_for_customer": "No recipes found for this customer.",
+    "no_orders_for_customer": "No orders found for this customer.",
     "dashboard_desc": "Overview and important metrics",
     "total_customers": "Total Customers",
     "total_orders": "Total Orders",

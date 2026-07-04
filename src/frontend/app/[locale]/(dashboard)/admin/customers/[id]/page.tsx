@@ -8,6 +8,7 @@ import { usePets } from "@/hooks/usePets";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useRecipes, calculateRecipeCost } from "@/hooks/useRecipes";
 import { BRAZIL_STATES } from "@/lib/brazil-states";
+import { fetchAddressByCep } from "@/lib/viacep";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, User, Phone, Mail, Calendar, PawPrint, Package, CalendarDays, Edit2, Loader2, Plus, Dog, UtensilsCrossed, MapPin, LayoutGrid, List as ListIcon, Info, Search, CheckCircle2, Check, Trash2, ChevronDown, ChevronUp, DollarSign, FileText, CalendarClock, Layers, Eye, ShoppingBag } from "lucide-react";
@@ -152,25 +153,24 @@ export default function CustomerDetailPage() {
     setCepSearching(true);
     setCepError("");
     try {
-      const res  = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const data = await res.json();
-      if (data.erro) {
-        setCepError("CEP não encontrado.");
+      const address = await fetchAddressByCep(digits);
+      if (!address) {
+        setCepError(t("cep_not_found"));
       } else {
         setCustomerForm((f) => ({
           ...f,
-          street:       data.logradouro ?? f.street,
-          neighborhood: data.bairro     ?? f.neighborhood,
-          city:         data.localidade ?? f.city,
-          state:        data.uf         ?? f.state,
+          street:       address.street       || f.street,
+          neighborhood: address.neighborhood || f.neighborhood,
+          city:         address.city         || f.city,
+          state:        address.state        || f.state,
         }));
       }
     } catch {
-      setCepError("CEP não encontrado.");
+      setCepError(t("cep_not_found"));
     } finally {
       setCepSearching(false);
     }
-  }, []);
+  }, [t]);
 
   if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground flex justify-center"><Loader2 className="animate-spin w-8 h-8" /></div>;
@@ -554,7 +554,7 @@ export default function CustomerDetailPage() {
                   </button>
                 </div>
                 <Button onClick={() => handleOpenPetModal()} className="flex-1 sm:flex-none">
-                  <Plus className="w-4 h-4 mr-2" /> Adicionar Pet
+                  <Plus className="w-4 h-4 mr-2" /> {t("add_pet")}
                 </Button>
               </div>
             </div>
@@ -706,9 +706,9 @@ export default function CustomerDetailPage() {
                 <div className="w-14 h-14 rounded-full bg-muted/50 flex items-center justify-center">
                   <Dog className="w-7 h-7 opacity-40" />
                 </div>
-                <p className="text-sm">Nenhum pet encontrado para este cliente.</p>
+                <p className="text-sm">{t("no_pets_for_customer")}</p>
                 <Button variant="outline" size="sm" onClick={() => handleOpenPetModal()} className="mt-1 gap-1.5 text-xs h-8">
-                  <Plus className="w-3.5 h-3.5" /> Adicionar primeiro pet
+                  <Plus className="w-3.5 h-3.5" /> {t("add_first_pet")}
                 </Button>
               </div>
             )}
@@ -848,7 +848,7 @@ export default function CustomerDetailPage() {
                 <div className="w-14 h-14 rounded-full bg-muted/50 flex items-center justify-center">
                   <UtensilsCrossed className="w-7 h-7 opacity-40" />
                 </div>
-                <p className="text-sm">Nenhuma receita encontrada para este cliente.</p>
+                <p className="text-sm">{t("no_recipes_for_customer")}</p>
                 <Link href={`/recipes/new?user_id=${customer.id}`}>
                   <Button variant="outline" size="sm" className="mt-1 gap-1.5 text-xs h-8">
                     <Plus className="w-3.5 h-3.5" /> Criar primeira receita
@@ -916,7 +916,7 @@ export default function CustomerDetailPage() {
                 <div className="w-14 h-14 rounded-full bg-muted/50 flex items-center justify-center">
                   <Package className="w-7 h-7 opacity-40" />
                 </div>
-                <p className="text-sm">Nenhum pedido encontrado para este cliente.</p>
+                <p className="text-sm">{t("no_orders_for_customer")}</p>
               </div>
             )}
           </div>
@@ -999,7 +999,7 @@ export default function CustomerDetailPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar ingrediente..."
+                  placeholder={tCat("search_ingredient")}
                   value={ingredientSearch}
                   onChange={(e) => setIngredientSearch(e.target.value)}
                   className="pl-9 h-9 text-sm"
@@ -1054,7 +1054,7 @@ export default function CustomerDetailPage() {
                 const matchCategory = recCategoryFilter === "Todos" || ing.category === recCategoryFilter;
                 return matchSearch && matchCategory;
               }).length === 0 && (
-                <div className="col-span-4 text-center text-xs text-muted-foreground py-4">Nenhum ingrediente encontrado</div>
+                <div className="col-span-4 text-center text-xs text-muted-foreground py-4">{tCat("no_ingredients_found")}</div>
               )}
             </div>
 
@@ -1105,7 +1105,7 @@ export default function CustomerDetailPage() {
                 })()}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-6 border rounded-md border-dashed">Nenhum ingrediente selecionado</p>
+              <p className="text-sm text-muted-foreground text-center py-6 border rounded-md border-dashed">{tCat("no_ingredients_selected")}</p>
             )}
           </div>
 
@@ -1233,8 +1233,8 @@ export default function CustomerDetailPage() {
           </div>
 
           <div className="pt-4 flex justify-end gap-2 border-t mt-6">
-            <Button type="button" variant="outline" onClick={() => setIsRecEditModalOpen(false)}>Cancelar</Button>
-            <Button type="submit" disabled={isUpdatingRec || isCalculatingCost}>Salvar Receita</Button>
+            <Button type="button" variant="outline" onClick={() => setIsRecEditModalOpen(false)}>{tCommon("cancel")}</Button>
+            <Button type="submit" disabled={isUpdatingRec || isCalculatingCost}>{t("save_recipe")}</Button>
           </div>
         </form>
       </Modal>
@@ -1406,11 +1406,11 @@ export default function CustomerDetailPage() {
 
           <div className="pt-2 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setIsEditCustomerModalOpen(false)}>
-              Cancelar
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={isUpdatingCustomer}>
               {isUpdatingCustomer && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              Salvar Alterações
+              {tCommon("save_changes")}
             </Button>
           </div>
         </form>
@@ -1440,10 +1440,10 @@ export default function CustomerDetailPage() {
             <textarea className="flex w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={petForm.special_needs} onChange={e => setPetForm({...petForm, special_needs: e.target.value})} placeholder="Diabético, cego..." />
           </div>
           <div className="pt-4 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsPetModalOpen(false)}>Cancelar</Button>
+            <Button type="button" variant="outline" onClick={() => setIsPetModalOpen(false)}>{tCommon("cancel")}</Button>
             <Button type="submit" disabled={isCreatingPet || isUpdatingPet}>
               {(isCreatingPet || isUpdatingPet) && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              Salvar Pet
+              {t("save_pet")}
             </Button>
           </div>
         </form>

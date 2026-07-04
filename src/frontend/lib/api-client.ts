@@ -1,12 +1,22 @@
 import axios from "axios";
 
+/**
+ * Base URL of the Laravel API. Single source of truth for the fallback —
+ * do not duplicate it anywhere else in the app.
+ */
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
+/**
+ * Shared Axios instance for all API calls. Attaches the Sanctum bearer
+ * token from localStorage on every request and clears it on 401 responses.
+ */
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
   },
-  withCredentials: true, // For Sanctum SPA auth
 });
 
 // Interceptor for attaching tokens

@@ -39,6 +39,9 @@
   },
   "Common": {
     "save": "Salvar",
+    "save_changes": "Salvar Alterações",
+    "something_went_wrong": "Algo deu errado.",
+    "try_again": "Tentar novamente",
     "cancel": "Cancelar",
     "add": "Adicionar",
     "edit": "Editar",
@@ -74,6 +77,9 @@
   },
   "Catalog": {
     "title": "Catálogo",
+    "search_template": "Buscar receita modelo...",
+    "no_ingredients_found": "Nenhum ingrediente encontrado",
+    "no_ingredients_selected": "Nenhum ingrediente selecionado",
     "description": "Gerencie ingredientes e crie modelos de receitas.",
     "ingredients": "ingredientes",
     "recipes": "Receitas Modelos",
@@ -237,6 +243,8 @@
   },
   "Pets": {
     "title": "Meus Pets",
+    "photo_uploading": "Enviando...",
+    "photo_change_hint": "Clique na imagem para alterar",
     "description": "Gerencie os perfis dos seus pets para criar receitas personalizadas.",
     "new_pet": "Novo Pet",
     "edit_pet": "Editar Pet",
@@ -495,6 +503,13 @@
   },
   "admin": {
     "dashboard": "Dashboard",
+    "save_pet": "Salvar Pet",
+    "add_pet": "Adicionar Pet",
+    "add_first_pet": "Adicionar primeiro pet",
+    "save_recipe": "Salvar Receita",
+    "no_pets_for_customer": "Nenhum pet encontrado para este cliente.",
+    "no_recipes_for_customer": "Nenhuma receita encontrada para este cliente.",
+    "no_orders_for_customer": "Nenhum pedido encontrado para este cliente.",
     "dashboard_desc": "Visão geral e métricas importantes",
     "total_customers": "Total de Clientes",
     "total_orders": "Total de Pedidos",

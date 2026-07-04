@@ -1,125 +1,101 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Ingredient\StoreIngredientRequest;
+use App\Http\Requests\Ingredient\UpdateIngredientRequest;
 use App\Models\Ingredient;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * Manages ingredient resources. Admin-only mutations enforced by
+ * IngredientPolicy.
+ */
 class IngredientController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * List ingredients: admins see all, customers see only active ones.
+     *
+     * @param  Request  $request
+     * @return JsonResponse
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        if ($user->isAdmin()) {
+        if ($request->user()->isAdmin()) {
             $ingredients = Ingredient::all();
         } else {
             $ingredients = Ingredient::where('is_active', true)->get();
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ingredients fetched successfully',
-            'data' => $ingredients,
-        ]);
+        return $this->respondSuccess($ingredients, 'Ingredients fetched successfully');
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Create an ingredient (admin only).
+     *
+     * @param  StoreIngredientRequest  $request
+     * @return JsonResponse
      */
-    public function store(Request $request)
+    public function store(StoreIngredientRequest $request): JsonResponse
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'category' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'unit' => 'required|string',
-            'cost_per_unit' => 'required|numeric|min:0',
-            'loss_rate' => 'nullable|numeric|min:0',
-            'difficulty_multiplier' => 'nullable|numeric|min:0',
-            'is_active' => 'boolean',
-        ]);
-
+        $validated = $request->validated();
         $validated['unit_cost'] = $validated['cost_per_unit'];
 
         $ingredient = Ingredient::create($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ingredient created successfully',
-            'data' => $ingredient,
-        ], 201);
+        return $this->respondSuccess($ingredient, 'Ingredient created successfully', 201);
     }
 
     /**
-     * Display the specified resource.
+     * Show an ingredient (admin only).
+     *
+     * @param  Request     $request
+     * @param  Ingredient  $ingredient
+     * @return JsonResponse
      */
-    public function show(Request $request, Ingredient $ingredient)
+    public function show(Request $request, Ingredient $ingredient): JsonResponse
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('view', $ingredient);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ingredient fetched successfully',
-            'data' => $ingredient,
-        ]);
+        return $this->respondSuccess($ingredient, 'Ingredient fetched successfully');
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update an ingredient (admin only).
+     *
+     * @param  UpdateIngredientRequest  $request
+     * @param  Ingredient               $ingredient
+     * @return JsonResponse
      */
-    public function update(Request $request, Ingredient $ingredient)
+    public function update(UpdateIngredientRequest $request, Ingredient $ingredient): JsonResponse
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $validated = $request->validated();
+
+        if (isset($validated['cost_per_unit'])) {
+            $validated['unit_cost'] = $validated['cost_per_unit'];
         }
-
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'category' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'unit' => 'sometimes|required|string',
-            'cost_per_unit' => 'sometimes|required|numeric|min:0',
-            'loss_rate' => 'nullable|numeric|min:0',
-            'difficulty_multiplier' => 'nullable|numeric|min:0',
-            'is_active' => 'boolean',
-        ]);
-
-        $validated['unit_cost'] = $validated['cost_per_unit'];
 
         $ingredient->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ingredient updated successfully',
-            'data' => $ingredient,
-        ]);
+        return $this->respondSuccess($ingredient, 'Ingredient updated successfully');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Delete an ingredient (admin only).
+     *
+     * @param  Request     $request
+     * @param  Ingredient  $ingredient
+     * @return JsonResponse
      */
-    public function destroy(Request $request, Ingredient $ingredient)
+    public function destroy(Request $request, Ingredient $ingredient): JsonResponse
     {
-        if (!$request->user()->isAdmin()) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('delete', $ingredient);
 
         $ingredient->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Ingredient deleted successfully',
-            'data' => null,
-        ]);
+        return $this->respondSuccess(null, 'Ingredient deleted successfully');
     }
 }

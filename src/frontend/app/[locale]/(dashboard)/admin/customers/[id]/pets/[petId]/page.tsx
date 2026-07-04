@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { usePet, usePets } from "@/hooks/usePets";
@@ -166,9 +167,11 @@ export default function AdminPetProfilePage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 p-6">
             {/* Avatar */}
             {pet.photo_url ? (
-              <img
+              <Image
                 src={pet.photo_url}
                 alt={pet.name}
+                width={64}
+                height={64}
                 className="w-16 h-16 rounded-full object-cover border-4 border-border shrink-0 shadow-md"
               />
             ) : (
@@ -487,7 +490,7 @@ export default function AdminPetProfilePage() {
                 <div className="w-14 h-14 rounded-full bg-muted/50 flex items-center justify-center">
                   <Package className="w-7 h-7 opacity-40" />
                 </div>
-                <p className="text-sm">Nenhum pedido feito para este pet.</p>
+                <p className="text-sm">{t("no_orders")}</p>
               </div>
             )}
           </div>
@@ -584,11 +587,11 @@ export default function AdminPetProfilePage() {
 
           <div className="pt-2 flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
-              Cancelar
+              {tCommon("cancel")}
             </Button>
             <Button type="submit" disabled={isUpdating}>
               {isUpdating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              Salvar Pet
+              {tAdmin("save_pet")}
             </Button>
           </div>
         </form>

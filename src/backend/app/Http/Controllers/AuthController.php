@@ -4,75 +4,61 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\UpdatePasswordRequest;
+use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Handles registration, authentication and self-service profile management.
+ */
 class AuthController extends Controller
 {
     /**
-     * Register a new user
+     * Register a new customer account and issue an API token.
+     *
+     * @param  RegisterRequest  $request
+     * @return JsonResponse
      */
-    public function register(Request $request)
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name'         => 'required|string|max:255',
-            'email'        => 'required|string|email|max:255|unique:users',
-            'password'     => 'required|string|min:8|confirmed',
-            'phone'        => 'nullable|string|max:30',
-            'street'       => 'nullable|string|max:255',
-            'number'       => 'nullable|string|max:20',
-            'complement'   => 'nullable|string|max:100',
-            'neighborhood' => 'nullable|string|max:100',
-            'city'         => 'nullable|string|max:100',
-            'state'        => 'nullable|string|max:2',
-            'zipcode'      => 'nullable|string|max:10',
-        ]);
+        $validated = $request->validated();
+        $validated['password'] = Hash::make($validated['password']);
 
-        $user = User::create([
-            'name'         => $validated['name'],
-            'email'        => $validated['email'],
-            'password'     => Hash::make($validated['password']),
-            'phone'        => $validated['phone']        ?? null,
-            'street'       => $validated['street']       ?? null,
-            'number'       => $validated['number']       ?? null,
-            'complement'   => $validated['complement']   ?? null,
-            'neighborhood' => $validated['neighborhood'] ?? null,
-            'city'         => $validated['city']         ?? null,
-            'state'        => $validated['state']        ?? null,
-            'zipcode'      => $validated['zipcode']      ?? null,
-            'role'         => 'customer',
-        ]);
+        $user = new User($validated);
+        // Role is intentionally not mass assignable; every self-registered
+        // account is a customer.
+        $user->role = 'customer';
+        $user->save();
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'success' => true,
-            'message' => 'User registered successfully',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-            ]
-        ], 201);
+        return $this->respondSuccess(
+            ['user' => $user, 'token' => $token],
+            'User registered successfully',
+            201
+        );
     }
 
     /**
-     * Authenticate a user
+     * Authenticate a user and issue a fresh API token.
+     *
+     * @param  LoginRequest  $request
+     * @return JsonResponse
+     * @throws ValidationException When the credentials are invalid.
      */
-    public function login(Request $request)
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+        $user = User::where('email', $request->validated('email'))->first();
 
-        $user = User::where('email', $request->email)->first();
-
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['As credenciais fornecidas estão incorretas.'],
+                'email' => [__('auth.failed')],
             ]);
         }
 
@@ -81,104 +67,68 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'success' => true,
-            'message' => 'User logged in successfully',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-            ]
-        ]);
+        return $this->respondSuccess(
+            ['user' => $user, 'token' => $token],
+            'User logged in successfully'
+        );
     }
 
     /**
-     * Get authenticated user
+     * Return the authenticated user.
+     *
+     * @param  Request  $request
+     * @return JsonResponse
      */
-    public function me(Request $request)
+    public function me(Request $request): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'User fetched successfully',
-            'data' => $request->user(),
-        ]);
+        return $this->respondSuccess($request->user(), 'User fetched successfully');
     }
 
     /**
-     * Logout user (Revoke the token)
+     * Revoke the current access token.
+     *
+     * @param  Request  $request
+     * @return JsonResponse
      */
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'User logged out successfully',
-            'data' => null,
-        ]);
+        return $this->respondSuccess(null, 'User logged out successfully');
     }
 
     /**
      * Update the authenticated user's profile information.
      *
-     * @param  Request  $request
+     * @param  UpdateProfileRequest  $request
      * @return JsonResponse
      */
-    public function updateProfile(Request $request): JsonResponse
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
         $user = $request->user();
+        $user->update($request->validated());
 
-        $validated = $request->validate([
-            'name'         => 'required|string|max:255',
-            'email'        => 'required|email|max:255|unique:users,email,' . $user->id,
-            'phone'        => 'nullable|string|max:30',
-            'street'       => 'nullable|string|max:255',
-            'number'       => 'nullable|string|max:20',
-            'complement'   => 'nullable|string|max:100',
-            'neighborhood' => 'nullable|string|max:100',
-            'city'         => 'nullable|string|max:100',
-            'state'        => 'nullable|string|max:2',
-            'zipcode'      => 'nullable|string|max:10',
-            'whatsapp_notifications' => 'sometimes|boolean',
-        ]);
-
-        $user->update($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Profile updated successfully',
-            'data'    => $user->fresh(),
-        ]);
+        return $this->respondSuccess($user->fresh(), 'Profile updated successfully');
     }
 
     /**
      * Update the authenticated user's password.
      *
-     * @param  Request  $request
+     * @param  UpdatePasswordRequest  $request
      * @return JsonResponse
      */
-    public function updatePassword(Request $request): JsonResponse
+    public function updatePassword(UpdatePasswordRequest $request): JsonResponse
     {
-        $request->validate([
-            'current_password' => 'required|string',
-            'password'         => 'required|string|min:8|confirmed',
-        ]);
-
         $user = $request->user();
 
-        if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Current password is incorrect.',
-                'errors'  => ['current_password' => ['Current password is incorrect.']],
-            ], 422);
+        if (! Hash::check($request->validated('current_password'), $user->password)) {
+            return $this->respondError('Current password is incorrect.', 422, [
+                'current_password' => ['Current password is incorrect.'],
+            ]);
         }
 
-        $user->update(['password' => Hash::make($request->password)]);
+        $user->update(['password' => Hash::make($request->validated('password'))]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Password updated successfully',
-            'data'    => null,
-        ]);
+        return $this->respondSuccess(null, 'Password updated successfully');
     }
 }

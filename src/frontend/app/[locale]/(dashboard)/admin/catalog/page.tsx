@@ -519,7 +519,7 @@ export default function CatalogPage() {
             <div className="relative flex-1 w-full min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar ingrediente..."
+                placeholder={t("search_ingredient")}
                 className="pl-9 h-10 w-full"
                 value={adminIngSearch}
                 onChange={e => setAdminIngSearch(e.target.value)}
@@ -722,7 +722,7 @@ export default function CatalogPage() {
             <div className="relative flex-1 w-full min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar receita modelo..."
+                placeholder={t("search_template")}
                 className="pl-9 h-10 w-full"
                 value={adminRecSearch}
                 onChange={e => setAdminRecSearch(e.target.value)}
@@ -1052,7 +1052,7 @@ export default function CatalogPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar ingrediente..."
+                  placeholder={t("search_ingredient")}
                   value={ingredientSearch}
                   onChange={(e) => setIngredientSearch(e.target.value)}
                   className="pl-9 h-9 text-sm"
@@ -1108,7 +1108,7 @@ export default function CatalogPage() {
                 const matchCategory = adminRecCategoryFilter === "Todos" || ing.category === adminRecCategoryFilter;
                 return matchSearch && matchCategory;
               }).length === 0 && (
-                <div className="col-span-4 text-center text-xs text-muted-foreground py-4">Nenhum ingrediente encontrado</div>
+                <div className="col-span-4 text-center text-xs text-muted-foreground py-4">{t("no_ingredients_found")}</div>
               )}
             </div>
 

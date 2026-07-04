@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Order\StoreOrderRequest;
+use App\Http\Requests\Order\UpdateOrderRequest;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -12,6 +14,9 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * Manages order resources. Ownership rules live in OrderPolicy.
+ */
 class OrderController extends Controller
 {
     /**
@@ -33,11 +38,7 @@ class OrderController extends Controller
                 ->get();
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Orders fetched successfully',
-            'data' => $orders,
-        ]);
+        return $this->respondSuccess($orders, 'Orders fetched successfully');
     }
 
     /**
@@ -45,22 +46,17 @@ class OrderController extends Controller
      * Accepts an array of items (each with recipe_id and optional pet_id),
      * allowing the same recipe to appear multiple times for different pets.
      *
-     * @param  Request  $request
+     * @param  StoreOrderRequest  $request
      * @return JsonResponse
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreOrderRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'items'                => 'required|array|min:1',
-            'items.*.recipe_id'    => 'required|integer|exists:recipes,id',
-            'items.*.pet_id'       => 'nullable|integer|exists:pets,id',
-            'delivery_address'     => 'nullable|string|max:1000',
-        ]);
+        $validated = $request->validated();
 
         $userPetIds = $request->user()->pets()->pluck('id');
         foreach ($validated['items'] as $item) {
-            if (!empty($item['pet_id']) && !$userPetIds->contains($item['pet_id'])) {
-                return response()->json(['success' => false, 'message' => 'Pet not found or unauthorized'], 403);
+            if (! empty($item['pet_id']) && ! $userPetIds->contains($item['pet_id'])) {
+                return $this->respondError('Pet not found or unauthorized', 403);
             }
         }
 
@@ -100,11 +96,11 @@ class OrderController extends Controller
             ]);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Order created successfully',
-            'data'    => $order->load(['items.recipe', 'items.pet', 'invoice']),
-        ], 201);
+        return $this->respondSuccess(
+            $order->load(['items.recipe', 'items.pet', 'invoice']),
+            'Order created successfully',
+            201
+        );
     }
 
     /**
@@ -116,48 +112,29 @@ class OrderController extends Controller
      */
     public function show(Request $request, Order $order): JsonResponse
     {
-        if ($request->user()->id !== $order->user_id && !$request->user()->isAdmin()) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('view', $order);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Order fetched successfully',
-            'data'    => $order->load(['user', 'pet', 'items.recipe.ingredients', 'items.pet', 'subscription', 'invoice']),
-        ]);
+        return $this->respondSuccess(
+            $order->load(['user', 'pet', 'items.recipe.ingredients', 'items.pet', 'subscription', 'invoice']),
+            'Order fetched successfully'
+        );
     }
 
     /**
-     * Update an order. Customers may update delivery fields; admins may also update status.
+     * Update an order. Customers may update delivery fields; admins may also
+     * update status. Rules and authorization live in UpdateOrderRequest.
      *
-     * @param  Request  $request
-     * @param  Order    $order
+     * @param  UpdateOrderRequest  $request
+     * @param  Order               $order
      * @return JsonResponse
      */
-    public function update(Request $request, Order $order): JsonResponse
+    public function update(UpdateOrderRequest $request, Order $order): JsonResponse
     {
-        if ($request->user()->id !== $order->user_id && !$request->user()->isAdmin()) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
+        $order->update($request->validated());
 
-        $rules = [
-            'delivery_address' => 'sometimes|nullable|string|max:500',
-            'delivery_date'    => 'sometimes|nullable|date',
-        ];
-
-        if ($request->user()->isAdmin()) {
-            $rules['status'] = 'sometimes|required|in:pending_payment,pending,in_production,ready,out_for_delivery,delivered,cancelled';
-            $rules['scheduled_reposicao_date'] = 'sometimes|nullable|date';
-        }
-
-        $validated = $request->validate($rules);
-
-        $order->update($validated);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Order updated successfully',
-            'data'    => $order->load(['user', 'pet', 'items.recipe']),
-        ]);
+        return $this->respondSuccess(
+            $order->load(['user', 'pet', 'items.recipe']),
+            'Order updated successfully'
+        );
     }
 }

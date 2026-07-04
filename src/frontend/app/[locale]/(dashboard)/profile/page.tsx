@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { BRAZIL_STATES } from "@/lib/brazil-states";
+import { fetchAddressByCep } from "@/lib/viacep";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,15 +110,14 @@ export default function ProfilePage() {
       setCepSearching(true);
       setCepError("");
       try {
-        const res  = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-        const data = await res.json();
-        if (data.erro) {
+        const address = await fetchAddressByCep(digits);
+        if (!address) {
           setCepError(t("cep_not_found"));
         } else {
-          setAddrStreet(data.logradouro   ?? "");
-          setAddrNeighborhood(data.bairro ?? "");
-          setAddrCity(data.localidade     ?? "");
-          setAddrState(data.uf            ?? "");
+          setAddrStreet(address.street);
+          setAddrNeighborhood(address.neighborhood);
+          setAddrCity(address.city);
+          setAddrState(address.state);
         }
       } catch {
         setCepError(t("cep_not_found"));

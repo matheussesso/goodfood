@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Subscription\StoreSubscriptionRequest;
+use App\Http\Requests\Subscription\UpdateSubscriptionRequest;
 use App\Models\Subscription;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * Manages subscription resources. Ownership rules live in SubscriptionPolicy.
+ */
 class SubscriptionController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * List subscriptions: admins see all, customers see only their own.
      *
      * @param  Request  $request
      * @return JsonResponse
@@ -35,33 +40,23 @@ class SubscriptionController extends Controller
                 ->get();
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscriptions fetched successfully',
-            'data' => $subscriptions,
-        ]);
+        return $this->respondSuccess($subscriptions, 'Subscriptions fetched successfully');
     }
 
     /**
-     * Store a newly created resource in storage. Creates a subscription for the
-     * authenticated user's pet, cycling through the given recipes in order.
+     * Create a subscription for the authenticated user's pet, cycling
+     * through the given recipes in order.
      *
-     * @param  Request  $request
+     * @param  StoreSubscriptionRequest  $request
      * @return JsonResponse
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreSubscriptionRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'pet_id' => 'required|exists:pets,id',
-            'recipe_ids' => 'required|array|min:1',
-            'recipe_ids.*' => 'required|integer|exists:recipes,id',
-            'start_date' => 'required|date|after_or_equal:today',
-            'interval_days' => 'required|integer|min:14|multiple_of:7',
-        ]);
+        $validated = $request->validated();
 
         $pet = $request->user()->pets()->find($validated['pet_id']);
-        if (!$pet) {
-            return response()->json(['success' => false, 'message' => 'Pet not found or unauthorized'], 403);
+        if (! $pet) {
+            return $this->respondError('Pet not found or unauthorized', 403);
         }
 
         $startDate = Carbon::parse($validated['start_date']);
@@ -76,15 +71,15 @@ class SubscriptionController extends Controller
 
         $this->syncRecipeRotation($subscription, $validated['recipe_ids']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription created successfully',
-            'data' => $subscription->load(['pet', 'recipes']),
-        ], 201);
+        return $this->respondSuccess(
+            $subscription->load(['pet', 'recipes']),
+            'Subscription created successfully',
+            201
+        );
     }
 
     /**
-     * Display the specified resource.
+     * Show a subscription with its pet, recipes and orders.
      *
      * @param  Request       $request
      * @param  Subscription  $subscription
@@ -92,37 +87,25 @@ class SubscriptionController extends Controller
      */
     public function show(Request $request, Subscription $subscription): JsonResponse
     {
-        if ($request->user()->id !== $subscription->user_id && !$request->user()->isAdmin()) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('view', $subscription);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription fetched successfully',
-            'data' => $subscription->load(['pet', 'recipes', 'orders']),
-        ]);
+        return $this->respondSuccess(
+            $subscription->load(['pet', 'recipes', 'orders']),
+            'Subscription fetched successfully'
+        );
     }
 
     /**
-     * Update the specified resource in storage. Allows changing status, the recipe
-     * rotation, or the cycle interval (the latter two recompute `next_delivery_date`).
+     * Update a subscription: status, recipe rotation, or cycle interval
+     * (the latter two recompute `next_delivery_date`).
      *
-     * @param  Request       $request
-     * @param  Subscription  $subscription
+     * @param  UpdateSubscriptionRequest  $request
+     * @param  Subscription               $subscription
      * @return JsonResponse
      */
-    public function update(Request $request, Subscription $subscription): JsonResponse
+    public function update(UpdateSubscriptionRequest $request, Subscription $subscription): JsonResponse
     {
-        if ($request->user()->id !== $subscription->user_id && !$request->user()->isAdmin()) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
-
-        $validated = $request->validate([
-            'status' => 'sometimes|required|in:active,paused,cancelled',
-            'recipe_ids' => 'sometimes|required|array|min:1',
-            'recipe_ids.*' => 'required_with:recipe_ids|integer|exists:recipes,id',
-            'interval_days' => 'sometimes|required|integer|min:14|multiple_of:7',
-        ]);
+        $validated = $request->validated();
 
         $intervalChanged = array_key_exists('interval_days', $validated);
 
@@ -140,11 +123,10 @@ class SubscriptionController extends Controller
             $this->syncRecipeRotation($subscription, $validated['recipe_ids']);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription updated successfully',
-            'data' => $subscription->load(['pet', 'recipes']),
-        ]);
+        return $this->respondSuccess(
+            $subscription->load(['pet', 'recipes']),
+            'Subscription updated successfully'
+        );
     }
 
     /**
@@ -156,17 +138,14 @@ class SubscriptionController extends Controller
      */
     public function destroy(Request $request, Subscription $subscription): JsonResponse
     {
-        if ($request->user()->id !== $subscription->user_id && !$request->user()->isAdmin()) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('delete', $subscription);
 
         $subscription->update(['status' => 'cancelled']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Subscription cancelled successfully',
-            'data' => $subscription->load(['pet', 'recipes']),
-        ]);
+        return $this->respondSuccess(
+            $subscription->load(['pet', 'recipes']),
+            'Subscription cancelled successfully'
+        );
     }
 
     /**

@@ -1,27 +1,38 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Recipe\CalculateRecipeCostRequest;
+use App\Http\Requests\Recipe\StoreRecipeRequest;
+use App\Http\Requests\Recipe\UpdateRecipeRequest;
 use App\Models\Recipe;
 use App\Services\RecipeCostCalculatorService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
+/**
+ * Manages recipe resources. Visibility/mutation rules live in RecipePolicy.
+ */
 class RecipeController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * List recipes. Admins see all; customers see templates, their own
+     * recipes, and recipes linked to their pets.
+     *
+     * @param  Request  $request
+     * @return JsonResponse
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
         $query = Recipe::with(['ingredients', 'pets']);
 
-        if ($user->role === 'admin') {
-            // Admin sees all recipes
+        if ($user->isAdmin()) {
             $recipes = $query->get();
         } else {
-            // Customer sees templates, their own recipes, or recipes linked to their pets.
             $userPetIds = $user->pets()->pluck('id');
             $recipes = $query->where('is_template', true)
                              ->orWhere('user_id', $user->id)
@@ -32,40 +43,21 @@ class RecipeController extends Controller
                              ->get();
         }
 
-        return response()->json([
-            'success' => true,
-            'data' => $recipes,
-        ]);
+        return $this->respondSuccess($recipes, 'Recipes fetched successfully');
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Create a recipe, optionally syncing ingredients and linked pets.
+     *
+     * @param  StoreRecipeRequest  $request
+     * @return JsonResponse
      */
-    public function store(Request $request)
+    public function store(StoreRecipeRequest $request): JsonResponse
     {
         $user = $request->user();
+        $validated = $request->validated();
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'pet_type' => 'nullable|string',
-            'duration_days' => 'nullable|integer|min:1',
-            'daily_portions' => 'nullable|integer|min:1',
-            'instructions' => 'nullable|string',
-            'is_template' => 'boolean',
-            'frequency' => 'nullable|string',
-            'is_active' => 'boolean',
-            'pet_id' => 'nullable|exists:pets,id',
-            'pet_ids' => 'nullable|array',
-            'pet_ids.*' => 'exists:pets,id',
-            'ingredients' => 'nullable|array',
-            'ingredients.*.id' => 'required|exists:ingredients,id',
-            'ingredients.*.quantity' => 'required|numeric|min:0',
-            'ingredients.*.unit' => 'nullable|string',
-            'user_id' => 'nullable|exists:users,id',
-        ]);
-
-        if ($user->role !== 'admin') {
+        if (! $user->isAdmin()) {
             $validated['is_template'] = false;
             $validated['user_id'] = $user->id;
         } else {
@@ -74,16 +66,7 @@ class RecipeController extends Controller
 
         $recipe = Recipe::create($validated);
 
-        if (!empty($validated['ingredients'])) {
-            $syncData = [];
-            foreach ($validated['ingredients'] as $ingredient) {
-                $syncData[$ingredient['id']] = [
-                    'quantity' => $ingredient['quantity'],
-                    'unit' => $ingredient['unit'] ?? 'kg'
-                ];
-            }
-            $recipe->ingredients()->sync($syncData);
-        }
+        $this->syncIngredients($recipe, $validated);
 
         if (isset($validated['pet_ids'])) {
             $recipe->pets()->sync($validated['pet_ids']);
@@ -91,86 +74,45 @@ class RecipeController extends Controller
 
         $recipe->updateBaseCost();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recipe created successfully',
-            'data' => $recipe->load(['ingredients', 'pets']),
-        ], 201);
+        return $this->respondSuccess(
+            $recipe->load(['ingredients', 'pets']),
+            'Recipe created successfully',
+            201
+        );
     }
 
     /**
-     * Display the specified resource.
+     * Show a recipe with its ingredients and linked pets.
+     *
+     * @param  Request  $request
+     * @param  Recipe   $recipe
+     * @return JsonResponse
      */
-    public function show(Request $request, Recipe $recipe)
+    public function show(Request $request, Recipe $recipe): JsonResponse
     {
-        $user = $request->user();
+        $this->authorize('view', $recipe);
 
-        if ($user->role !== 'admin' && !$recipe->is_template && $recipe->user_id !== $user->id) {
-            // Also allow if the recipe is linked to one of the user's pets.
-            $recipe->loadMissing('pets');
-            $userPetIds = $user->pets()->pluck('id');
-            if ($recipe->pets->pluck('id')->intersect($userPetIds)->isEmpty()) {
-                return response()->json(['message' => 'Unauthorized'], 403);
-            }
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $recipe->load(['ingredients', 'pets']),
-        ]);
+        return $this->respondSuccess(
+            $recipe->load(['ingredients', 'pets']),
+            'Recipe fetched successfully'
+        );
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update a recipe. Ownership/template fields are stripped for customers
+     * inside UpdateRecipeRequest::validated().
+     *
+     * @param  UpdateRecipeRequest  $request
+     * @param  Recipe               $recipe
+     * @return JsonResponse
      */
-    public function update(Request $request, Recipe $recipe)
+    public function update(UpdateRecipeRequest $request, Recipe $recipe): JsonResponse
     {
-        $user = $request->user();
-
-        if ($user->role !== 'admin' && $recipe->user_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        if ($user->role !== 'admin' && $recipe->is_template) {
-             return response()->json(['message' => 'Cannot modify a template.'], 403);
-        }
-
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'pet_type' => 'nullable|string',
-            'duration_days' => 'nullable|integer|min:1',
-            'daily_portions' => 'nullable|integer|min:1',
-            'instructions' => 'nullable|string',
-            'is_template' => 'boolean',
-            'frequency' => 'nullable|string',
-            'is_active' => 'boolean',
-            'pet_id' => 'nullable|exists:pets,id',
-            'pet_ids' => 'nullable|array',
-            'pet_ids.*' => 'exists:pets,id',
-            'ingredients' => 'nullable|array',
-            'ingredients.*.id' => 'required|exists:ingredients,id',
-            'ingredients.*.quantity' => 'required|numeric|min:0',
-            'ingredients.*.unit' => 'nullable|string',
-            'user_id' => 'nullable|exists:users,id',
-        ]);
-
-        if ($user->role !== 'admin' && isset($validated['is_template'])) {
-            unset($validated['is_template']); // Customers cannot change to template
-        }
+        $validated = $request->validated();
 
         $recipe->update($validated);
 
-        if (isset($validated['ingredients'])) {
-            $syncData = [];
-            foreach ($validated['ingredients'] as $ingredient) {
-                $syncData[$ingredient['id']] = [
-                    'quantity' => $ingredient['quantity'],
-                    'unit' => $ingredient['unit'] ?? 'kg'
-                ];
-            }
-            $recipe->ingredients()->sync($syncData);
-        }
+        $this->syncIngredients($recipe, $validated);
 
         if (isset($validated['pet_ids'])) {
             $recipe->pets()->sync($validated['pet_ids']);
@@ -178,58 +120,69 @@ class RecipeController extends Controller
 
         $recipe->updateBaseCost();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recipe updated successfully',
-            'data' => $recipe->load(['ingredients', 'pets']),
-        ]);
+        return $this->respondSuccess(
+            $recipe->load(['ingredients', 'pets']),
+            'Recipe updated successfully'
+        );
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Delete a recipe.
+     *
+     * @param  Request  $request
+     * @param  Recipe   $recipe
+     * @return JsonResponse
      */
-    public function destroy(Request $request, Recipe $recipe)
+    public function destroy(Request $request, Recipe $recipe): JsonResponse
     {
-        $user = $request->user();
-
-        if ($user->role !== 'admin' && $recipe->user_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('delete', $recipe);
 
         $recipe->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Recipe deleted successfully',
-        ]);
+        return $this->respondSuccess(null, 'Recipe deleted successfully');
     }
 
     /**
      * Calculate cost dynamically without saving the recipe.
+     *
+     * @param  CalculateRecipeCostRequest   $request
+     * @param  RecipeCostCalculatorService  $calculator
+     * @return JsonResponse
      */
-    public function calculateCost(Request $request, RecipeCostCalculatorService $calculator)
+    public function calculateCost(CalculateRecipeCostRequest $request, RecipeCostCalculatorService $calculator): JsonResponse
     {
-        $validated = $request->validate([
-            'ingredients' => 'required|array',
-            'ingredients.*.ingredient_id' => 'required|exists:ingredients,id',
-            'ingredients.*.quantity' => 'required|numeric|min:0',
-            'ingredients.*.unit' => 'nullable|string',
-            'duration_days' => 'nullable|integer|min:1',
-            'daily_portions' => 'nullable|integer|min:1',
-        ]);
-
-        $durationDays = $validated['duration_days'] ?? 15;
-        $dailyPortions = $validated['daily_portions'] ?? 2;
+        $validated = $request->validated();
 
         $result = $calculator->calculateCost(
             $validated['ingredients'],
-            $durationDays,
-            $dailyPortions
+            $validated['duration_days'] ?? 15,
+            $validated['daily_portions'] ?? 2
         );
 
-        return response()->json([
-            'success' => true,
-            'data' => $result
-        ]);
+        return $this->respondSuccess($result, 'Cost calculated successfully');
+    }
+
+    /**
+     * Sync the recipe's ingredient pivot rows from a validated payload.
+     *
+     * @param  Recipe                $recipe
+     * @param  array<string, mixed>  $validated
+     * @return void
+     */
+    private function syncIngredients(Recipe $recipe, array $validated): void
+    {
+        if (! isset($validated['ingredients'])) {
+            return;
+        }
+
+        $syncData = [];
+        foreach ($validated['ingredients'] as $ingredient) {
+            $syncData[$ingredient['id']] = [
+                'quantity' => $ingredient['quantity'],
+                'unit' => $ingredient['unit'] ?? 'kg',
+            ];
+        }
+
+        $recipe->ingredients()->sync($syncData);
     }
 }

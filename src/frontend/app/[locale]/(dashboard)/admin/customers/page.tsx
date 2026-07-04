@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { BRAZIL_STATES } from "@/lib/brazil-states";
+import { fetchAddressByCep } from "@/lib/viacep";
 import {
   Select,
   SelectContent,
@@ -141,17 +142,16 @@ export default function CustomersPage() {
     setCepSearching(true);
     setCepError("");
     try {
-      const res  = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const json = await res.json();
-      if (json.erro) {
+      const address = await fetchAddressByCep(digits);
+      if (!address) {
         setCepError(t("cep_not_found"));
       } else {
         setAddr((a) => ({
           ...a,
-          street:       json.logradouro || a.street,
-          neighborhood: json.bairro     || a.neighborhood,
-          city:         json.localidade || a.city,
-          state:        json.uf         || a.state,
+          street:       address.street       || a.street,
+          neighborhood: address.neighborhood || a.neighborhood,
+          city:         address.city         || a.city,
+          state:        address.state        || a.state,
         }));
       }
     } catch {

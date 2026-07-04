@@ -16,7 +16,7 @@ export default function DashboardPage() {
           {t("dashboard")}
         </h1>
         <p className="text-muted-foreground mt-1">
-          {tDash("welcome_back", { name: user?.name })}
+          {tDash("welcome_back", { name: user?.name ?? "" })}
         </p>
       </div>
 

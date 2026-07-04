@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,7 +20,6 @@ class Ingredient extends Model
         'cost_per_unit',
         'loss_rate',
         'difficulty_multiplier',
-        'category',
         'stock_quantity',
         'is_active',
     ];

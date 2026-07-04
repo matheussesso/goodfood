@@ -12,6 +12,7 @@ import { Loader2, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { BRAZIL_STATES } from "@/lib/brazil-states";
+import { fetchAddressByCep } from "@/lib/viacep";
 import { cn } from "@/lib/utils";
 
 type FormErrors = Partial<Record<string, string>>;
@@ -76,15 +77,14 @@ export default function RegisterPage() {
     setCepSearching(true);
     setCepError("");
     try {
-      const res  = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      const json = await res.json();
-      if (json.erro) {
+      const address = await fetchAddressByCep(digits);
+      if (!address) {
         setCepError(tP("cep_not_found"));
       } else {
-        setAddrStreet(json.logradouro || "");
-        setAddrNeighborhood(json.bairro || "");
-        setAddrCity(json.localidade || "");
-        setAddrState(json.uf || "");
+        setAddrStreet(address.street);
+        setAddrNeighborhood(address.neighborhood);
+        setAddrCity(address.city);
+        setAddrState(address.state);
       }
     } catch {
       setCepError(tP("cep_not_found"));
