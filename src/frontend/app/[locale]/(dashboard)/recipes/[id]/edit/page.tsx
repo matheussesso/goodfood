@@ -11,7 +11,7 @@ import { recipeEditFormSchema, RecipeEditFormData } from "@/lib/validations/reci
 import { Ingredient } from "@/hooks/useIngredients";
 import { calculateRecipeCost, useRecipe } from "@/hooks/useRecipes";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Save, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Save, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp, Dog, Cat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Check } from "lucide-react";
@@ -241,17 +241,65 @@ export default function EditRecipePage() {
                 />
                 {errors.description && <span className="text-xs text-destructive">{t("required")}</span>}
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">{t("pet_type")}</label>
-                <select
-                  {...register("pet_type")}
-                  className={`w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50 ${errors.pet_type ? "border-destructive" : ""}`}
-                >
-                  <option value="dog">{tCat("dog")}</option>
-                  <option value="cat">{tCat("cat")}</option>
-                  <option value="both">{tCat("both")}</option>
-                </select>
-                {errors.pet_type && <span className="text-xs text-destructive">{tCommon("validation_required")}</span>}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-2">{t("pet_type")}</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div 
+                    onClick={() => {
+                      const current = watchedValues.pet_type;
+                      const isCat = current === "cat" || current === "both";
+                      const isDog = current === "dog" || current === "both";
+                      
+                      const newIsDog = !isDog;
+                      let next = "";
+                      if (newIsDog && isCat) next = "both";
+                      else if (newIsDog && !isCat) next = "dog";
+                      else if (!newIsDog && isCat) next = "cat";
+                      
+                      if (next !== "") {
+                        setValue("pet_type", next, { shouldValidate: true });
+                      }
+                    }}
+                    className={cn(
+                      "cursor-pointer border-2 rounded-lg p-2.5 flex flex-row items-center justify-center gap-2 transition-all", 
+                      (watchedValues.pet_type === "dog" || watchedValues.pet_type === "both") 
+                        ? "border-primary bg-primary/10 text-primary shadow-sm" 
+                        : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
+                    )}
+                  >
+                    <Dog className={cn("w-5 h-5", (watchedValues.pet_type === "dog" || watchedValues.pet_type === "both") ? "text-primary" : "text-muted-foreground")} />
+                    <span className="text-sm font-semibold">{tCat("dog")}</span>
+                  </div>
+                  
+                  <div 
+                    onClick={() => {
+                      const current = watchedValues.pet_type;
+                      const isCat = current === "cat" || current === "both";
+                      const isDog = current === "dog" || current === "both";
+                      
+                      const newIsCat = !isCat;
+                      let next = "";
+                      if (newIsCat && isDog) next = "both";
+                      else if (newIsCat && !isDog) next = "cat";
+                      else if (!newIsCat && isDog) next = "dog";
+                      
+                      if (next !== "") {
+                        setValue("pet_type", next, { shouldValidate: true });
+                      }
+                    }}
+                    className={cn(
+                      "cursor-pointer border-2 rounded-lg p-2.5 flex flex-row items-center justify-center gap-2 transition-all", 
+                      (watchedValues.pet_type === "cat" || watchedValues.pet_type === "both") 
+                        ? "border-primary bg-primary/10 text-primary shadow-sm" 
+                        : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
+                    )}
+                  >
+                    <Cat className={cn("w-5 h-5", (watchedValues.pet_type === "cat" || watchedValues.pet_type === "both") ? "text-primary" : "text-muted-foreground")} />
+                    <span className="text-sm font-semibold">{tCat("cat")}</span>
+                  </div>
+                </div>
+                <input type="hidden" {...register("pet_type")} />
+                {errors.pet_type && <span className="text-xs text-destructive mt-1 block">{tCommon("validation_required")}</span>}
               </div>
 
               <div>

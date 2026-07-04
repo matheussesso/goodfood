@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
-import { Plus, Edit2, Trash2, Loader2, BookOpen, Apple, Settings2, Save, AlertCircle, Search, Filter, LayoutGrid, List, CheckCircle2, Check, Info, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, DollarSign, FileText, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, BookOpen, Apple, Settings2, Save, AlertCircle, Search, Filter, LayoutGrid, List, CheckCircle2, Check, Info, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, DollarSign, FileText, X, Dog, Cat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings, GeneralSettings } from "@/hooks/useSettings";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -1015,12 +1015,65 @@ export default function CatalogPage() {
               />
               {recFormErrors.name && <p className="text-xs text-destructive">{recFormErrors.name}</p>}
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 md:col-span-2">
               <Label>{t("pet_type")}</Label>
-              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={recForm.pet_type} onChange={e => setRecForm({...recForm, pet_type: e.target.value})}>
-                <option value="dog">{t("dog")}</option>
-                <option value="cat">{t("cat")}</option>
-              </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div 
+                  onClick={() => {
+                    const current = recForm.pet_type;
+                    const isCat = current === "cat" || current === "both";
+                    const isDog = current === "dog" || current === "both";
+                    
+                    const newIsDog = !isDog;
+                    let next = "";
+                    if (newIsDog && isCat) next = "both";
+                    else if (newIsDog && !isCat) next = "dog";
+                    else if (!newIsDog && isCat) next = "cat";
+                    
+                    if (next !== "") {
+                      setRecForm({...recForm, pet_type: next});
+                      setRecFormErrors(p => ({...p, pet_type: ""}));
+                    }
+                  }}
+                  className={cn(
+                    "cursor-pointer border-2 rounded-lg p-2.5 flex flex-row items-center justify-center gap-2 transition-all", 
+                    (recForm.pet_type === "dog" || recForm.pet_type === "both") 
+                      ? "border-primary bg-primary/10 text-primary shadow-sm" 
+                      : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
+                  )}
+                >
+                  <Dog className={cn("w-5 h-5", (recForm.pet_type === "dog" || recForm.pet_type === "both") ? "text-primary" : "text-muted-foreground")} />
+                  <span className="text-sm font-semibold">{t("dog")}</span>
+                </div>
+                
+                <div 
+                  onClick={() => {
+                    const current = recForm.pet_type;
+                    const isCat = current === "cat" || current === "both";
+                    const isDog = current === "dog" || current === "both";
+                    
+                    const newIsCat = !isCat;
+                    let next = "";
+                    if (newIsCat && isDog) next = "both";
+                    else if (newIsCat && !isDog) next = "cat";
+                    else if (!newIsCat && isDog) next = "dog";
+                    
+                    if (next !== "") {
+                      setRecForm({...recForm, pet_type: next});
+                      setRecFormErrors(p => ({...p, pet_type: ""}));
+                    }
+                  }}
+                  className={cn(
+                    "cursor-pointer border-2 rounded-lg p-2.5 flex flex-row items-center justify-center gap-2 transition-all", 
+                    (recForm.pet_type === "cat" || recForm.pet_type === "both") 
+                      ? "border-primary bg-primary/10 text-primary shadow-sm" 
+                      : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
+                  )}
+                >
+                  <Cat className={cn("w-5 h-5", (recForm.pet_type === "cat" || recForm.pet_type === "both") ? "text-primary" : "text-muted-foreground")} />
+                  <span className="text-sm font-semibold">{t("cat")}</span>
+                </div>
+              </div>
             </div>
           </div>
           
