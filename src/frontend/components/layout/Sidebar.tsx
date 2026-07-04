@@ -25,9 +25,10 @@ import { Button } from "@/components/ui/button";
 interface SidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  layoutMode?: "horizontal" | "vertical";
 }
 
-export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
+export function Sidebar({ isOpen, setIsOpen, layoutMode = "vertical" }: SidebarProps) {
   const t = useTranslations("Navigation");
   const pathname = usePathname();
   const { user, logout } = useAuth();
@@ -75,7 +76,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       {/* Mobile overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -83,8 +84,9 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-card transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:flex",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-card border-r shadow-lg lg:border-r-0 lg:shadow-none transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:flex",
+          isOpen ? "translate-x-0" : "-translate-x-full",
+          layoutMode === "horizontal" ? "lg:hidden" : "lg:translate-x-0"
         )}
       >
         <div className="border-b bg-background shadow-sm [clip-path:inset(0_0_-10px_0)] z-10">
@@ -98,7 +100,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 p-4 overflow-y-auto border-r shadow-sm">
+        <nav className="flex-1 space-y-1 p-4 overflow-y-auto lg:border-r lg:shadow-sm">
           <div className="space-y-1">
             {navLinks.map((link) => {
               const Icon = link.icon;

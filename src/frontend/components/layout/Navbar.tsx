@@ -125,26 +125,25 @@ export function Navbar({
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl w-full flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
-            {layoutMode === "vertical" && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onMenuClick}
-                className="lg:hidden"
-              >
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle Menu</span>
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onMenuClick}
+              className="lg:hidden shrink-0"
+            >
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle Menu</span>
+            </Button>
 
-            {layoutMode === "horizontal" && (
-              <Link
-                href={user?.role === "admin" ? "/admin" : "/dashboard"}
-                className="flex items-center mr-4"
-              >
-                <Image src="/goodfood-logo.png" alt="GoodFood" width={140} height={32} className="h-8 w-auto object-contain" priority />
-              </Link>
-            )}
+            <Link
+              href={user?.role === "admin" ? "/admin" : "/dashboard"}
+              className={cn(
+                "flex items-center",
+                layoutMode === "vertical" ? "lg:hidden" : "mr-4"
+              )}
+            >
+              <Image src="/goodfood-logo.png" alt="GoodFood" width={140} height={32} className="h-8 w-auto object-contain" priority />
+            </Link>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
@@ -219,15 +218,6 @@ export function Navbar({
         </div>
       )}
 
-      {/* Mobile Menu for Horizontal Mode (Uses the same sidebar toggle essentially) */}
-      {layoutMode === "horizontal" && (
-        <div className="lg:hidden absolute left-4 top-3">
-          <Button variant="ghost" size="icon" onClick={onMenuClick}>
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle Menu</span>
-          </Button>
-        </div>
-      )}
     </header>
   );
 }
