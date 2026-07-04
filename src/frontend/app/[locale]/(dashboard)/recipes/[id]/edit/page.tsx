@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { recipeEditFormSchema, RecipeEditFormData } from "@/lib/validations/recipe";
 import { Ingredient } from "@/hooks/useIngredients";
 import { calculateRecipeCost, useRecipe } from "@/hooks/useRecipes";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,21 +17,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Check } from "lucide-react";
 import { useParams } from "next/navigation";
 import { usePets } from "@/hooks/usePets";
-
-interface RecipeFormData {
-  name: string;
-  description: string;
-  pet_type: string;
-  duration_days: number;
-  daily_portions: number;
-  instructions: string;
-  pet_ids: number[];
-  ingredients: {
-    id: number;
-    quantity: number;
-    unit: string;
-  }[];
-}
 
 /**
  * Page for customers to edit their existing recipes.
@@ -68,7 +55,8 @@ export default function EditRecipePage() {
     },
   });
 
-  const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<RecipeFormData>({
+  const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<RecipeEditFormData>({
+    resolver: zodResolver(recipeEditFormSchema),
     defaultValues: {
       name: "",
       description: "",
@@ -151,7 +139,7 @@ export default function EditRecipePage() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const updateRecipe = useMutation({
-    mutationFn: async (data: RecipeFormData) => {
+    mutationFn: async (data: RecipeEditFormData) => {
       const response = await apiClient.put(`/recipes/${id}`, data);
       return response.data;
     },
@@ -166,7 +154,7 @@ export default function EditRecipePage() {
     },
   });
 
-  const onSubmit = (data: RecipeFormData) => {
+  const onSubmit = (data: RecipeEditFormData) => {
     setSaveError(null);
     updateRecipe.mutate({
       ...data,

@@ -68,9 +68,9 @@ export function UserDropdown() {
     return () => document.removeEventListener("keydown", handleKey);
   }, []);
 
-  function handleLogout() {
+  async function handleLogout() {
     setOpen(false);
-    logout();
+    await logout();
     router.push("/login" as Parameters<typeof router.push>[0]);
   }
 

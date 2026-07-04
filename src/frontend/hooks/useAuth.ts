@@ -1,5 +1,7 @@
 import { create } from "zustand";
+import { apiClient } from "@/lib/api-client";
 
+/** Authenticated user as returned by the API. */
 export interface User {
   id: number;
   name: string;
@@ -17,40 +19,60 @@ export interface User {
   created_at?: string;
 }
 
+/**
+ * Client-side session state. The credential itself is an httpOnly cookie
+ * managed by the backend — this store only mirrors the authenticated user.
+ */
 interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: User, token: string) => void;
+  /** True once the initial GET /me session check has completed. */
+  isSessionResolved: boolean;
+  /** Stores the user after a successful login/register response. */
+  setAuth: (user: User) => void;
+  /** Replaces the cached user (e.g. after a profile update). */
   updateUser: (user: User) => void;
-  logout: () => void;
-  restoreSession: (user: User, token: string) => void;
+  /** Ends the session on the backend and clears local state. */
+  logout: () => Promise<void>;
+  /** Clears local state only (used when the session is already invalid). */
+  clearSession: () => void;
+  /** Restores the user from the initial GET /me session check. */
+  restoreSession: (user: User) => void;
+  /** Marks the initial session check as finished (success or failure). */
+  markSessionResolved: () => void;
 }
 
 export const useAuth = create<AuthState>((set) => ({
   user: null,
-  token: null,
   isAuthenticated: false,
-  
-  setAuth: (user, token) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("auth_token", token);
-    }
-    set({ user, token, isAuthenticated: true });
+  isSessionResolved: false,
+
+  setAuth: (user) => {
+    set({ user, isAuthenticated: true, isSessionResolved: true });
   },
 
   updateUser: (user) => {
     set({ user });
   },
 
-  logout: () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("auth_token");
+  logout: async () => {
+    try {
+      await apiClient.post("/logout");
+    } catch {
+      // The httpOnly cookie may already be expired; clear local state anyway.
     }
-    set({ user: null, token: null, isAuthenticated: false });
+    set({ user: null, isAuthenticated: false });
   },
 
-  restoreSession: (user, token) => {
-    set({ user, token, isAuthenticated: true });
-  }
+  clearSession: () => {
+    set({ user: null, isAuthenticated: false });
+  },
+
+  restoreSession: (user) => {
+    set({ user, isAuthenticated: true, isSessionResolved: true });
+  },
+
+  markSessionResolved: () => {
+    set({ isSessionResolved: true });
+  },
 }));

@@ -139,7 +139,7 @@ export default function RegisterPage() {
     },
     onSuccess: (data) => {
       if (data.success && data.data) {
-        setAuth(data.data.user, data.data.token);
+        setAuth(data.data.user);
         router.push("/dashboard");
       }
     },

@@ -27,7 +27,7 @@ export default function LoginPage() {
     },
     onSuccess: (data) => {
       if (data.success && data.data) {
-        setAuth(data.data.user, data.data.token);
+        setAuth(data.data.user);
         
         // Redirect based on role
         if (data.data.user.role === "admin") {

@@ -11,12 +11,11 @@ const apiOrigin = new URL(
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
 );
 
+// Note: do NOT enable experimental.globalNotFound here — it intercepts
+// unprefixed URLs before the next-intl middleware rewrite, breaking every
+// default-locale route (localePrefix: "as-needed"). 404s are handled by
+// app/[locale]/[...rest] + app/[locale]/not-found.tsx instead.
 const nextConfig: NextConfig = {
-  experimental: {
-    // Required because the root layout lives under the dynamic [locale]
-    // segment; unmatched URLs are handled by app/global-not-found.tsx.
-    globalNotFound: true,
-  },
   images: {
     remotePatterns: [
       {

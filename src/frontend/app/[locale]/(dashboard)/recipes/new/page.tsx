@@ -5,8 +5,10 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { useSearchParams } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { recipeFormSchema, RecipeFormData } from "@/lib/validations/recipe";
 import { Ingredient } from "@/hooks/useIngredients";
 import { calculateRecipeCost, Recipe } from "@/hooks/useRecipes";
 import { usePets } from "@/hooks/usePets";
@@ -18,22 +20,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
-
-interface RecipeFormData {
-  name: string;
-  description: string;
-  pet_type: string;
-  duration_days: number;
-  daily_portions: number;
-  instructions: string;
-  is_template: boolean;
-  pet_ids: number[];
-  ingredients: {
-    id: number;
-    quantity: number;
-    unit: string;
-  }[];
-}
 
 export default function NewRecipePage() {
   const tNav = useTranslations("Navigation");
@@ -75,6 +61,7 @@ export default function NewRecipePage() {
   });
 
   const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<RecipeFormData>({
+    resolver: zodResolver(recipeFormSchema),
     defaultValues: {
       name: "",
       description: "",

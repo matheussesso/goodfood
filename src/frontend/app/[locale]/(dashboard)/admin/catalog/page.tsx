@@ -13,6 +13,8 @@ import { Modal } from "@/components/ui/modal";
 import { Plus, Edit2, Trash2, Loader2, BookOpen, Apple, Settings2, Save, AlertCircle, Search, Filter, LayoutGrid, List, CheckCircle2, Check, Info, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, DollarSign, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSettings, GeneralSettings } from "@/hooks/useSettings";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { generalSettingsSchema } from "@/lib/validations/settings";
 import { useForm } from "react-hook-form";
 
 /** ATM-style currency mask: raw digit string (cents) → "R$ X.XXX,XX" */
@@ -70,7 +72,9 @@ export default function CatalogPage() {
 
   // Settings Hooks & State
   const { settings, isLoading: isLoadingSettings, updateSettings, isUpdating: isUpdatingSettings } = useSettings();
-  const { register: registerSettings, handleSubmit: handleSettingsSubmit, reset: resetSettings, formState: { errors: settingsErrors } } = useForm<GeneralSettings>();
+  const { register: registerSettings, handleSubmit: handleSettingsSubmit, reset: resetSettings, formState: { errors: settingsErrors } } = useForm<GeneralSettings>({
+    resolver: zodResolver(generalSettingsSchema),
+  });
 
   useEffect(() => {
     if (settings) resetSettings(settings);
