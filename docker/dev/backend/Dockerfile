@@ -29,7 +29,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 
 # Copiar a configuração do Caddy
-COPY docker/backend/Caddyfile /etc/caddy/Caddyfile
+COPY docker/dev/backend/Caddyfile /etc/caddy/Caddyfile
 
 # Ajustar permissões para o usuário da aplicação (opcional para dev)
 RUN chown -R www-data:www-data /app

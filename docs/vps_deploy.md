@@ -1,0 +1,243 @@
+# Deploy no VPS — Docker + CI/CD
+
+Guia passo a passo para preparar um VPS Ubuntu e ligá-lo ao pipeline de
+CI/CD em [`.github/workflows/ci-cd.yml`](../.github/workflows/ci-cd.yml).
+Para o dia a dia local, veja [setup.md](setup.md); este guia cobre apenas
+homologação/produção.
+
+## Visão geral do pipeline
+
+```
+push em main
+  → Prepare   (checkout, sha)
+  → Quality   (Pint, ESLint, tsc)
+  → Test      (Pest, Vitest)
+  → Build     (docker build + push das imagens para o GHCR)
+  → Deploy    (SSH no VPS → git pull configs → docker compose pull/up)
+```
+
+As imagens de produção (`docker/prod/backend/Dockerfile` e
+`docker/prod/frontend/Dockerfile`) são publicadas em
+`ghcr.io/<owner>/goodfood-backend` e `ghcr.io/<owner>/goodfood-frontend`. O
+VPS **não builda nada** — só baixa as imagens prontas e sobe o
+`docker-compose.yml` da raiz.
+
+---
+
+## 1. Preparar o VPS
+
+### 1.1 Acesso e atualização do sistema
+
+```bash
+ssh root@SEU_IP
+apt update && apt upgrade -y
+```
+
+Crie um usuário não-root para operar o deploy (evite usar `root` direto):
+
+```bash
+adduser deploy
+usermod -aG sudo deploy
+```
+
+### 1.2 Instalar Docker Engine + Compose plugin
+
+```bash
+curl -fsSL https://get.docker.com | sh
+usermod -aG docker deploy
+```
+
+Saia e entre novamente como `deploy` para o grupo `docker` valer, depois
+confirme:
+
+```bash
+docker --version
+docker compose version
+```
+
+### 1.3 Abrir portas no firewall
+
+```bash
+ufw allow OpenSSH
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw enable
+```
+
+Portas 80/443 são obrigatórias: o container `backend` roda Caddy
+(FrankenPHP) e emite certificados TLS automáticos via Let's Encrypt tanto
+para a API quanto, em reverse proxy, para o frontend (ver
+[`docker/prod/backend/Caddyfile`](../docker/prod/backend/Caddyfile)).
+
+### 1.4 Apontar DNS
+
+Crie dois registros `A` apontando para o IP do VPS:
+
+| Tipo | Host | Valor |
+| --- | --- | --- |
+| A | `api.seudominio.com` | IP do VPS |
+| A | `app.seudominio.com` | IP do VPS |
+
+### 1.5 Clonar o repositório
+
+```bash
+su - deploy
+mkdir -p ~/apps && cd ~/apps
+git clone git@github.com:<owner>/<repo>.git goodfood
+cd goodfood
+```
+
+Este caminho (`/home/deploy/apps/goodfood`) é o `VPS_PROJECT_PATH` usado
+pelo secret do GitHub Actions (passo 4).
+
+### 1.6 Criar os arquivos de ambiente (não versionados)
+
+```bash
+# Variáveis do docker-compose.yml (raiz do projeto)
+cat > .env <<'EOF'
+GHCR_OWNER=<owner-em-minusculo>
+IMAGE_TAG=latest
+DB_DATABASE=goodfood
+DB_USERNAME=root
+DB_PASSWORD=troque-por-uma-senha-forte
+API_DOMAIN=api.seudominio.com
+APP_DOMAIN=app.seudominio.com
+EOF
+
+# Variáveis do Laravel (lidas via env_file pelos serviços backend/scheduler)
+cp src/backend/.env.example src/backend/.env
+```
+
+Edite `src/backend/.env` e ajuste no mínimo:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://api.seudominio.com
+DB_HOST=db
+DB_DATABASE=goodfood
+DB_USERNAME=root
+DB_PASSWORD=troque-por-uma-senha-forte   # mesmo valor do .env acima
+```
+
+Gere a `APP_KEY` (uma vez; a imagem ainda não existe localmente, então
+rode em qualquer PHP 8.4 disponível ou deixe para depois do primeiro
+`docker compose up` e rode via `docker compose exec backend php artisan
+key:generate` — nesse caso reinicie o container depois).
+
+### 1.7 Autenticar o Docker do VPS no GHCR
+
+Necessário porque `docker compose pull` roda localmente no VPS (não só
+dentro do job de CI). Gere um **Personal Access Token (classic)** no
+GitHub com escopo `read:packages` e faça login uma vez:
+
+```bash
+echo "SEU_TOKEN_PAT" | docker login ghcr.io -u SEU_USUARIO_GITHUB --password-stdin
+```
+
+A credencial fica salva em `~/.docker/config.json` do usuário `deploy` e
+sobrevive entre deploys.
+
+---
+
+## 2. Gerar e configurar as chaves SSH (GitHub → VPS)
+
+O pipeline usa `appleboy/ssh-action`, que autentica por chave, não senha.
+
+### 2.1 Gerar um par de chaves dedicado ao deploy
+
+**Na sua máquina local** (não no VPS, para manter a privada fora do
+servidor):
+
+```bash
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ./goodfood_deploy_key -N ""
+```
+
+Isso gera `goodfood_deploy_key` (privada) e `goodfood_deploy_key.pub`
+(pública).
+
+### 2.2 Autorizar a chave pública no VPS
+
+```bash
+ssh-copy-id -i goodfood_deploy_key.pub deploy@SEU_IP
+```
+
+Ou manualmente, dentro do VPS como usuário `deploy`:
+
+```bash
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+echo "conteudo-da-chave-publica" >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+```
+
+### 2.3 Testar antes de configurar o CI
+
+```bash
+ssh -i goodfood_deploy_key deploy@SEU_IP "cd ~/apps/goodfood && docker compose ps"
+```
+
+Se conectar sem pedir senha e listar os containers, a chave está correta.
+Guarde a **chave privada** (`goodfood_deploy_key`) — ela vai para o secret
+`VPS_SSH_KEY` no passo 3. Depois de confirmar, delete a cópia local do
+arquivo de chave privada se não for reutilizá-la em outro lugar.
+
+---
+
+## 3. GitHub Secrets necessários
+
+Em **Settings → Secrets and variables → Actions** do repositório:
+
+| Secret | Valor | Uso |
+| --- | --- | --- |
+| `VPS_HOST` | IP ou hostname do VPS | conexão SSH |
+| `VPS_USER` | `deploy` | conexão SSH |
+| `VPS_SSH_KEY` | conteúdo da chave **privada** gerada no passo 2.1 | conexão SSH |
+| `VPS_PORT` | `22` (ou porta customizada) | conexão SSH |
+| `VPS_PROJECT_PATH` | `/home/deploy/apps/goodfood` | diretório do `git pull` + `docker compose` no VPS |
+
+Em **Settings → Secrets and variables → Actions → Variables** (não é
+segredo, mas varia por ambiente):
+
+| Variable | Valor | Uso |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | `https://api.seudominio.com/api` | build-arg da imagem do frontend (embutido no bundle) |
+
+O `GITHUB_TOKEN` usado para `docker/login-action` no job **Build** já é
+gerado automaticamente pela Actions — não precisa criar secret para isso.
+
+---
+
+## 4. Primeiro deploy
+
+1. Confirme que os passos 1–3 foram concluídos.
+2. Dê push na branch `main` (ou rode o workflow manualmente via
+   `Actions → CI/CD → Run workflow`, se adicionar `workflow_dispatch`).
+3. Acompanhe os jobs `quality` → `test` → `build` → `deploy` em
+   **Actions**.
+4. No VPS, verifique:
+   ```bash
+   cd ~/apps/goodfood
+   docker compose ps
+   docker compose logs -f backend
+   ```
+5. Acesse `https://app.seudominio.com` e `https://api.seudominio.com/api`
+   — o Caddy do container `backend` emite os certificados TLS
+   automaticamente no primeiro acesso (pode levar alguns segundos).
+
+## Operação do dia a dia
+
+```bash
+# Ver status e logs
+docker compose ps
+docker compose logs -f backend frontend
+
+# Rollback manual para uma tag específica já publicada no GHCR
+IMAGE_TAG=<sha-anterior> docker compose up -d
+
+# Parar tudo (mantém volumes/dados)
+docker compose stop
+```
+
+Migrations rodam automaticamente na subida do container `backend` (ver
+[`docker/prod/backend/entrypoint.sh`](../docker/prod/backend/entrypoint.sh)),
+não é necessário rodá-las manualmente após cada deploy.

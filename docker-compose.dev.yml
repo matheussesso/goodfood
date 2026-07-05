@@ -1,0 +1,75 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: goodfood_db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: goodfood
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: rootpassword
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    networks:
+      - goodfood_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/dev/backend/Dockerfile
+    container_name: goodfood_backend
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "8000:80"
+    environment:
+      SERVER_NAME: ":80"
+    volumes:
+      - ./src/backend:/app
+      - ./docker/dev/backend/php.ini:/usr/local/etc/php/conf.d/local.ini
+      - ./docker/dev/backend/Caddyfile:/etc/caddy/Caddyfile
+    depends_on:
+      - db
+    networks:
+      - goodfood_network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/dev/backend/Dockerfile
+    container_name: goodfood_scheduler
+    restart: unless-stopped
+    working_dir: /app
+    command: php artisan schedule:work
+    volumes:
+      - ./src/backend:/app
+      - ./docker/dev/backend/php.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on:
+      - db
+    networks:
+      - goodfood_network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/dev/frontend/Dockerfile
+    container_name: goodfood_frontend
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src/frontend:/app
+    environment:
+      - NODE_ENV=development
+    networks:
+      - goodfood_network
+
+networks:
+  goodfood_network:
+    driver: bridge
+
+volumes:
+  dbdata:
+    driver: local

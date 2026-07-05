@@ -16,6 +16,9 @@ const apiOrigin = new URL(
 // default-locale route (localePrefix: "as-needed"). 404s are handled by
 // app/[locale]/[...rest] + app/[locale]/not-found.tsx instead.
 const nextConfig: NextConfig = {
+  // Gera .next/standalone (servidor Node self-contained) para a imagem
+  // Docker de produção não precisar copiar node_modules inteiro.
+  output: "standalone",
   images: {
     remotePatterns: [
       {

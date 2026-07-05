@@ -1,0 +1,25 @@
+{
+	frankenphp
+	order php_server before file_server
+}
+
+# API Laravel — HTTPS automático (Let's Encrypt) via FrankenPHP/Caddy.
+# Requer DNS de {$API_DOMAIN} apontando para o VPS e portas 80/443 abertas.
+{$API_DOMAIN:localhost} {
+	root * /app/public
+
+	encode zstd br gzip
+
+	php_server
+
+	file_server
+}
+
+# Frontend Next.js — este container atua como ingress único do VPS,
+# fazendo reverse proxy para o serviço "frontend" na rede interna do
+# Compose (evita expor uma segunda porta/TLS para o Next.js).
+{$APP_DOMAIN:app.localhost} {
+	encode zstd br gzip
+
+	reverse_proxy frontend:3000
+}

@@ -1,68 +1,75 @@
+# Orquestração de PRODUÇÃO/HOMOLOGAÇÃO (VPS).
+# Sobe imagens já construídas e publicadas no GHCR pelo pipeline de CI/CD —
+# não builda a partir do código local. Para desenvolvimento, use
+# docker-compose.dev.yml (docker compose -f docker-compose.dev.yml up -d).
+#
+# Variáveis esperadas em ./.env (não versionado, ver docs/vps_deploy.md):
+#   GHCR_OWNER, IMAGE_TAG, DB_DATABASE, DB_USERNAME, DB_PASSWORD,
+#   API_DOMAIN, APP_DOMAIN
+# Variáveis do Laravel (APP_KEY, etc.) ficam em ./src/backend/.env.
+
 services:
   db:
     image: postgres:16-alpine
     container_name: goodfood_db
     restart: unless-stopped
-    ports:
-      - "5432:5432"
     environment:
-      POSTGRES_DB: goodfood
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: rootpassword
+      POSTGRES_DB: ${DB_DATABASE:-goodfood}
+      POSTGRES_USER: ${DB_USERNAME:-root}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env do VPS}
     volumes:
       - dbdata:/var/lib/postgresql/data
     networks:
       - goodfood_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-root} -d ${DB_DATABASE:-goodfood}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
-    build:
-      context: .
-      dockerfile: docker/backend/Dockerfile
+    image: ghcr.io/${GHCR_OWNER}/goodfood-backend:${IMAGE_TAG:-latest}
     container_name: goodfood_backend
     restart: unless-stopped
-    working_dir: /app
     ports:
-      - "8000:80"
+      - "80:80"
+      - "443:443"
+    env_file:
+      - ./src/backend/.env
     environment:
-      SERVER_NAME: ":80"
+      API_DOMAIN: ${API_DOMAIN}
+      APP_DOMAIN: ${APP_DOMAIN}
     volumes:
-      - ./src/backend:/app
-      - ./docker/backend/php.ini:/usr/local/etc/php/conf.d/local.ini
-      - ./docker/backend/Caddyfile:/etc/caddy/Caddyfile
+      - backend_storage:/app/storage/app
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - goodfood_network
 
   scheduler:
-    build:
-      context: .
-      dockerfile: docker/backend/Dockerfile
+    image: ghcr.io/${GHCR_OWNER}/goodfood-backend:${IMAGE_TAG:-latest}
     container_name: goodfood_scheduler
     restart: unless-stopped
-    working_dir: /app
-    command: php artisan schedule:work
+    command: ["php", "artisan", "schedule:work"]
+    env_file:
+      - ./src/backend/.env
     volumes:
-      - ./src/backend:/app
-      - ./docker/backend/php.ini:/usr/local/etc/php/conf.d/local.ini
+      - backend_storage:/app/storage/app
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - goodfood_network
 
   frontend:
-    build:
-      context: .
-      dockerfile: docker/frontend/Dockerfile
+    image: ghcr.io/${GHCR_OWNER}/goodfood-frontend:${IMAGE_TAG:-latest}
     container_name: goodfood_frontend
     restart: unless-stopped
-    working_dir: /app
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./src/frontend:/app
     environment:
-      - NODE_ENV=development
+      NODE_ENV: production
     networks:
       - goodfood_network
 
@@ -72,4 +79,10 @@ networks:
 
 volumes:
   dbdata:
+    driver: local
+  backend_storage:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local

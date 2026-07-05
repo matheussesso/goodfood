@@ -5,6 +5,7 @@
 | Documento | Conteúdo |
 | --- | --- |
 | [setup.md](setup.md) | Pré-requisitos, subida do ambiente Docker, comandos do dia a dia e **troubleshooting** |
+| [vps_deploy.md](vps_deploy.md) | Deploy em VPS: Docker de produção, pipeline CI/CD e configuração de SSH/Secrets |
 | [architecture.md](architecture.md) | Arquitetura do sistema: camadas do backend, padrões do frontend, infraestrutura |
 | [domain.md](domain.md) | Modelo de domínio: entidades, relacionamentos e regras de negócio (assinaturas, custo de receitas) |
 | [api.md](api.md) | Referência da API REST: autenticação, contrato de resposta, endpoints e autorização |
