@@ -49,6 +49,7 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
   const tCommon = useTranslations("Common");
   const tCat = useTranslations("Catalog");
   const tRec = useTranslations("Recipes");
+  const tPets = useTranslations("Pets");
   const queryClient = useQueryClient();
   const { ingredients } = useIngredients();
   const { updateRecipe, isUpdating } = useRecipes();
@@ -151,15 +152,15 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
   const supplementLines = costBreakdown.filter(i => i.is_supplement);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Editar Receita: ${recipe.name}`} className="max-w-4xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={t("edit_recipe_title", { name: recipe.name })} className="max-w-4xl">
       <form onSubmit={handleSubmit} className="space-y-6 px-2">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2"><Label>Nome da Receita</Label><Input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+          <div className="space-y-2"><Label>{tRec("recipe_name")}</Label><Input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
           <div className="space-y-2">
-            <Label>Tipo de Pet</Label>
+            <Label>{tRec("pet_type")}</Label>
             <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.pet_type} onChange={e => setForm({ ...form, pet_type: e.target.value })}>
-              <option value="dog">Cachorro</option>
-              <option value="cat">Gato</option>
+              <option value="dog">{tPets("dog")}</option>
+              <option value="cat">{tPets("cat")}</option>
             </select>
           </div>
         </div>
@@ -167,7 +168,7 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
         {/* Pet linking — shown at top for quick context */}
         {customerPets.length > 0 && (
           <div className="space-y-2">
-            <Label>Vincular ao(s) pet(s)</Label>
+            <Label>{t("link_to_pets")}</Label>
             <div className="flex flex-wrap gap-2 p-3 border rounded-lg bg-muted/20">
               {customerPets.map((pet) => {
                 const selected = selectedPetIds.includes(pet.id);
@@ -200,13 +201,13 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2"><Label>Duração (dias)</Label><Input type="number" required value={form.duration_days} onChange={e => setForm({ ...form, duration_days: e.target.value })} /></div>
-          <div className="space-y-2"><Label>Porções/dia</Label><Input type="number" required value={form.daily_portions} onChange={e => setForm({ ...form, daily_portions: e.target.value })} /></div>
+          <div className="space-y-2"><Label>{tRec("duration_days")}</Label><Input type="number" required value={form.duration_days} onChange={e => setForm({ ...form, duration_days: e.target.value })} /></div>
+          <div className="space-y-2"><Label>{tRec("portions_per_day_caps")}</Label><Input type="number" required value={form.daily_portions} onChange={e => setForm({ ...form, daily_portions: e.target.value })} /></div>
         </div>
 
-        <div className="space-y-2"><Label>Descrição</Label><Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+        <div className="space-y-2"><Label>{tRec("description")}</Label><Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
         <div className="space-y-2">
-          <Label>Instruções</Label>
+          <Label>{tCat("instructions")}</Label>
           <textarea
             className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
             value={form.instructions}
@@ -216,10 +217,10 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
 
         {/* Ingredient picker */}
         <div className="space-y-3">
-          <Label>Ingredientes</Label>
+          <Label>{tRec("ingredients")}</Label>
           <div className="bg-primary/10 border border-primary/20 text-primary text-xs p-2.5 rounded-lg flex gap-2">
             <Info className="w-4 h-4 shrink-0" />
-            <span><strong>Importante:</strong> As quantidades são por dia (quantidade diária total).</span>
+            <span>{tRec("important_daily_qty")}</span>
           </div>
 
           <div className="flex gap-2">
@@ -237,7 +238,7 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="h-9 px-2 border rounded-md text-sm bg-background border-input w-36"
             >
-              <option value="Todos">Todos</option>
+              <option value="Todos">{tCommon("all")}</option>
               {Array.from(new Set(ingredients?.map(i => i.category).filter(Boolean))).map(cat => (
                 <option key={cat as string} value={cat as string}>{cat}</option>
               ))}
@@ -267,7 +268,7 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
                     {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />}
                   </div>
                   <div className="flex items-end mt-1">
-                    <span className="text-[9px] uppercase tracking-wider text-muted-foreground truncate">{ing.category || "Geral"}</span>
+                    <span className="text-[9px] uppercase tracking-wider text-muted-foreground truncate">{ing.category || tCat("general")}</span>
                   </div>
                 </div>
               );
@@ -279,7 +280,7 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
 
           {recipeIngredients.length > 0 ? (
             <div className="space-y-2 border rounded-md p-3 bg-card">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Ingredientes selecionados — qtd/dia</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{t("selected_ingredients_daily")}</p>
               {(() => {
                 const ingCostMap = new Map(baseCostLines.map(i => [i.name, i]));
                 return recipeIngredients.map((item, idx) => {
@@ -297,7 +298,7 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
                       <Input
                         type="number"
                         step="0.001"
-                        placeholder="Qtd/dia"
+                        placeholder={tRec("qty_per_day")}
                         className="w-24 h-8 px-2 text-sm shrink-0"
                         value={item.quantity}
                         onChange={e => {
@@ -330,7 +331,7 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium text-foreground flex items-center gap-2">
-              Custo Estimado
+              {tRec("estimated_cost")}
               {isCalculatingCost && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             </span>
             <div className="text-right">
@@ -340,7 +341,7 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
               )}
               {baseCostLines.length > 0 && (
                 <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-primary/20">
-                  Custo base: R$ {baseCostLines.reduce((s, i) => s + Number(i.total_cost), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {tRec("base_cost")}: R$ {baseCostLines.reduce((s, i) => s + Number(i.total_cost), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               )}
             </div>
@@ -353,25 +354,25 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
               onClick={() => setRecipeDetailOpen(v => !v)}
               className="w-full flex justify-between items-center text-sm font-medium text-foreground hover:text-primary transition-colors"
             >
-              <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Ver detalhamento da receita</span>
+              <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> {t("view_recipe_breakdown")}</span>
               {recipeDetailOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
             {recipeDetailOpen && (
               <div className="py-3 space-y-3 border-b border-primary/10">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Duração total:</span>
-                  <span className="font-semibold">{form.duration_days} dias</span>
+                  <span className="text-muted-foreground">{tRec("total_duration")}</span>
+                  <span className="font-semibold">{form.duration_days} {tCat("days")}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Porções diárias:</span>
-                  <span className="font-semibold">{form.daily_portions} porção(ões)</span>
+                  <span className="text-muted-foreground">{tRec("daily_portions_label")}</span>
+                  <span className="font-semibold">{form.daily_portions} {tRec("portions_per_day_plural")}</span>
                 </div>
                 {recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).length > 0 && (
                   <div>
                     <div className="grid grid-cols-3 text-xs text-muted-foreground mb-1.5 px-1 font-medium">
-                      <span>Ingrediente</span>
-                      <span className="text-right">Total/dia</span>
-                      <span className="text-right">Por porção</span>
+                      <span>{tCommon("ingredient")}</span>
+                      <span className="text-right">{t("total_per_day")}</span>
+                      <span className="text-right">{tRec("per_portion")}</span>
                     </div>
                     <ul className="space-y-1.5">
                       {recipeIngredients.filter(i => i.id > 0 && parseFloat(i.quantity) > 0).map((item, idx) => {
@@ -401,7 +402,7 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
               onClick={() => setCostDetailOpen(v => !v)}
               className="w-full flex justify-between items-center text-sm font-medium text-foreground hover:text-primary transition-colors"
             >
-              <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5" /> Ver detalhamento dos custos</span>
+              <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5" /> {t("view_cost_breakdown")}</span>
               {costDetailOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
             {costDetailOpen && (
@@ -442,7 +443,7 @@ export function RecipeEditModal({ recipe, customerId, customerPets, isOpen, onCl
                 </ul>
               ) : (
                 <p className="text-center text-xs text-muted-foreground italic py-2">
-                  Adicione ingredientes para simular o custo.
+                  {tRec("add_ingredients_simulate")}
                 </p>
               )
             )}

@@ -132,16 +132,16 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
     setSaveOk("");
     try {
       await updateCustomer({ id: customer.id, data: form });
-      setSaveOk("Cliente atualizado com sucesso!");
+      setSaveOk(t("customer_updated"));
       setTimeout(onClose, 1000);
     } catch (err) {
       const axiosMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setSaveError(axiosMessage || "Erro ao atualizar cliente.");
+      setSaveError(axiosMessage || t("customer_update_error"));
     }
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Editar Informações do Cliente">
+    <Modal isOpen={isOpen} onClose={onClose} title={t("edit_customer_title")}>
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         {saveError && (
           <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20">
@@ -156,11 +156,11 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
         {/* ── Dados básicos ── */}
         <div className="space-y-3">
           <div className="flex items-center text-sm font-semibold text-primary border-b pb-2">
-            <User className="w-4 h-4 mr-2" /> Dados Básicos
+            <User className="w-4 h-4 mr-2" /> {t("basic_data")}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="c-name">Nome</Label>
+              <Label htmlFor="c-name">{t("name")}</Label>
               <Input
                 id="c-name"
                 value={form.name}
@@ -170,7 +170,7 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
               {errors.name && <p className="text-xs text-destructive mt-0.5">{errors.name}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="c-email">E-mail</Label>
+              <Label htmlFor="c-email">{t("email")}</Label>
               <Input
                 id="c-email"
                 type="email"
@@ -181,7 +181,7 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
               {errors.email && <p className="text-xs text-destructive mt-0.5">{errors.email}</p>}
             </div>
             <div className="sm:col-span-2 space-y-1.5">
-              <Label htmlFor="c-phone">Celular</Label>
+              <Label htmlFor="c-phone">{t("phone")}</Label>
               <PhoneInput
                 id="c-phone"
                 value={form.phone}
@@ -196,12 +196,12 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
         {/* ── Endereço ── */}
         <div className="space-y-3">
           <div className="flex items-center text-sm font-semibold text-primary border-b pb-2">
-            <MapPin className="w-4 h-4 mr-2" /> Endereço
+            <MapPin className="w-4 h-4 mr-2" /> {t("address_title")}
           </div>
 
           {/* CEP — primeiro, dispara ViaCEP */}
           <div className="space-y-1.5">
-            <Label htmlFor="c-zipcode">CEP</Label>
+            <Label htmlFor="c-zipcode">{t("addr_zipcode")}</Label>
             <div className="relative">
               <Input
                 id="c-zipcode"
@@ -218,7 +218,7 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
                 }
               </div>
             </div>
-            {cepSearching && <p className="text-xs text-muted-foreground">Buscando endereço...</p>}
+            {cepSearching && <p className="text-xs text-muted-foreground">{t("cep_searching")}</p>}
             {cepError && <p className="text-xs text-destructive">{cepError}</p>}
             {!cepError && errors.zipcode && <p className="text-xs text-destructive mt-0.5">{errors.zipcode}</p>}
           </div>
@@ -226,10 +226,10 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
           {/* Street + Number */}
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2 space-y-1.5">
-              <Label htmlFor="c-street">Rua / Logradouro</Label>
+              <Label htmlFor="c-street">{t("addr_street")}</Label>
               <Input
                 id="c-street"
-                placeholder="Ex.: Av. Paulista"
+                placeholder={t("addr_street_placeholder")}
                 value={form.street}
                 onChange={(e) => { setForm({ ...form, street: e.target.value }); clearError("street"); }}
                 className={errors.street ? "border-destructive focus-visible:ring-destructive" : ""}
@@ -237,10 +237,10 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
               {errors.street && <p className="text-xs text-destructive mt-0.5">{errors.street}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="c-number">Número</Label>
+              <Label htmlFor="c-number">{t("addr_number")}</Label>
               <Input
                 id="c-number"
-                placeholder="123"
+                placeholder={t("addr_number_placeholder")}
                 value={form.number}
                 onChange={(e) => { setForm({ ...form, number: e.target.value }); clearError("number"); }}
                 className={errors.number ? "border-destructive focus-visible:ring-destructive" : ""}
@@ -251,10 +251,10 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
 
           {/* Complement */}
           <div className="space-y-1.5">
-            <Label htmlFor="c-complement">Complemento</Label>
+            <Label htmlFor="c-complement">{t("addr_complement")}</Label>
             <Input
               id="c-complement"
-              placeholder="Apto, bloco, referência..."
+              placeholder={t("addr_complement_placeholder")}
               value={form.complement}
               onChange={(e) => setForm({ ...form, complement: e.target.value })}
             />
@@ -262,10 +262,10 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
 
           {/* Neighborhood */}
           <div className="space-y-1.5">
-            <Label htmlFor="c-neighborhood">Bairro</Label>
+            <Label htmlFor="c-neighborhood">{t("addr_neighborhood")}</Label>
             <Input
               id="c-neighborhood"
-              placeholder="Bela Vista"
+              placeholder={t("addr_neighborhood_placeholder")}
               value={form.neighborhood}
               onChange={(e) => { setForm({ ...form, neighborhood: e.target.value }); clearError("neighborhood"); }}
               className={errors.neighborhood ? "border-destructive focus-visible:ring-destructive" : ""}
@@ -276,7 +276,7 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
           {/* Cidade + Estado */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="c-city">Cidade</Label>
+              <Label htmlFor="c-city">{t("addr_city")}</Label>
               <Input
                 id="c-city"
                 value={form.city}
@@ -286,7 +286,7 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
               {errors.city && <p className="text-xs text-destructive mt-0.5">{errors.city}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="c-state">Estado</Label>
+              <Label htmlFor="c-state">{t("addr_state")}</Label>
               <select
                 id="c-state"
                 value={form.state}
@@ -296,7 +296,7 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
                   errors.state && "border-destructive"
                 )}
               >
-                <option value="">Selecione o estado</option>
+                <option value="">{t("select_state")}</option>
                 {BRAZIL_STATES.map((s) => (
                   <option key={s.uf} value={s.uf}>{s.uf} — {s.name}</option>
                 ))}

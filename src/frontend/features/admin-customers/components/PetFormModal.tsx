@@ -30,6 +30,7 @@ interface PetFormModalProps {
 export function PetFormModal({ customerId, pet, isOpen, onClose }: PetFormModalProps) {
   const t = useTranslations("admin");
   const tCommon = useTranslations("Common");
+  const tPets = useTranslations("Pets");
   const queryClient = useQueryClient();
   const { createPet, updatePet, isCreating, isUpdating } = usePets();
 
@@ -64,28 +65,28 @@ export function PetFormModal({ customerId, pet, isOpen, onClose }: PetFormModalP
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={pet ? "Editar Pet" : "Novo Pet"}>
+    <Modal isOpen={isOpen} onClose={onClose} title={pet ? tPets("edit_pet") : tPets("new_pet")}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2"><Label>Nome *</Label><Input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-          <div className="space-y-2"><Label>Espécie</Label><select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}><option value="dog">Cachorro</option><option value="cat">Gato</option></select></div>
+          <div className="space-y-2"><Label>{tPets("name")} *</Label><Input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+          <div className="space-y-2"><Label>{tPets("species")}</Label><select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}><option value="dog">{tPets("dog")}</option><option value="cat">{tPets("cat")}</option></select></div>
         </div>
         <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-2"><Label>Raça</Label><Input value={form.breed} onChange={e => setForm({ ...form, breed: e.target.value })} /></div>
-          <div className="space-y-2"><Label>Idade (meses)</Label><Input type="number" min="0" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} /></div>
-          <div className="space-y-2"><Label>Peso (kg)</Label><Input type="number" step="0.1" min="0" value={form.weight} onChange={e => setForm({ ...form, weight: e.target.value })} /></div>
+          <div className="space-y-2"><Label>{tPets("breed")}</Label><Input value={form.breed} onChange={e => setForm({ ...form, breed: e.target.value })} /></div>
+          <div className="space-y-2"><Label>{tPets("age_months")}</Label><Input type="number" min="0" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} /></div>
+          <div className="space-y-2"><Label>{tPets("weight_kg")}</Label><Input type="number" step="0.1" min="0" value={form.weight} onChange={e => setForm({ ...form, weight: e.target.value })} /></div>
         </div>
         <div className="space-y-2">
-          <Label>Restrições Alimentares</Label>
-          <textarea className="flex w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.restrictions} onChange={e => setForm({ ...form, restrictions: e.target.value })} placeholder="Sem farinha de trigo, etc..." />
+          <Label>{tPets("dietary_restrictions")}</Label>
+          <textarea className="flex w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.restrictions} onChange={e => setForm({ ...form, restrictions: e.target.value })} placeholder={tPets("restrictions_placeholder")} />
         </div>
         <div className="space-y-2">
-          <Label>Alergias</Label>
-          <textarea className="flex w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.allergies} onChange={e => setForm({ ...form, allergies: e.target.value })} placeholder="Frango, corantes..." />
+          <Label>{tPets("allergies")}</Label>
+          <textarea className="flex w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.allergies} onChange={e => setForm({ ...form, allergies: e.target.value })} placeholder={tPets("allergies_placeholder")} />
         </div>
         <div className="space-y-2">
-          <Label>Necessidades Especiais</Label>
-          <textarea className="flex w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.special_needs} onChange={e => setForm({ ...form, special_needs: e.target.value })} placeholder="Diabético, cego..." />
+          <Label>{tPets("special_needs")}</Label>
+          <textarea className="flex w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.special_needs} onChange={e => setForm({ ...form, special_needs: e.target.value })} placeholder={tPets("special_needs_placeholder")} />
         </div>
         <div className="pt-4 flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onClose}>{tCommon("cancel")}</Button>
