@@ -46,7 +46,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     <div className={layoutMode === "vertical" ? "flex min-h-screen bg-muted/30" : "min-h-screen bg-muted/30 flex flex-col"}>
       <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} layoutMode={layoutMode} />
       
-      <div className={layoutMode === "vertical" ? "flex flex-1 flex-col overflow-hidden" : "flex flex-1 flex-col"}>
+      <div className="flex flex-1 flex-col">
         <Navbar 
           onMenuClick={() => setSidebarOpen(true)} 
           layoutMode={layoutMode} 
