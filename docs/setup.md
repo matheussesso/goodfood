@@ -43,7 +43,7 @@ DB_PASSWORD=rootpassword
 docker compose up -d
 ```
 
-Sobe `db` (Postgres), `backend` (PHP-FPM), `scheduler`, `nginx` e `frontend`.
+Sobe `db` (Postgres), `backend` (FrankenPHP), `scheduler` e `frontend`.
 
 ### 4. Dependências e banco (primeira vez)
 

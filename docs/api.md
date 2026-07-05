@@ -1,6 +1,6 @@
 # Referência da API REST
 
-Base URL local: `http://localhost:8000/api` (Nginx → Laravel). O frontend consome via Axios (`src/frontend/lib/api-client.ts`).
+Base URL local: `http://localhost:8000/api` (FrankenPHP → Laravel). O frontend consome via Axios (`src/frontend/lib/api-client.ts`).
 
 ## Autenticação
 

@@ -3,7 +3,7 @@
 O GoodFood System separa responsabilidades entre um frontend web (Next.js) e uma API REST (Laravel), com PostgreSQL como banco e todo o ambiente de desenvolvimento conteinerizado via Docker Compose.
 
 ```text
-Browser ──► Frontend (Next.js :3000) ──► Nginx (:8000) ──► Backend (Laravel/PHP-FPM) ──► PostgreSQL (:5432)
+Browser ──► Frontend (Next.js :3000) ──► Backend (Laravel/FrankenPHP :8000) ──► PostgreSQL (:5432)
                                                               └── Scheduler (cron diário)
 ```
 
@@ -11,7 +11,7 @@ Browser ──► Frontend (Next.js :3000) ──► Nginx (:8000) ──► Bac
 
 ## 1. Backend — API Laravel
 
-Local: `src/backend`. **Laravel 13** sobre **PHP 8.4** (imagem `php:8.4-fpm`), operando exclusivamente como API JSON (`routes/api.php`). Autenticação via **Sanctum SPA stateful** (`statefulApi()` em `bootstrap/app.php`): sessão em cookie httpOnly + proteção CSRF — nenhum token exposto ao JavaScript do navegador.
+Local: `src/backend`. **Laravel 13** sobre **PHP 8.4** (imagem `dunglas/frankenphp:1-php8.4`), operando exclusivamente como API JSON (`routes/api.php`). Autenticação via **Sanctum SPA stateful** (`statefulApi()` em `bootstrap/app.php`): sessão em cookie httpOnly + proteção CSRF — nenhum token exposto ao JavaScript do navegador.
 
 ### Camadas
 
@@ -82,9 +82,8 @@ Definições em `docker-compose.yml` + `docker/`:
 | Serviço | Imagem | Porta | Função |
 | --- | --- | --- | --- |
 | `db` | `postgres:16-alpine` | 5432 | Banco de dados |
-| `backend` | `php:8.4-fpm` (custom) | — | PHP-FPM com `pdo_pgsql`, `gd`, `bcmath` etc. |
+| `backend` | `dunglas/frankenphp:1-php8.4` (custom) | 8000 | Servidor web/API (FrankenPHP) com `pdo_pgsql`, `gd`, `bcmath` etc. |
 | `scheduler` | mesma do backend | — | Laravel Scheduler (jobs recorrentes) |
-| `nginx` | `nginx:alpine` | 8000 | Servidor web/proxy do backend |
 | `frontend` | `node:20-slim` | 3000 | `npm run dev` com hot reload |
 
 O código é montado por bind mount (`./src/backend` e `./src/frontend`), permitindo editar no host com reload imediato nos containers.

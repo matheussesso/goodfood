@@ -9,7 +9,7 @@ Plataforma de alimentação natural para pets por assinatura: tutores cadastram 
 | Frontend | Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS 4 · TanStack Query · next-intl (pt/en/es) |
 | Backend | Laravel 13 · PHP 8.4 · Sanctum (API tokens) · Pest |
 | Banco | PostgreSQL 16 (SQLite em memória nos testes) |
-| Infra | Docker Compose (db, backend, scheduler, nginx, frontend) |
+| Infra | Docker Compose (db, backend, scheduler, frontend) |
 
 ## Início rápido
 
@@ -87,7 +87,7 @@ Toda a documentação técnica vive em [`docs/`](docs/README.md):
 │       ├── i18n/           # Roteamento e request config do next-intl
 │       └── messages/       # pt.json / en.json / es.json
 ├── docs/                   # Documentação técnica (índice em docs/README.md)
-├── docker/                 # Dockerfiles e configs (backend, frontend, nginx)
+├── docker/                 # Dockerfiles e configs (backend, frontend)
 └── docker-compose.yml
 ```
 
