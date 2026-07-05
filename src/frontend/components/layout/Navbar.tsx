@@ -3,6 +3,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { UserDropdown } from "@/components/layout/UserDropdown";
+import { FullscreenToggle } from "@/components/FullscreenToggle";
 import {
   Menu,
   Columns,
@@ -146,8 +147,8 @@ export function Navbar({
             </Link>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-1 sm:gap-1">
+            <div className="flex items-center text-sm">
               <select
                 value={locale}
                 onChange={(e) => handleLanguageChange(e.target.value)}
@@ -159,9 +160,11 @@ export function Navbar({
               </select>
             </div>
 
+            <FullscreenToggle />
+
             {toggleLayout && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 onClick={toggleLayout}
                 title={
@@ -179,7 +182,7 @@ export function Navbar({
               </Button>
             )}
 
-            <div className="border-l pl-2 sm:pl-4">
+            <div className="border-l pl-2 ms-2 sm:pl-4">
               <UserDropdown />
             </div>
           </div>
