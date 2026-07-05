@@ -1,0 +1,18 @@
+{
+	frankenphp
+	order php_server before file_server
+}
+
+{$SERVER_NAME:localhost} {
+	# Define a raiz para a pasta public do Laravel
+	root * /app/public
+
+	# Ativa compressão
+	encode zstd br gzip
+
+	# Servidor PHP
+	php_server
+
+	# Servidor de arquivos estáticos e fallback para index.php
+	file_server
+}

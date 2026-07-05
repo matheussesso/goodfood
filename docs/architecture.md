@@ -86,6 +86,6 @@ Definições em `docker-compose.yml` + `docker/`:
 | `scheduler` | mesma do backend | — | Laravel Scheduler (jobs recorrentes) |
 | `frontend` | `node:20-slim` | 3000 | `npm run dev` com hot reload |
 
-O código é montado por bind mount (`./src/backend` e `./src/frontend`), permitindo editar no host com reload imediato nos containers.
+O código é montado por bind mount (`./src/backend` e `./src/frontend`), permitindo editar no host com reload imediato nos containers. As rotas e configurações do FrankenPHP podem ser customizadas em `docker/backend/Caddyfile`.
 
 > ⚠️ Processos dos containers rodam como root e podem deixar arquivos com dono `root` no host (`node_modules`, `.next`). Ver a seção de troubleshooting em [setup.md](setup.md#troubleshooting).

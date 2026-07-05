@@ -28,6 +28,7 @@ services:
     volumes:
       - ./src/backend:/app
       - ./docker/backend/php.ini:/usr/local/etc/php/conf.d/local.ini
+      - ./docker/backend/Caddyfile:/etc/caddy/Caddyfile
     depends_on:
       - db
     networks:
