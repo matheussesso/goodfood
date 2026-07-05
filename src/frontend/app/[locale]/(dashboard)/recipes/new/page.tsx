@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { useSearchParams } from "next/navigation";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
@@ -13,16 +13,13 @@ import { Ingredient } from "@/hooks/useIngredients";
 import { calculateRecipeCost, Recipe } from "@/hooks/useRecipes";
 import { usePets } from "@/hooks/usePets";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp, DollarSign, PartyPopper, Dog, Cat } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp, PartyPopper, Dog, Cat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check } from "lucide-react";
 
 export default function NewRecipePage() {
-  const tNav = useTranslations("Navigation");
   const t = useTranslations("Recipes");
   const tCommon = useTranslations("Common");
   const tCat = useTranslations("Catalog");
@@ -30,18 +27,16 @@ export default function NewRecipePage() {
   const searchParams = useSearchParams();
   const petId = searchParams.get("pet_id");
   const queryClient = useQueryClient();
-  const { pets, isLoading: loadingPets } = usePets();
+  const { pets } = usePets();
 
   const [step, setStep] = useState<"choose_method" | "builder">("choose_method");
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
   const [costPerKg, setCostPerKg] = useState<number>(0);
   const [isCalculatingCost, setIsCalculatingCost] = useState(false);
-  const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
   const [searchIngredient, setSearchIngredient] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todos");
   const [focusedIngIdx, setFocusedIngIdx] = useState<number | null>(null);
   const [recipeDetailOpen, setRecipeDetailOpen] = useState(false);
-  const [costDetailOpen, setCostDetailOpen] = useState(false);
   const [confirmedRecipeId, setConfirmedRecipeId] = useState<number | null>(null);
 
   // Fetch data
@@ -61,7 +56,7 @@ export default function NewRecipePage() {
     },
   });
 
-  const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<RecipeFormData>({
+  const { register, control, handleSubmit, setValue, reset, formState: { errors } } = useForm<RecipeFormData>({
     resolver: zodResolver(recipeFormSchema),
     defaultValues: {
       name: "",
@@ -81,11 +76,17 @@ export default function NewRecipePage() {
     name: "ingredients"
   });
 
-  const watchedValues = watch();
+  // useWatch subscribes via context instead of the unstable watch() getter,
+  // which the React Compiler cannot memoize safely. The cast is sound: the
+  // useForm defaultValues above cover every field on first render.
+  const watchedValues = useWatch({ control }) as RecipeFormData;
   const { user } = useAuth();
 
   // Daily weight of valid ingredients in kg
-  const validIngredients = watchedValues.ingredients.filter(i => i.id > 0 && Number(i.quantity) > 0);
+  const validIngredients = useMemo(
+    () => watchedValues.ingredients.filter(i => i.id > 0 && Number(i.quantity) > 0),
+    [watchedValues.ingredients]
+  );
   let totalWeightKg = 0;
   validIngredients.forEach(i => {
     const qty = Number(i.quantity);
@@ -104,7 +105,6 @@ export default function NewRecipePage() {
       // Customer constraint: total weight across all days must be >= 1.5kg (matches old system: sum * duration_days >= 1500g)
       if (user?.role === "customer" && totalWeightAcrossDays < 1.5) {
         setEstimatedCost(0);
-        setCostBreakdown([]);
         return; // Don't fetch cost yet
       }
 
@@ -118,7 +118,6 @@ export default function NewRecipePage() {
           });
           setEstimatedCost(result.estimatedCost);
           setCostPerKg(result.costPerKg || 0);
-          setCostBreakdown(result.costBreakdown || []);
         } catch (e) {
           console.error(e);
         } finally {
@@ -127,13 +126,12 @@ export default function NewRecipePage() {
       } else {
         setEstimatedCost(0);
         setCostPerKg(0);
-        setCostBreakdown([]);
       }
     };
-    
+
     const timeoutId = setTimeout(fetchCost, 500);
     return () => clearTimeout(timeoutId);
-  }, [watchedValues.ingredients, watchedValues.duration_days, watchedValues.daily_portions, step, user?.role, totalWeightAcrossDays]);
+  }, [validIngredients, watchedValues.duration_days, watchedValues.daily_portions, step, user?.role, totalWeightAcrossDays]);
 
   const createRecipe = useMutation({
     mutationFn: async (data: RecipeFormData) => {

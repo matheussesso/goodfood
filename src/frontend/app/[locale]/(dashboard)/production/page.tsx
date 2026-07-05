@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/routing";
 import {
   Factory,
   ShoppingBag,
@@ -13,13 +12,6 @@ import {
   ChevronRight,
   Loader2,
   Search,
-  X,
-  MapPin,
-  Dog,
-  Cat,
-  Clock,
-  Salad,
-  ExternalLink,
   List as ListIcon,
   CalendarDays,
   Filter,
@@ -28,437 +20,22 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useOrders, Order } from "@/hooks/useOrders";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-type Phase = "order_placed" | "reposicao" | "producao" | "entrega";
-type ViewMode = "calendar" | "list";
-
-interface CycleDates {
-  reposicao: Date;
-  producao: Date;
-  entrega: Date;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function toDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-/**
- * Computes the production cycle dates for an order.
- * If the order has a `scheduled_reposicao_date` override set by an admin drag,
- * that date is used as the reposição anchor instead of the computed default.
- *
- * Default cycle: orders placed up to Sunday → Reposição next Monday →
- * Produção Tuesday (+1) → Entrega following Monday (+7).
- *
- * @param order - The order to compute cycle dates for.
- * @returns The three cycle milestone dates.
- */
-function computeCycleDates(order: Order): CycleDates {
-  let reposicao: Date;
-
-  if (order.scheduled_reposicao_date) {
-    // Slice first 10 chars to handle any format: "YYYY-MM-DD", "YYYY-MM-DD HH:mm:ss", ISO
-    const datePart = String(order.scheduled_reposicao_date).slice(0, 10);
-    const [y, m, d] = datePart.split("-").map(Number);
-    reposicao = new Date(y, m - 1, d);
-  } else {
-    const created = new Date(order.created_at);
-    created.setHours(0, 0, 0, 0);
-    const day = created.getDay();
-    // Sunday=+1, Monday=+7 (next week), Tue–Sat = 8-day
-    const daysToMonday = day === 0 ? 1 : day === 1 ? 7 : 8 - day;
-    reposicao = new Date(created);
-    reposicao.setDate(created.getDate() + daysToMonday);
-  }
-
-  const producao = new Date(reposicao);
-  producao.setDate(reposicao.getDate() + 1);
-
-  const entrega = new Date(reposicao);
-  entrega.setDate(reposicao.getDate() + 7);
-
-  return { reposicao, producao, entrega };
-}
-
-/** Returns the calendar date an order falls on for the given phase. */
-function getPhaseDate(order: Order, phase: Phase): Date {
-  const placed = new Date(order.created_at);
-  placed.setHours(0, 0, 0, 0);
-  const { reposicao, producao, entrega } = computeCycleDates(order);
-  switch (phase) {
-    case "order_placed": return placed;
-    case "reposicao":    return reposicao;
-    case "producao":     return producao;
-    case "entrega":      return entrega;
-  }
-}
-
-/** Returns whether a weekday (0=Sun) should be highlighted for the active phase. */
-function isHighlightDay(weekday: number, phase: Phase): boolean {
-  if (phase === "reposicao" || phase === "entrega") return weekday === 1;
-  if (phase === "producao") return weekday >= 2 && weekday <= 6;
-  return false;
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth()    === b.getMonth()    &&
-    a.getDate()     === b.getDate()
-  );
-}
-
-/** Builds a Sun-aligned month grid (null = padding cell). */
-function buildMonthGrid(year: number, month: number): (Date | null)[] {
-  const cells: (Date | null)[] = [];
-  const firstDay = new Date(year, month, 1);
-  const lastDate = new Date(year, month + 1, 0).getDate();
-  for (let i = 0; i < firstDay.getDay(); i++) cells.push(null);
-  for (let d = 1; d <= lastDate; d++) cells.push(new Date(year, month, d));
-  while (cells.length % 7 !== 0) cells.push(null);
-  return cells;
-}
-
-// ─── Phase config ─────────────────────────────────────────────────────────────
-
-const PHASES: Phase[] = ["order_placed", "reposicao", "producao", "entrega"];
-
-const PHASE_STYLE: Record<Phase, {
-  Icon: typeof ShoppingBag;
-  chipActive: string;
-  chipInactive: string;
-  highlight: string;
-  tileColor: string;
-  dotColor: string;
-}> = {
-  order_placed: {
-    Icon: ShoppingBag,
-    chipActive: "bg-primary text-primary-foreground border-primary",
-    chipInactive: "text-muted-foreground border-border hover:bg-muted",
-    highlight: "",
-    tileColor: "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20",
-    dotColor: "bg-primary",
-  },
-  reposicao: {
-    Icon: Package,
-    chipActive: "bg-amber-500 text-white border-amber-500",
-    chipInactive: "text-muted-foreground border-border hover:bg-muted",
-    highlight: "bg-amber-50 dark:bg-amber-950/20",
-    tileColor: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
-    dotColor: "bg-amber-400",
-  },
-  producao: {
-    Icon: UtensilsCrossed,
-    chipActive: "bg-violet-600 text-white border-violet-600",
-    chipInactive: "text-muted-foreground border-border hover:bg-muted",
-    highlight: "bg-violet-50 dark:bg-violet-950/20",
-    tileColor: "bg-violet-100 text-violet-800 border-violet-200 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800",
-    dotColor: "bg-violet-400",
-  },
-  entrega: {
-    Icon: Truck,
-    chipActive: "bg-emerald-600 text-white border-emerald-600",
-    chipInactive: "text-muted-foreground border-border hover:bg-muted",
-    highlight: "bg-emerald-50 dark:bg-emerald-950/20",
-    tileColor: "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
-    dotColor: "bg-emerald-500",
-  },
-};
-
-// ─── Status config ────────────────────────────────────────────────────────────
-
-const STATUS_STYLE: Record<string, { badge: string; dot: string }> = {
-  pending:          { badge: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400",    dot: "bg-amber-400" },
-  in_production:    { badge: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400",         dot: "bg-blue-400" },
-  ready:            { badge: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400", dot: "bg-violet-400" },
-  out_for_delivery: { badge: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400",              dot: "bg-sky-400" },
-  delivered:        { badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400", dot: "bg-emerald-500" },
-  cancelled:        { badge: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400",              dot: "bg-red-400" },
-};
-
-const STATUS_VALUES = [
-  "pending", "in_production", "ready", "out_for_delivery", "delivered", "cancelled",
-] as const;
-
-// ─── StatusBadge ─────────────────────────────────────────────────────────────
-
-function StatusBadge({ status, label }: { status: string; label: string }) {
-  const s = STATUS_STYLE[status] ?? STATUS_STYLE.pending;
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border ${s.badge}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-      {label}
-    </span>
-  );
-}
-
-// ─── OrderDetailPanel ─────────────────────────────────────────────────────────
-
-/**
- * Slide-in detail panel shown when an order is selected.
- * Displays the full cycle timeline, order info, items, and inline status update.
- *
- * @param order - The selected order.
- * @param onClose - Callback to close the panel.
- * @param onUpdateStatus - Callback to save a new status.
- * @param isUpdating - Whether a status update request is in flight.
- */
-function OrderDetailPanel({
-  order,
-  onClose,
-  onUpdateStatus,
-  isUpdating,
-}: {
-  order: Order;
-  onClose: () => void;
-  onUpdateStatus: (status: string) => Promise<void>;
-  isUpdating: boolean;
-}) {
-  const t     = useTranslations("Orders");
-  const tProd = useTranslations("Production");
-  const tCat  = useTranslations("Catalog");
-
-  const [localStatus, setLocalStatus] = useState(order.status);
-  const placed = new Date(order.created_at);
-  placed.setHours(0, 0, 0, 0);
-  const { reposicao, producao, entrega } = computeCycleDates(order);
-  const hasItems = !!(order.items?.length);
-
-  const fmt = (d: Date) =>
-    d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
-
-  const phaseDates = [
-    { key: "order_placed" as Phase, date: placed,    Icon: ShoppingBag,    label: tProd("phase_order_placed") },
-    { key: "reposicao"    as Phase, date: reposicao, Icon: Package,         label: tProd("phase_reposicao")    },
-    { key: "producao"     as Phase, date: producao,  Icon: UtensilsCrossed, label: tProd("phase_producao")     },
-    { key: "entrega"      as Phase, date: entrega,   Icon: Truck,           label: tProd("phase_entrega")      },
-  ];
-
-  return (
-    <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b bg-muted/20">
-        <div className="flex items-center gap-2">
-          <ShoppingBag className="w-4 h-4 text-primary" />
-          <h3 className="font-semibold text-foreground">
-            {tProd("order_detail_title")} — {t("order_number")}{order.id}
-          </h3>
-        </div>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      <div className="p-5 space-y-5">
-        {/* Cycle timeline */}
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-            {tProd("cycle_phase")}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {phaseDates.map(({ key, date, Icon, label }) => (
-              <div
-                key={key}
-                className="flex items-center gap-1.5 text-xs bg-muted/40 border rounded-lg px-3 py-1.5"
-              >
-                <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground">{label}:</span>
-                <span className="font-semibold text-foreground">{fmt(date)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Main content grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Order info (left 2/3) */}
-          <div className="lg:col-span-2 space-y-3">
-            <div className="border rounded-xl overflow-hidden">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b bg-muted/10">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <ShoppingBag className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {t("order_number")}{order.id}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {new Date(order.created_at).toLocaleDateString("pt-BR")}
-                      {" às "}
-                      {new Date(order.created_at).toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
-                </div>
-                <StatusBadge status={order.status} label={t(`status_${order.status}` as any)} />
-              </div>
-
-              {/* Info grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border/40 text-xs">
-                {order.user && (
-                  <div className="px-4 py-3">
-                    <p className="uppercase tracking-wide text-muted-foreground mb-1 font-semibold text-[10px]">
-                      {tProd("customer")}
-                    </p>
-                    <p className="font-semibold text-foreground">{order.user.name}</p>
-                    <p className="text-muted-foreground truncate">{order.user.email}</p>
-                  </div>
-                )}
-                <div className="px-4 py-3">
-                  <p className="uppercase tracking-wide text-muted-foreground mb-1 font-semibold text-[10px]">
-                    {t("total")}
-                  </p>
-                  <p className="font-bold text-primary text-sm">
-                    R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-muted-foreground">
-                    {hasItems
-                      ? `${order.items!.length} ${
-                          order.items!.length === 1 ? t("items_count") : t("items_count_plural")
-                        }`
-                      : "—"}
-                  </p>
-                </div>
-                <div className="px-4 py-3">
-                  <p className="uppercase tracking-wide text-muted-foreground mb-1 font-semibold text-[10px]">
-                    {t("order_date")}
-                  </p>
-                  <p className="font-semibold text-foreground">{fmt(placed)}</p>
-                  <p className="text-muted-foreground">
-                    {new Date(order.created_at).toLocaleTimeString("pt-BR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-                <div className="px-4 py-3">
-                  <p className="uppercase tracking-wide text-muted-foreground mb-1 font-semibold text-[10px]">
-                    {tProd("observations")}
-                  </p>
-                  <p className="text-muted-foreground italic text-[11px]">
-                    {tProd("no_observations")}
-                  </p>
-                </div>
-              </div>
-
-              {/* Items */}
-              {hasItems && (
-                <div className="px-4 pb-4 pt-2 space-y-2 border-t">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                    {tProd("items_label")}
-                  </p>
-                  {order.items!.map((item) => {
-                    const PetIcon = item.pet?.type === "cat" ? Cat : Dog;
-                    return (
-                      <div
-                        key={item.id}
-                        className="flex items-start justify-between gap-3 bg-muted/30 rounded-lg px-3 py-2.5"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center flex-wrap gap-1 text-sm font-semibold text-foreground">
-                            <span className="line-clamp-1">
-                              {item.recipe?.name ?? `Receita #${item.recipe_id}`}
-                            </span>
-                            {item.pet && (
-                              <>
-                                <span className="text-muted-foreground">·</span>
-                                <span className="text-xs font-normal text-muted-foreground flex items-center gap-0.5">
-                                  <PetIcon className="w-3 h-3" /> {item.pet.name}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center flex-wrap gap-x-2">
-                            {item.recipe?.duration_days && (
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {item.recipe.duration_days} {tCat("days")}
-                              </span>
-                            )}
-                            {item.recipe?.daily_portions && (
-                              <span className="flex items-center gap-1">
-                                <Salad className="w-3 h-3" /> {item.recipe.daily_portions} {tCat("daily_portions").toLowerCase()}
-                              </span>
-                            )}
-                            <span className="font-semibold text-amber-600 dark:text-amber-400">
-                              R$ {Number(item.unit_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          </p>
-                        </div>
-                        <Link href={`/recipes/${item.recipe_id}`} className="shrink-0">
-                          <Button variant="outline" size="sm" className="h-7 text-xs gap-1 px-2">
-                            {tProd("view_recipe_btn")} <ExternalLink className="w-3 h-3" />
-                          </Button>
-                        </Link>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {order.delivery_address && (
-              <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2.5">
-                <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/60" />
-                {order.delivery_address}
-              </div>
-            )}
-          </div>
-
-          {/* Status update (right 1/3) */}
-          <div className="lg:col-span-1">
-            <div className="border rounded-xl p-4 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {t("update_status")}
-              </p>
-              <div>
-                <p className="text-[10px] text-muted-foreground mb-1.5">{t("current_status")}</p>
-                <StatusBadge status={order.status} label={t(`status_${order.status}` as any)} />
-              </div>
-              <div>
-                <label className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5 block">
-                  {t("new_status")}
-                </label>
-                <select
-                  value={localStatus}
-                  onChange={(e) => setLocalStatus(e.target.value)}
-                  className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                  {STATUS_VALUES.map((s) => (
-                    <option key={s} value={s}>
-                      {t(`status_${s}` as any)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <Button
-                size="sm"
-                className="w-full gap-1.5"
-                onClick={() => onUpdateStatus(localStatus)}
-                disabled={isUpdating || localStatus === order.status}
-              >
-                {isUpdating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {t("save_status")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import {
+  Phase,
+  ViewMode,
+  PHASES,
+  PHASE_STYLE,
+  buildMonthGrid,
+  computeCycleDates,
+  getPhaseDate,
+  isHighlightDay,
+  isSameDay,
+  toDateStr,
+  STATUS_VALUES,
+} from "@/features/production/cycle";
+import { OrderDetailPanel, StatusBadge } from "@/features/production/components/OrderDetailPanel";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -543,7 +120,7 @@ export default function ProductionPage() {
       producao:     "phase_producao",
       entrega:      "phase_entrega",
     };
-    return tProd(keys[p] as any);
+    return tProd(keys[p]);
   };
 
   // Filtered orders
@@ -705,7 +282,7 @@ export default function ProductionPage() {
               <option value="all">{t("all_statuses")}</option>
               {STATUS_VALUES.map((s) => (
                 <option key={s} value={s}>
-                  {t(`status_${s}` as any)}
+                  {t(`status_${s}`)}
                 </option>
               ))}
             </select>
@@ -967,7 +544,7 @@ export default function ProductionPage() {
                           </span>
                           <StatusBadge
                             status={order.status}
-                            label={t(`status_${order.status}` as any)}
+                            label={t(`status_${order.status}`)}
                           />
                         </div>
                         {order.user && (

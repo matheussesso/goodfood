@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
@@ -26,7 +26,6 @@ export default function EditRecipePage() {
   const params = useParams();
   const id = params.id as string;
 
-  const tNav = useTranslations("Navigation");
   const t = useTranslations("Recipes");
   const tCommon = useTranslations("Common");
   const tCat = useTranslations("Catalog");
@@ -40,12 +39,10 @@ export default function EditRecipePage() {
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
   const [costPerKg, setCostPerKg] = useState<number>(0);
   const [isCalculatingCost, setIsCalculatingCost] = useState(false);
-  const [costBreakdown, setCostBreakdown] = useState<any[]>([]);
   const [searchIngredient, setSearchIngredient] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todos");
   const [focusedIngIdx, setFocusedIngIdx] = useState<number | null>(null);
   const [recipeDetailOpen, setRecipeDetailOpen] = useState(false);
-  const [populated, setPopulated] = useState(false);
 
   const { data: ingredients, isLoading: loadingIngredients } = useQuery({
     queryKey: ["ingredients"],
@@ -55,7 +52,27 @@ export default function EditRecipePage() {
     },
   });
 
-  const { register, control, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<RecipeEditFormData>({
+  // Form values derived from the fetched recipe; RHF's `values` option
+  // resets the form when they arrive (deep-compared, no populate effect).
+  const recipeFormValues = useMemo<RecipeEditFormData | undefined>(() => {
+    if (!recipe) return undefined;
+    return {
+      name: recipe.name,
+      description: recipe.description || "",
+      pet_type: recipe.pet_type || "dog",
+      duration_days: recipe.duration_days || 15,
+      daily_portions: recipe.daily_portions || 2,
+      instructions: recipe.instructions || "",
+      pet_ids: recipe.pets?.map(p => p.id) || [],
+      ingredients: recipe.ingredients.map(i => ({
+        id: i.id,
+        quantity: Number(i.pivot.quantity),
+        unit: i.pivot.unit || i.unit,
+      })),
+    };
+  }, [recipe]);
+
+  const { register, control, handleSubmit, setValue, formState: { errors } } = useForm<RecipeEditFormData>({
     resolver: zodResolver(recipeEditFormSchema),
     defaultValues: {
       name: "",
@@ -66,34 +83,21 @@ export default function EditRecipePage() {
       instructions: "",
       pet_ids: [],
       ingredients: [],
-    }
+    },
+    values: recipeFormValues,
+    resetOptions: { keepDirtyValues: true },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "ingredients" });
-  const watchedValues = watch();
+  // useWatch subscribes via context instead of the unstable watch() getter,
+  // which the React Compiler cannot memoize safely. The cast is sound: the
+  // useForm defaultValues above cover every field on first render.
+  const watchedValues = useWatch({ control }) as RecipeEditFormData;
 
-  // Populate form once recipe is loaded
-  useEffect(() => {
-    if (recipe && !populated) {
-      reset({
-        name: recipe.name,
-        description: recipe.description || "",
-        pet_type: recipe.pet_type || "dog",
-        duration_days: recipe.duration_days || 15,
-        daily_portions: recipe.daily_portions || 2,
-        instructions: recipe.instructions || "",
-        pet_ids: recipe.pets?.map(p => p.id) || [],
-        ingredients: recipe.ingredients.map(i => ({
-          id: i.id,
-          quantity: Number(i.pivot.quantity),
-          unit: i.pivot.unit || i.unit,
-        })),
-      });
-      setPopulated(true);
-    }
-  }, [recipe, populated, reset]);
-
-  const validIngredients = watchedValues.ingredients.filter(i => i.id > 0 && Number(i.quantity) > 0);
+  const validIngredients = useMemo(
+    () => watchedValues.ingredients.filter(i => i.id > 0 && Number(i.quantity) > 0),
+    [watchedValues.ingredients]
+  );
   let totalWeightKg = 0;
   validIngredients.forEach(i => {
     const qty = Number(i.quantity);
@@ -107,7 +111,6 @@ export default function EditRecipePage() {
     const fetchCost = async () => {
       if (user?.role === "customer" && totalWeightAcrossDays < 1.5) {
         setEstimatedCost(0);
-        setCostBreakdown([]);
         return;
       }
       if (validIngredients.length > 0) {
@@ -120,7 +123,6 @@ export default function EditRecipePage() {
           });
           setEstimatedCost(result.estimatedCost);
           setCostPerKg(result.costPerKg || 0);
-          setCostBreakdown(result.costBreakdown || []);
         } catch (e) {
           console.error(e);
         } finally {
@@ -129,12 +131,11 @@ export default function EditRecipePage() {
       } else {
         setEstimatedCost(0);
         setCostPerKg(0);
-        setCostBreakdown([]);
       }
     };
     const timeoutId = setTimeout(fetchCost, 500);
     return () => clearTimeout(timeoutId);
-  }, [watchedValues.ingredients, watchedValues.duration_days, watchedValues.daily_portions, user?.role, totalWeightAcrossDays]);
+  }, [validIngredients, watchedValues.duration_days, watchedValues.daily_portions, user?.role, totalWeightAcrossDays]);
 
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -148,9 +149,9 @@ export default function EditRecipePage() {
       queryClient.invalidateQueries({ queryKey: ["recipe", id] });
       router.push(`/recipes/${id}`);
     },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.message || "Erro ao salvar receita. Tente novamente.";
-      setSaveError(msg);
+    onError: (error: unknown) => {
+      const axiosMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setSaveError(axiosMessage || tCommon("error"));
     },
   });
 

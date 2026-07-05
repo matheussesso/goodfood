@@ -35,7 +35,8 @@
     "recipes": "Mis Recetas",
     "logout": "Salir",
     "my_account": "Mi Cuenta",
-    "settings_menu": "Configuración"
+    "settings_menu": "Configuración",
+    "theme": "Cambiar Tema"
   },
   "Common": {
     "save": "Guardar",

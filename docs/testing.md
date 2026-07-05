@@ -39,14 +39,36 @@ docker exec -it goodfood_backend php artisan test
 - Helpers de criação ficam no próprio arquivo de teste (funções globais do Pest — atenção a colisão de nomes entre arquivos).
 - Asserções devem verificar o **contrato** (`success`, `message`, `data`/`errors`), não apenas o status HTTP.
 
-## Frontend
+## Frontend (Vitest + React Testing Library)
 
-Ainda **não há** suíte de testes no frontend (Vitest + React Testing Library estão no roadmap — ver README). Validações atuais no CI local:
+A suíte usa **Vitest** (ambiente jsdom) com **React Testing Library** para componentes. Config em `vitest.config.ts` (alias `@/`, setup com jest-dom em `vitest.setup.ts`); testes co-localizados como `*.test.ts(x)`.
 
 ```bash
 cd src/frontend
+npm test              # vitest run (suíte completa)
+npm run test:watch    # modo watch
+```
+
+### O que a suíte cobre
+
+| Arquivo | Cobre |
+| --- | --- |
+| `features/production/cycle.test.ts` | Regras do ciclo de produção: reposição por dia da semana, override do admin, grade do calendário, dias destacados |
+| `lib/validations/recipe.test.ts` | Schemas Zod de receita (create/edit) e de settings de precificação |
+| `lib/viacep.test.ts` | Wrapper ViaCEP: mapeamento de campos, CEP inexistente, falha de rede |
+| `hooks/useAuth.test.ts` | Store de sessão: setAuth/restore/logout (incl. falha da API), flags de resolução |
+| `features/admin-customers/components/PetFormModal.test.tsx` | RTL: seed do formulário em criar vs. editar (com providers intl + react-query) |
+
+### Convenções
+
+- Componentes que dependem de `useTranslations`/TanStack Query são renderizados com `NextIntlClientProvider` (messages `pt`) + `QueryClientProvider`; `@/lib/api-client` é mockado com `vi.mock`.
+- Lógica pura (helpers, schemas, stores) é testada sem render.
+
+Validações complementares:
+
+```bash
 npx tsc --noEmit      # typecheck
-npx eslint app hooks lib
+npx eslint app hooks lib features
 npm run build         # build de produção (requer NODE_ENV=production, já no script)
 ```
 
