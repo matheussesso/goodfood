@@ -78,10 +78,35 @@ Crie dois registros `A` apontando para o IP do VPS:
 | A | `api.seudominio.com` | IP do VPS |
 | A | `app.seudominio.com` | IP do VPS |
 
-### 1.5 Clonar o repositório
+### 1.5 Gerar Deploy Key do VPS pro GitHub (repo privado)
+
+Repo privado — `git clone`/`git pull` não funciona sem credencial. Gere
+uma chave **no próprio VPS**, dedicada só a leitura deste repo (direção
+oposta à chave do passo 2 — aquela é GitHub→VPS via SSH pro deploy, esta
+é VPS→GitHub via Git pra puxar o código):
 
 ```bash
 su - deploy
+ssh-keygen -t ed25519 -C "vps-goodfood-deploy-key" -f ~/.ssh/goodfood_repo -N ""
+cat ~/.ssh/goodfood_repo.pub
+```
+
+Copie a saída e cadastre em **Settings → Deploy keys → Add deploy key**
+do repositório (não marque "Allow write access" — só leitura é
+suficiente). Depois, aponte o Git pra usar essa chave só pra este host:
+
+```bash
+cat >> ~/.ssh/config <<'EOF'
+Host github.com
+  IdentityFile ~/.ssh/goodfood_repo
+  IdentitiesOnly yes
+EOF
+chmod 600 ~/.ssh/config
+```
+
+### 1.6 Clonar o repositório
+
+```bash
 mkdir -p ~/apps && cd ~/apps
 git clone git@github.com:<owner>/<repo>.git goodfood
 cd goodfood
@@ -90,7 +115,7 @@ cd goodfood
 Este caminho (`/home/deploy/apps/goodfood`) é o `VPS_PROJECT_PATH` usado
 pelo secret do GitHub Actions (passo 4).
 
-### 1.6 Criar os arquivos de ambiente (não versionados)
+### 1.7 Criar os arquivos de ambiente (não versionados)
 
 ```bash
 # Variáveis do docker-compose.yml (raiz do projeto)
@@ -125,11 +150,16 @@ rode em qualquer PHP 8.4 disponível ou deixe para depois do primeiro
 `docker compose up` e rode via `docker compose exec backend php artisan
 key:generate` — nesse caso reinicie o container depois).
 
-### 1.7 Autenticar o Docker do VPS no GHCR
+### 1.8 Autenticar o Docker do VPS no GHCR
 
 Necessário porque `docker compose pull` roda localmente no VPS (não só
-dentro do job de CI). Gere um **Personal Access Token (classic)** no
-GitHub com escopo `read:packages` e faça login uma vez:
+dentro do job de CI). Repo privado → os pacotes publicados no GHCR
+nascem **privados** por padrão, então PAT com só `read:packages` não
+basta se o VPS logar com um usuário diferente do dono/publicador; use
+uma conta com acesso ao repo (owner ou collaborator) ou libere o pacote
+explicitamente em **Package settings → Manage Actions access**. Gere um
+**Personal Access Token (classic)** com escopo `read:packages` e faça
+login uma vez:
 
 ```bash
 echo "SEU_TOKEN_PAT" | docker login ghcr.io -u SEU_USUARIO_GITHUB --password-stdin
