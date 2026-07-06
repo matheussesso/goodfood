@@ -56,7 +56,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider messages={messages}>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
             <QueryProvider>
               <AuthSessionProvider>
                 {children}
