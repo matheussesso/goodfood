@@ -180,6 +180,11 @@ DB_HOST=db
 DB_DATABASE=goodfood
 DB_USERNAME=root
 DB_PASSWORD=troque-por-uma-senha-forte   # mesmo valor do .env acima
+
+# Obrigatório: sem isso o navegador bloqueia por CORS (frontend e backend
+# são domínios diferentes) e o Sanctum não emite cookie de sessão stateful.
+SANCTUM_STATEFUL_DOMAINS=app.seudominio.com
+CORS_ALLOWED_ORIGINS=https://app.seudominio.com
 ```
 
 Gere a `APP_KEY` (uma vez; a imagem ainda não existe localmente, então
