@@ -40,6 +40,7 @@ Toda a documentação técnica vive em [`docs/`](docs/README.md):
 | Documento | Conteúdo |
 | --- | --- |
 | [Setup e Troubleshooting](docs/setup.md) | Ambiente local, comandos do dia a dia, problemas comuns |
+| [Deploy no VPS](docs/vps_deploy.md) | Docker de produção, pipeline CI/CD, SSH/Secrets, Cloudflare |
 | [Arquitetura](docs/architecture.md) | Camadas do backend, padrões do frontend, infraestrutura |
 | [Modelo de Domínio](docs/domain.md) | Entidades, relacionamentos e regras de negócio |
 | [API REST](docs/api.md) | Autenticação, contrato de resposta e todos os endpoints |

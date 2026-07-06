@@ -22,6 +22,10 @@ services:
       POSTGRES_DB: ${DB_DATABASE:-goodfood}
       POSTGRES_USER: ${DB_USERNAME:-root}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env do VPS}
+    ports:
+      # Só loopback do VPS — nunca exposto na internet. Acesso externo via
+      # SSH tunnel (ver docs/vps_deploy.md#acesso-ao-banco-via-dbeaver).
+      - "127.0.0.1:5432:5432"
     volumes:
       - dbdata:/var/lib/postgresql/data
     networks:
