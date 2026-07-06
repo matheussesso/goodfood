@@ -77,15 +77,41 @@ Nos testes, o banco é **SQLite em memória** (`phpunit.xml`) — ver [testing.m
 
 ## 4. Infraestrutura Docker
 
-Definições em `docker-compose.yml` + `docker/`:
+Dois ambientes, dois compose files, dois conjuntos de Dockerfiles — **dev nunca builda como prod, prod nunca monta código local**:
+
+```text
+docker-compose.dev.yml   # local — builda de docker/dev/, bind mount do código
+docker-compose.yml       # VPS  — puxa imagens prontas do GHCR, sem código local
+docker/
+├── dev/
+│   ├── backend/    Dockerfile, php.ini, Caddyfile (FrankenPHP dev)
+│   └── frontend/   Dockerfile (node:24-slim, `npm run dev`)
+└── prod/
+    ├── backend/    Dockerfile multi-stage, entrypoint.sh, php.ini, Caddyfile (prod)
+    └── frontend/   Dockerfile multi-stage (Next.js `output: "standalone"`)
+```
+
+### Desenvolvimento (`docker-compose.dev.yml`)
 
 | Serviço | Imagem | Porta | Função |
 | --- | --- | --- | --- |
 | `db` | `postgres:16-alpine` | 5432 | Banco de dados |
 | `backend` | `dunglas/frankenphp:1-php8.4` (custom) | 8000 | Servidor web/API (FrankenPHP) com `pdo_pgsql`, `gd`, `bcmath` etc. |
 | `scheduler` | mesma do backend | — | Laravel Scheduler (jobs recorrentes) |
-| `frontend` | `node:20-slim` | 3000 | `npm run dev` com hot reload |
+| `frontend` | `node:24-slim` | 3000 | `npm run dev` com hot reload |
 
-O código é montado por bind mount (`./src/backend` e `./src/frontend`), permitindo editar no host com reload imediato nos containers. As rotas e configurações do FrankenPHP podem ser customizadas em `docker/backend/Caddyfile`.
+Código montado por bind mount (`./src/backend` e `./src/frontend`) — editar no host reflete imediato nos containers. Rotas/config do FrankenPHP em `docker/dev/backend/Caddyfile`.
 
 > ⚠️ Processos dos containers rodam como root e podem deixar arquivos com dono `root` no host (`node_modules`, `.next`). Ver a seção de troubleshooting em [setup.md](setup.md#troubleshooting).
+
+### Produção (`docker-compose.yml`, VPS)
+
+Não builda nada localmente — sobe imagens **já publicadas no GHCR** pelo pipeline de CI/CD (`ghcr.io/<owner>/goodfood-backend` e `-frontend`, tag = SHA curto do commit).
+
+- **`backend`**: imagem multi-stage (`composer install --no-dev`, autoload otimizado). `docker/prod/backend/entrypoint.sh` roda `config:cache`/`route:cache`/`view:cache` e `migrate --force` no start (não no build — dependem de env runtime). Caddy do FrankenPHP é o **ingress único do VPS**: serve a API direto e faz `reverse_proxy` pro serviço `frontend` (dois domínios, um container, ver [vps_deploy.md](vps_deploy.md)). TLS via certificado **Cloudflare Origin CA** (Cloudflare em modo Full strict na frente), não Let's Encrypt.
+- **`frontend`**: imagem multi-stage Next.js com `output: "standalone"` — runtime final só copia `.next/standalone` + `.next/static`, sem `node_modules` completo.
+- **`scheduler`**: mesma imagem do backend, roda só `php artisan schedule:work` (entrypoint pula o `migrate` pra não disputar com o `backend` na subida).
+
+### CI/CD
+
+Pipeline completo em [`.github/workflows/ci-cd.yml`](../.github/workflows/ci-cd.yml): `Prepare → Quality → Test → Build → Deploy`. Build/Deploy só rodam em push na `main` (publica imagens no GHCR + SSH no VPS). Detalhes de gatilhos por branch em [git_flow.md](git_flow.md#cicd); setup completo do VPS (SSH, GHCR, Cloudflare) em [vps_deploy.md](vps_deploy.md).

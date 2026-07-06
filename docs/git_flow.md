@@ -62,3 +62,34 @@ Mantenha a coerência nos registros de Commits adotando Commits Semânticos (*Co
 - `refactor:` Ajustes de código limpo que não alteram comportamentos ou interfaces de APIs
 - `test:` Inserção ou correções de casos de teste
 - `chore:` Trabalhos mecânicos (ex: atualização de dependências e libs)
+
+---
+
+## CI/CD
+
+Todo push e PR contra `main` ou `develop` dispara o pipeline em
+[`.github/workflows/ci-cd.yml`](../.github/workflows/ci-cd.yml):
+
+```
+Prepare → Quality (Pint, ESLint, tsc) → Test (Pest, Vitest) → Build* → Deploy*
+```
+
+\* **Build** (imagens Docker → GHCR) e **Deploy** (SSH no VPS) só rodam em
+**push direto na `main`** — nunca em PR, nunca em push na `develop`. Ou seja:
+
+| Evento | Quality | Test | Build | Deploy |
+| --- | --- | --- | --- | --- |
+| PR → `develop` ou `main` | ✅ | ✅ | — | — |
+| Push em `develop` (merge de PR) | ✅ | ✅ | — | — |
+| Push em `main` (merge de release) | ✅ | ✅ | ✅ | ✅ (produção) |
+
+Implicações práticas:
+
+- **Um PR só pode ser mergeado com Quality + Test verdes** (configure isso
+  como *required status check* em Settings → Branches → Branch protection
+  rules, tanto para `main` quanto `develop`).
+- Merge/push na `main` publica automaticamente em produção no VPS — trate
+  esse merge com o mesmo cuidado de um deploy manual. Normalmente isso
+  acontece ao fechar uma `release/vX.Y.Z` ou um `hotfix/*`.
+- Deploy de produção, Docker (dev vs. prod) e configuração do VPS/GHCR/Cloudflare
+  estão documentados em [vps_deploy.md](vps_deploy.md).

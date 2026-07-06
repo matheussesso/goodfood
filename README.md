@@ -9,7 +9,7 @@ Plataforma de alimentação natural para pets por assinatura: tutores cadastram 
 | Frontend | Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS 4 · TanStack Query · next-intl (pt/en/es) |
 | Backend | Laravel 13 · PHP 8.4 · Sanctum (API tokens) · Pest |
 | Banco | PostgreSQL 16 (SQLite em memória nos testes) |
-| Infra | Docker Compose (db, backend, scheduler, frontend) |
+| Infra | Docker (dev/prod separados) · GitHub Actions CI/CD · GHCR · VPS + Cloudflare |
 
 ## Início rápido
 
@@ -17,7 +17,7 @@ Plataforma de alimentação natural para pets por assinatura: tutores cadastram 
 git clone <url-do-repositorio>
 cd goodfood-system-new
 cp src/backend/.env.example src/backend/.env
-docker compose up -d
+docker compose -f docker-compose.dev.yml up -d
 
 docker exec -it goodfood_backend composer install
 docker exec -it goodfood_backend php artisan key:generate
@@ -25,6 +25,8 @@ docker exec -it goodfood_backend php artisan migrate --seed
 docker exec -it goodfood_backend php artisan storage:link
 docker exec -it goodfood_frontend npm install
 ```
+
+> `docker-compose.yml` (raiz, sem `-f`) é o compose de **produção** — usado só pelo pipeline de deploy no VPS, não localmente. Local é sempre `docker-compose.dev.yml`.
 
 - 🌐 Frontend: http://localhost:3000
 - 🚀 API: http://localhost:8000/api
@@ -83,27 +85,31 @@ Toda a documentação técnica vive em [`docs/`](docs/README.md):
 │       ├── app/[locale]/   # App Router: (auth) e (dashboard)
 │       ├── components/     # UI reutilizável (ui/, layout/, providers/)
 │       ├── hooks/          # TanStack Query hooks + useAuth (zustand)
-│       ├── lib/            # api-client, viacep, utils
+│       ├── lib/            # api-client, viacep, utils, api-error
 │       ├── i18n/           # Roteamento e request config do next-intl
 │       └── messages/       # pt.json / en.json / es.json
 ├── docs/                   # Documentação técnica (índice em docs/README.md)
-├── docker/                 # Dockerfiles e configs (backend, frontend)
-└── docker-compose.yml
+├── docker/
+│   ├── dev/                # Dockerfiles de desenvolvimento (backend, frontend)
+│   └── prod/               # Dockerfiles de produção (multi-stage, otimizados)
+├── docker-compose.dev.yml  # Orquestração local
+├── docker-compose.yml      # Orquestração de produção (VPS, imagens do GHCR)
+└── .github/workflows/      # Pipeline CI/CD (ci-cd.yml)
 ```
 
 ## Comandos essenciais
 
 ```bash
 # Testes do backend
-docker compose run --rm --no-deps backend ./vendor/bin/pest
+docker compose -f docker-compose.dev.yml run --rm --no-deps backend ./vendor/bin/pest
 
 # Lint e build do frontend
 docker exec -it goodfood_frontend npm run lint
-docker compose run --rm --no-deps frontend npm run build
+docker compose -f docker-compose.dev.yml run --rm --no-deps frontend npm run build
 
 # Containers
-docker compose stop        # parar
-docker compose down -v     # zerar tudo (inclui banco)
+docker compose -f docker-compose.dev.yml stop        # parar
+docker compose -f docker-compose.dev.yml down -v     # zerar tudo (inclui banco)
 ```
 
 Mais comandos e soluções de problemas em [docs/setup.md](docs/setup.md).
@@ -113,4 +119,4 @@ Mais comandos e soluções de problemas em [docs/setup.md](docs/setup.md).
 1. Leia [docs/best_practices.md](docs/best_practices.md) e [docs/git_flow.md](docs/git_flow.md).
 2. Crie sua branch a partir da `develop` (`feature/...`, `bugfix/...`).
 3. Toda entrega exige testes ([docs/testing.md](docs/testing.md)), i18n completo ([docs/i18n.md](docs/i18n.md)) e validação de responsividade.
-4. Abra o PR para `develop` com descrição em português.
+4. Abra o PR para `develop` com descrição em português — o pipeline de CI/CD ([docs/git_flow.md#cicd](docs/git_flow.md#cicd)) roda Quality + Test automaticamente.
