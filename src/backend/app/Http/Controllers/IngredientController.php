@@ -19,9 +19,6 @@ class IngredientController extends Controller
 {
     /**
      * List ingredients: admins see all, customers see only active ones.
-     *
-     * @param  Request  $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -36,9 +33,6 @@ class IngredientController extends Controller
 
     /**
      * Create an ingredient (admin only).
-     *
-     * @param  StoreIngredientRequest  $request
-     * @return JsonResponse
      */
     public function store(StoreIngredientRequest $request): JsonResponse
     {
@@ -52,10 +46,6 @@ class IngredientController extends Controller
 
     /**
      * Show an ingredient (admin only).
-     *
-     * @param  Request     $request
-     * @param  Ingredient  $ingredient
-     * @return JsonResponse
      */
     public function show(Request $request, Ingredient $ingredient): JsonResponse
     {
@@ -66,10 +56,6 @@ class IngredientController extends Controller
 
     /**
      * Update an ingredient (admin only).
-     *
-     * @param  UpdateIngredientRequest  $request
-     * @param  Ingredient               $ingredient
-     * @return JsonResponse
      */
     public function update(UpdateIngredientRequest $request, Ingredient $ingredient): JsonResponse
     {
@@ -86,10 +72,6 @@ class IngredientController extends Controller
 
     /**
      * Delete an ingredient (admin only).
-     *
-     * @param  Request     $request
-     * @param  Ingredient  $ingredient
-     * @return JsonResponse
      */
     public function destroy(Request $request, Ingredient $ingredient): JsonResponse
     {

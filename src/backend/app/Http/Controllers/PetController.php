@@ -20,9 +20,6 @@ class PetController extends Controller
 {
     /**
      * List pets: admins see all, customers see only their own.
-     *
-     * @param  Request  $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -37,9 +34,6 @@ class PetController extends Controller
 
     /**
      * Create a pet. Admins may create on behalf of another user via user_id.
-     *
-     * @param  StorePetRequest  $request
-     * @return JsonResponse
      */
     public function store(StorePetRequest $request): JsonResponse
     {
@@ -58,10 +52,6 @@ class PetController extends Controller
 
     /**
      * Show a pet with its recipes, orders and subscriptions.
-     *
-     * @param  Request  $request
-     * @param  Pet      $pet
-     * @return JsonResponse
      */
     public function show(Request $request, Pet $pet): JsonResponse
     {
@@ -76,10 +66,6 @@ class PetController extends Controller
     /**
      * Update a pet. Reassignment (user_id) is admin-only and stripped for
      * customers inside UpdatePetRequest::validated().
-     *
-     * @param  UpdatePetRequest  $request
-     * @param  Pet               $pet
-     * @return JsonResponse
      */
     public function update(UpdatePetRequest $request, Pet $pet): JsonResponse
     {
@@ -90,10 +76,6 @@ class PetController extends Controller
 
     /**
      * Delete a pet.
-     *
-     * @param  Request  $request
-     * @param  Pet      $pet
-     * @return JsonResponse
      */
     public function destroy(Request $request, Pet $pet): JsonResponse
     {
@@ -106,16 +88,13 @@ class PetController extends Controller
 
     /**
      * Upload a photo for a pet and return its URL.
-     *
-     * @param  UploadPetPhotoRequest  $request
-     * @return JsonResponse
      */
     public function uploadPhoto(UploadPetPhotoRequest $request): JsonResponse
     {
         $path = $request->file('photo')->store('pets', 'public');
 
         return $this->respondSuccess(
-            ['photo_url' => url('storage/' . $path)],
+            ['photo_url' => url('storage/'.$path)],
             'Photo uploaded successfully'
         );
     }

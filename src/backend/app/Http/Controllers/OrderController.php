@@ -23,9 +23,6 @@ class OrderController extends Controller
     /**
      * Return all orders.
      * Admins see every order; customers see only their own.
-     *
-     * @param  Request  $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -46,9 +43,6 @@ class OrderController extends Controller
      * Create a new order for the authenticated user.
      * Accepts an array of items (each with recipe_id and optional pet_id),
      * allowing the same recipe to appear multiple times for different pets.
-     *
-     * @param  StoreOrderRequest  $request
-     * @return JsonResponse
      */
     public function store(StoreOrderRequest $request): JsonResponse
     {
@@ -61,27 +55,28 @@ class OrderController extends Controller
             }
         }
 
-        $recipeIds   = collect($validated['items'])->pluck('recipe_id');
+        $recipeIds = collect($validated['items'])->pluck('recipe_id');
         $recipesById = Recipe::with('ingredients')->whereIn('id', $recipeIds->unique())->get()->keyBy('id');
 
         $total = collect($validated['items'])->sum(function (array $item) use ($recipesById): float {
             /** @var Recipe|null $recipe */
             $recipe = $recipesById->get($item['recipe_id']);
+
             return (float) ($recipe?->calculateTotalCost() ?? 0);
         });
 
         $order = $request->user()->orders()->create([
-            'total_price'      => $total,
-            'status'           => 'pending_payment',
+            'total_price' => $total,
+            'status' => 'pending_payment',
             'delivery_address' => $validated['delivery_address'] ?? null,
         ]);
 
         Invoice::create([
-            'order_id'       => $order->id,
-            'user_id'        => $request->user()->id,
-            'amount'         => $total,
-            'status'         => 'pending',
-            'due_date'       => Carbon::today()->addDays(3),
+            'order_id' => $order->id,
+            'user_id' => $request->user()->id,
+            'amount' => $total,
+            'status' => 'pending',
+            'due_date' => Carbon::today()->addDays(3),
         ]);
 
         foreach ($validated['items'] as $item) {
@@ -89,11 +84,11 @@ class OrderController extends Controller
             $recipe = $recipesById->get($item['recipe_id']);
             $currentPrice = (float) ($recipe?->calculateTotalCost() ?? 0);
             OrderItem::create([
-                'order_id'   => $order->id,
-                'pet_id'     => $item['pet_id'] ?? null,
-                'recipe_id'  => $item['recipe_id'],
+                'order_id' => $order->id,
+                'pet_id' => $item['pet_id'] ?? null,
+                'recipe_id' => $item['recipe_id'],
                 'unit_price' => $currentPrice,
-                'quantity'   => 1,
+                'quantity' => 1,
             ]);
         }
 
@@ -106,10 +101,6 @@ class OrderController extends Controller
 
     /**
      * Return a single order.
-     *
-     * @param  Request  $request
-     * @param  Order    $order
-     * @return JsonResponse
      */
     public function show(Request $request, Order $order): JsonResponse
     {
@@ -124,10 +115,6 @@ class OrderController extends Controller
     /**
      * Update an order. Customers may update delivery fields; admins may also
      * update status. Rules and authorization live in UpdateOrderRequest.
-     *
-     * @param  UpdateOrderRequest  $request
-     * @param  Order               $order
-     * @return JsonResponse
      */
     public function update(UpdateOrderRequest $request, Order $order): JsonResponse
     {

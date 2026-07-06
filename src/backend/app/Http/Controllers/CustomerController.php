@@ -20,9 +20,6 @@ class CustomerController extends Controller
 {
     /**
      * List customers, optionally filtered by a name/email search term.
-     *
-     * @param  Request  $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -33,7 +30,7 @@ class CustomerController extends Controller
             $search = $request->string('search')->toString();
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -44,9 +41,6 @@ class CustomerController extends Controller
 
     /**
      * Create a new customer (admin action).
-     *
-     * @param  StoreCustomerRequest  $request
-     * @return JsonResponse
      */
     public function store(StoreCustomerRequest $request): JsonResponse
     {
@@ -66,7 +60,6 @@ class CustomerController extends Controller
      * Display the specified customer with full details.
      *
      * @param  int|string  $id
-     * @return JsonResponse
      */
     public function show($id): JsonResponse
     {
@@ -80,9 +73,7 @@ class CustomerController extends Controller
     /**
      * Update the specified customer's information.
      *
-     * @param  UpdateCustomerRequest  $request
-     * @param  int|string             $id
-     * @return JsonResponse
+     * @param  int|string  $id
      */
     public function update(UpdateCustomerRequest $request, $id): JsonResponse
     {

@@ -11,11 +11,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Represents a payment invoice linked to a customer order.
  *
- * @property int         $id
- * @property int         $order_id
- * @property int         $user_id
- * @property float       $amount
- * @property string      $status        pending|paid|failed|cancelled
+ * @property int $id
+ * @property int $order_id
+ * @property int $user_id
+ * @property float $amount
+ * @property string $status pending|paid|failed|cancelled
  * @property string|null $due_date
  * @property string|null $paid_at
  * @property string|null $payment_method
@@ -39,9 +39,9 @@ class Invoice extends Model
 
     /** @var array<string, string> */
     protected $casts = [
-        'amount'  => 'decimal:2',
+        'amount' => 'decimal:2',
         'due_date' => 'date',
-        'paid_at'  => 'datetime',
+        'paid_at' => 'datetime',
     ];
 
     /** @return BelongsTo<Order, $this> */

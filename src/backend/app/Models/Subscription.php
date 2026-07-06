@@ -14,14 +14,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Represents an auto-replenishment subscription for a pet, cycling through an
  * ordered rotation of recipes every `interval_days` days.
  *
- * @property int         $id
- * @property int         $user_id
- * @property int         $pet_id
- * @property int         $interval_days      Days between cycles (multiple of 7, minimum 14)
- * @property string      $status             active|paused|cancelled
- * @property string      $start_date
+ * @property int $id
+ * @property int $user_id
+ * @property int $pet_id
+ * @property int $interval_days Days between cycles (multiple of 7, minimum 14)
+ * @property string $status active|paused|cancelled
+ * @property string $start_date
  * @property string|null $next_delivery_date
- * @property int|null    $orders_count          Appended via withCount()
+ * @property int|null $orders_count Appended via withCount()
  * @property string|null $orders_max_created_at Appended via withMax()
  */
 class Subscription extends Model
@@ -40,9 +40,9 @@ class Subscription extends Model
 
     /** @var array<string, string> */
     protected $casts = [
-        'start_date'         => 'date',
+        'start_date' => 'date',
         'next_delivery_date' => 'date',
-        'interval_days'      => 'integer',
+        'interval_days' => 'integer',
     ];
 
     /** @var array<int, string> */
@@ -82,30 +82,25 @@ class Subscription extends Model
     /**
      * Compute which cycle (0-indexed) the subscription is currently on, based on
      * how many `interval_days` periods have elapsed since the first delivery.
-     *
-     * @return int
      */
     public function currentCycleIndex(): int
     {
-        if (!$this->next_delivery_date || !$this->start_date || $this->interval_days <= 0) {
+        if (! $this->next_delivery_date || ! $this->start_date || $this->interval_days <= 0) {
             return 0;
         }
 
         $firstDelivery = $this->start_date->copy()->addDays($this->interval_days);
-        $elapsedDays   = $firstDelivery->diffInDays($this->next_delivery_date, false);
+        $elapsedDays = $firstDelivery->diffInDays($this->next_delivery_date, false);
 
         return max(0, (int) floor($elapsedDays / $this->interval_days));
     }
 
     /**
      * Resolve the recipe assigned to a given cycle, wrapping around the rotation.
-     *
-     * @param  int  $cycleIndex
-     * @return Recipe|null
      */
     public function recipeForCycle(int $cycleIndex): ?Recipe
     {
-        if (!$this->relationLoaded('recipes') || $this->recipes->isEmpty()) {
+        if (! $this->relationLoaded('recipes') || $this->recipes->isEmpty()) {
             return null;
         }
 
@@ -115,14 +110,12 @@ class Subscription extends Model
     /**
      * Compute the live estimated price of the next scheduled recipe in the rotation.
      * Returns 0 if recipes are not loaded or the rotation is empty.
-     *
-     * @return float
      */
     public function getEstimatedPriceAttribute(): float
     {
         $recipe = $this->recipeForCycle($this->currentCycleIndex());
 
-        if (!$recipe) {
+        if (! $recipe) {
             return 0.0;
         }
 

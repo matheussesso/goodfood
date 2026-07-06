@@ -16,10 +16,6 @@ class RecipePolicy
 {
     /**
      * Grant every ability to admins before other checks run.
-     *
-     * @param  User    $user
-     * @param  string  $ability
-     * @return bool|null
      */
     public function before(User $user, string $ability): ?bool
     {
@@ -28,10 +24,6 @@ class RecipePolicy
 
     /**
      * Determine whether the user can view the recipe.
-     *
-     * @param  User    $user
-     * @param  Recipe  $recipe
-     * @return bool
      */
     public function view(User $user, Recipe $recipe): bool
     {
@@ -49,10 +41,6 @@ class RecipePolicy
     /**
      * Determine whether the user can update the recipe.
      * Customers cannot modify templates, even their own.
-     *
-     * @param  User    $user
-     * @param  Recipe  $recipe
-     * @return bool
      */
     public function update(User $user, Recipe $recipe): bool
     {
@@ -61,10 +49,6 @@ class RecipePolicy
 
     /**
      * Determine whether the user can delete the recipe.
-     *
-     * @param  User    $user
-     * @param  Recipe  $recipe
-     * @return bool
      */
     public function delete(User $user, Recipe $recipe): bool
     {

@@ -27,9 +27,6 @@ class AuthController extends Controller
 {
     /**
      * Register a new customer account and start an authenticated session.
-     *
-     * @param  RegisterRequest  $request
-     * @return JsonResponse
      */
     public function register(RegisterRequest $request): JsonResponse
     {
@@ -54,8 +51,6 @@ class AuthController extends Controller
     /**
      * Authenticate a user and start an authenticated session.
      *
-     * @param  LoginRequest  $request
-     * @return JsonResponse
      * @throws ValidationException When the credentials are invalid.
      */
     public function login(LoginRequest $request): JsonResponse
@@ -82,9 +77,6 @@ class AuthController extends Controller
 
     /**
      * Return the authenticated user.
-     *
-     * @param  Request  $request
-     * @return JsonResponse
      */
     public function me(Request $request): JsonResponse
     {
@@ -93,9 +85,6 @@ class AuthController extends Controller
 
     /**
      * End the authenticated session and invalidate its cookie.
-     *
-     * @param  Request  $request
-     * @return JsonResponse
      */
     public function logout(Request $request): JsonResponse
     {
@@ -110,9 +99,6 @@ class AuthController extends Controller
 
     /**
      * Update the authenticated user's profile information.
-     *
-     * @param  UpdateProfileRequest  $request
-     * @return JsonResponse
      */
     public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
@@ -124,9 +110,6 @@ class AuthController extends Controller
 
     /**
      * Update the authenticated user's password.
-     *
-     * @param  UpdatePasswordRequest  $request
-     * @return JsonResponse
      */
     public function updatePassword(UpdatePasswordRequest $request): JsonResponse
     {
@@ -147,10 +130,6 @@ class AuthController extends Controller
      * Log the user into the session guard and rotate the session id to
      * prevent fixation. No-op when the request carries no session (e.g. a
      * non-stateful API client).
-     *
-     * @param  Request  $request
-     * @param  User     $user
-     * @return void
      */
     private function startSession(Request $request, User $user): void
     {

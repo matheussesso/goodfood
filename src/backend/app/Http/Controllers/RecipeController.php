@@ -21,9 +21,6 @@ class RecipeController extends Controller
     /**
      * List recipes. Admins see all; customers see templates, their own
      * recipes, and recipes linked to their pets.
-     *
-     * @param  Request  $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -36,12 +33,12 @@ class RecipeController extends Controller
         } else {
             $userPetIds = $user->pets()->pluck('id');
             $recipes = $query->where('is_template', true)
-                             ->orWhere('user_id', $user->id)
-                             ->orWhereHas('pets', function ($q) use ($userPetIds) {
-                                 $q->whereIn('pets.id', $userPetIds);
-                             })
-                             ->distinct()
-                             ->get();
+                ->orWhere('user_id', $user->id)
+                ->orWhereHas('pets', function ($q) use ($userPetIds) {
+                    $q->whereIn('pets.id', $userPetIds);
+                })
+                ->distinct()
+                ->get();
         }
 
         return $this->respondSuccess(RecipeResource::collection($recipes), 'Recipes fetched successfully');
@@ -49,9 +46,6 @@ class RecipeController extends Controller
 
     /**
      * Create a recipe, optionally syncing ingredients and linked pets.
-     *
-     * @param  StoreRecipeRequest  $request
-     * @return JsonResponse
      */
     public function store(StoreRecipeRequest $request): JsonResponse
     {
@@ -84,10 +78,6 @@ class RecipeController extends Controller
 
     /**
      * Show a recipe with its ingredients and linked pets.
-     *
-     * @param  Request  $request
-     * @param  Recipe   $recipe
-     * @return JsonResponse
      */
     public function show(Request $request, Recipe $recipe): JsonResponse
     {
@@ -102,10 +92,6 @@ class RecipeController extends Controller
     /**
      * Update a recipe. Ownership/template fields are stripped for customers
      * inside UpdateRecipeRequest::validated().
-     *
-     * @param  UpdateRecipeRequest  $request
-     * @param  Recipe               $recipe
-     * @return JsonResponse
      */
     public function update(UpdateRecipeRequest $request, Recipe $recipe): JsonResponse
     {
@@ -129,10 +115,6 @@ class RecipeController extends Controller
 
     /**
      * Delete a recipe.
-     *
-     * @param  Request  $request
-     * @param  Recipe   $recipe
-     * @return JsonResponse
      */
     public function destroy(Request $request, Recipe $recipe): JsonResponse
     {
@@ -145,10 +127,6 @@ class RecipeController extends Controller
 
     /**
      * Calculate cost dynamically without saving the recipe.
-     *
-     * @param  CalculateRecipeCostRequest   $request
-     * @param  RecipeCostCalculatorService  $calculator
-     * @return JsonResponse
      */
     public function calculateCost(CalculateRecipeCostRequest $request, RecipeCostCalculatorService $calculator): JsonResponse
     {
@@ -166,9 +144,7 @@ class RecipeController extends Controller
     /**
      * Sync the recipe's ingredient pivot rows from a validated payload.
      *
-     * @param  Recipe                $recipe
      * @param  array<string, mixed>  $validated
-     * @return void
      */
     private function syncIngredients(Recipe $recipe, array $validated): void
     {

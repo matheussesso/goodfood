@@ -48,9 +48,9 @@ class OrderItem extends Model
         return $this->belongsTo(Recipe::class);
     }
 
-    /** @return BelongsTo<\App\Models\Pet, $this> */
+    /** @return BelongsTo<Pet, $this> */
     public function pet(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Pet::class);
+        return $this->belongsTo(Pet::class);
     }
 }

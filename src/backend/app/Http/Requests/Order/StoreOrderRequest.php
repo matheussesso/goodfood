@@ -14,8 +14,6 @@ class StoreOrderRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -30,10 +28,10 @@ class StoreOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'items'             => ['required', 'array', 'min:1'],
+            'items' => ['required', 'array', 'min:1'],
             'items.*.recipe_id' => ['required', 'integer', 'exists:recipes,id'],
-            'items.*.pet_id'    => ['nullable', 'integer', 'exists:pets,id'],
-            'delivery_address'  => ['nullable', 'string', 'max:1000'],
+            'items.*.pet_id' => ['nullable', 'integer', 'exists:pets,id'],
+            'delivery_address' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

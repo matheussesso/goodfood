@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Class Pet
@@ -19,9 +20,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $age
  * @property string|null $birth_date
  * @property string|null $restrictions
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property-read \App\Models\User $user
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read User $user
  */
 class Pet extends Model
 {
@@ -59,8 +60,6 @@ class Pet extends Model
 
     /**
      * Get the user that owns the pet.
-     *
-     * @return BelongsTo
      */
     public function user(): BelongsTo
     {

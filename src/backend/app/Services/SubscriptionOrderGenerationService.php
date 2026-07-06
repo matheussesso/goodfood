@@ -43,13 +43,12 @@ class SubscriptionOrderGenerationService
      * Create a replenishment order for a single subscription using the recipe
      * currently due in its rotation, then advance its next_delivery_date.
      *
-     * @param  Subscription  $subscription
-     * @return Order|null    Null if the subscription has no recipes in its rotation.
+     * @return Order|null Null if the subscription has no recipes in its rotation.
      */
     public function generateForSubscription(Subscription $subscription): ?Order
     {
         $recipe = $subscription->recipeForCycle($subscription->currentCycleIndex());
-        if (!$recipe) {
+        if (! $recipe) {
             return null;
         }
 

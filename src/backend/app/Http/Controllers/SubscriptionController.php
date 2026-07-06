@@ -19,9 +19,6 @@ class SubscriptionController extends Controller
 {
     /**
      * List subscriptions: admins see all, customers see only their own.
-     *
-     * @param  Request  $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -47,9 +44,6 @@ class SubscriptionController extends Controller
     /**
      * Create a subscription for the authenticated user's pet, cycling
      * through the given recipes in order.
-     *
-     * @param  StoreSubscriptionRequest  $request
-     * @return JsonResponse
      */
     public function store(StoreSubscriptionRequest $request): JsonResponse
     {
@@ -81,10 +75,6 @@ class SubscriptionController extends Controller
 
     /**
      * Show a subscription with its pet, recipes and orders.
-     *
-     * @param  Request       $request
-     * @param  Subscription  $subscription
-     * @return JsonResponse
      */
     public function show(Request $request, Subscription $subscription): JsonResponse
     {
@@ -99,10 +89,6 @@ class SubscriptionController extends Controller
     /**
      * Update a subscription: status, recipe rotation, or cycle interval
      * (the latter two recompute `next_delivery_date`).
-     *
-     * @param  UpdateSubscriptionRequest  $request
-     * @param  Subscription               $subscription
-     * @return JsonResponse
      */
     public function update(UpdateSubscriptionRequest $request, Subscription $subscription): JsonResponse
     {
@@ -132,10 +118,6 @@ class SubscriptionController extends Controller
 
     /**
      * Cancel the specified subscription. Preserves history (no hard delete).
-     *
-     * @param  Request       $request
-     * @param  Subscription  $subscription
-     * @return JsonResponse
      */
     public function destroy(Request $request, Subscription $subscription): JsonResponse
     {
@@ -152,9 +134,7 @@ class SubscriptionController extends Controller
     /**
      * Replace the subscription's recipe rotation with the given ordered recipe ids.
      *
-     * @param  Subscription     $subscription
      * @param  array<int, int>  $recipeIds
-     * @return void
      */
     private function syncRecipeRotation(Subscription $subscription, array $recipeIds): void
     {

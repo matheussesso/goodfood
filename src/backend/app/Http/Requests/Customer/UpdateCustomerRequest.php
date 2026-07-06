@@ -15,8 +15,6 @@ class UpdateCustomerRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -31,16 +29,16 @@ class UpdateCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'         => ['sometimes', 'required', 'string', 'max:255'],
-            'email'        => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->route('id'))],
-            'phone'        => ['nullable', 'string', 'max:30'],
-            'street'       => ['nullable', 'string', 'max:255'],
-            'number'       => ['nullable', 'string', 'max:20'],
-            'complement'   => ['nullable', 'string', 'max:100'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->route('id'))],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'street' => ['nullable', 'string', 'max:255'],
+            'number' => ['nullable', 'string', 'max:20'],
+            'complement' => ['nullable', 'string', 'max:100'],
             'neighborhood' => ['nullable', 'string', 'max:100'],
-            'city'         => ['nullable', 'string', 'max:100'],
-            'state'        => ['nullable', 'string', 'max:2'],
-            'zipcode'      => ['nullable', 'string', 'max:10'],
+            'city' => ['nullable', 'string', 'max:100'],
+            'state' => ['nullable', 'string', 'max:2'],
+            'zipcode' => ['nullable', 'string', 'max:10'],
         ];
     }
 }

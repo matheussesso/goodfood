@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\RecipeCostCalculatorService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -97,7 +98,7 @@ class Recipe extends Model
             return ['estimatedCost' => 0.0, 'ingredientCost' => 0.0, 'costPerKg' => 0.0, 'costBreakdown' => []];
         }
 
-        $costCalculator = app(\App\Services\RecipeCostCalculatorService::class);
+        $costCalculator = app(RecipeCostCalculatorService::class);
 
         $selectedIngredients = $this->ingredients->map(fn ($ingredient) => [
             'ingredient_id' => $ingredient->id,

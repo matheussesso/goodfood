@@ -31,7 +31,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, \Laravel\Sanctum\HasApiTokens;
+    use HasFactory, \Laravel\Sanctum\HasApiTokens, Notifiable;
 
     /**
      * Get the attributes that should be cast.
@@ -46,11 +46,9 @@ class User extends Authenticatable
             'whatsapp_notifications' => 'boolean',
         ];
     }
-    
+
     /**
      * Check if user is admin
-     *
-     * @return bool
      */
     public function isAdmin(): bool
     {
@@ -59,8 +57,6 @@ class User extends Authenticatable
 
     /**
      * Check if user is customer
-     *
-     * @return bool
      */
     public function isCustomer(): bool
     {

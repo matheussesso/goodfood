@@ -8,7 +8,6 @@ use App\Models\Recipe;
 use App\Models\Subscription;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class OrderSeeder extends Seeder
@@ -19,14 +18,16 @@ class OrderSeeder extends Seeder
     public function run(): void
     {
         $customer = User::where('email', 'cliente@goodfood.com')->first();
-        if (!$customer) return;
+        if (! $customer) {
+            return;
+        }
 
         $pet1 = Pet::where('name', 'Rex')->where('user_id', $customer->id)->first();
         $pet2 = Pet::where('name', 'Luna')->where('user_id', $customer->id)->first();
-        
+
         $recipeFrango = Recipe::where('name', 'Mix Frango e Legumes')->first();
         $recipeCarne = Recipe::where('name', 'Mix Carne Premium')->first();
-        
+
         $subscription = Subscription::where('pet_id', $pet1?->id)->first();
 
         if ($pet2 && $recipeFrango) {
@@ -41,7 +42,7 @@ class OrderSeeder extends Seeder
                 'delivery_date' => Carbon::now()->addDays(1)->toDateString(),
             ]);
         }
-        
+
         if ($pet1 && $recipeCarne && $subscription) {
             Order::firstOrCreate([
                 'user_id' => $customer->id,

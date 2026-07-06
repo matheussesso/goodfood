@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\TestCase;
 
 uses(RefreshDatabase::class);
 
@@ -11,7 +12,7 @@ uses(RefreshDatabase::class);
  * Send requests as the SPA frontend so Sanctum's stateful middleware
  * attaches the session (cookie-based auth), mirroring production traffic.
  */
-function fromSpa(): Illuminate\Foundation\Testing\TestCase
+function fromSpa(): TestCase
 {
     return test()->withHeader('Referer', 'http://localhost:3000');
 }

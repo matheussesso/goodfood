@@ -16,8 +16,6 @@ class UpdateOrderRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -36,7 +34,7 @@ class UpdateOrderRequest extends FormRequest
     {
         $rules = [
             'delivery_address' => ['sometimes', 'nullable', 'string', 'max:500'],
-            'delivery_date'    => ['sometimes', 'nullable', 'date'],
+            'delivery_date' => ['sometimes', 'nullable', 'date'],
         ];
 
         if ($this->user()->isAdmin()) {

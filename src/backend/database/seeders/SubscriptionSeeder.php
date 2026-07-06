@@ -7,7 +7,6 @@ use App\Models\Recipe;
 use App\Models\Subscription;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class SubscriptionSeeder extends Seeder
@@ -18,13 +17,15 @@ class SubscriptionSeeder extends Seeder
     public function run(): void
     {
         $customer = User::where('email', 'cliente@goodfood.com')->first();
-        if (!$customer) return;
+        if (! $customer) {
+            return;
+        }
 
         $pet1 = Pet::where('name', 'Rex')->where('user_id', $customer->id)->first();
         $recipeCarne = Recipe::where('name', 'Mix Carne Premium')->first();
         $recipeFrango = Recipe::where('name', '!=', 'Mix Carne Premium')->first();
 
-        if (!$pet1 || !$recipeCarne) {
+        if (! $pet1 || ! $recipeCarne) {
             return;
         }
 

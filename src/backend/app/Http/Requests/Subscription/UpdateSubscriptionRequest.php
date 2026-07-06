@@ -15,8 +15,6 @@ class UpdateSubscriptionRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -34,9 +32,9 @@ class UpdateSubscriptionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status'        => ['sometimes', 'required', 'in:active,paused,cancelled'],
-            'recipe_ids'    => ['sometimes', 'required', 'array', 'min:1'],
-            'recipe_ids.*'  => ['required_with:recipe_ids', 'integer', 'exists:recipes,id'],
+            'status' => ['sometimes', 'required', 'in:active,paused,cancelled'],
+            'recipe_ids' => ['sometimes', 'required', 'array', 'min:1'],
+            'recipe_ids.*' => ['required_with:recipe_ids', 'integer', 'exists:recipes,id'],
             'interval_days' => ['sometimes', 'required', 'integer', 'min:14', 'multiple_of:7'],
         ];
     }

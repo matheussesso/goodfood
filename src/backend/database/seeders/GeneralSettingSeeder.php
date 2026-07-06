@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\GeneralSetting;
 use Illuminate\Database\Seeder;
 
 class GeneralSettingSeeder extends Seeder
@@ -12,7 +12,7 @@ class GeneralSettingSeeder extends Seeder
      */
     public function run(): void
     {
-        \App\Models\GeneralSetting::updateOrCreate(
+        GeneralSetting::updateOrCreate(
             ['id' => 1],
             [
                 'ingredient_cost_days_division' => 2,

@@ -15,10 +15,6 @@ class OrderPolicy
 {
     /**
      * Grant every ability to admins before other checks run.
-     *
-     * @param  User    $user
-     * @param  string  $ability
-     * @return bool|null
      */
     public function before(User $user, string $ability): ?bool
     {
@@ -27,10 +23,6 @@ class OrderPolicy
 
     /**
      * Determine whether the user can view the order.
-     *
-     * @param  User   $user
-     * @param  Order  $order
-     * @return bool
      */
     public function view(User $user, Order $order): bool
     {
@@ -39,10 +31,6 @@ class OrderPolicy
 
     /**
      * Determine whether the user can update the order.
-     *
-     * @param  User   $user
-     * @param  Order  $order
-     * @return bool
      */
     public function update(User $user, Order $order): bool
     {

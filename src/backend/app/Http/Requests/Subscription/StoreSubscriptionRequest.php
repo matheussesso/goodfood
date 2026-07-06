@@ -14,8 +14,6 @@ class StoreSubscriptionRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -30,10 +28,10 @@ class StoreSubscriptionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'pet_id'        => ['required', 'exists:pets,id'],
-            'recipe_ids'    => ['required', 'array', 'min:1'],
-            'recipe_ids.*'  => ['required', 'integer', 'exists:recipes,id'],
-            'start_date'    => ['required', 'date', 'after_or_equal:today'],
+            'pet_id' => ['required', 'exists:pets,id'],
+            'recipe_ids' => ['required', 'array', 'min:1'],
+            'recipe_ids.*' => ['required', 'integer', 'exists:recipes,id'],
+            'start_date' => ['required', 'date', 'after_or_equal:today'],
             'interval_days' => ['required', 'integer', 'min:14', 'multiple_of:7'],
         ];
     }

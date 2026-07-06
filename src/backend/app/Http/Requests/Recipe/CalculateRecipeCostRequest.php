@@ -13,8 +13,6 @@ class CalculateRecipeCostRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -29,12 +27,12 @@ class CalculateRecipeCostRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ingredients'                 => ['required', 'array'],
+            'ingredients' => ['required', 'array'],
             'ingredients.*.ingredient_id' => ['required', 'exists:ingredients,id'],
-            'ingredients.*.quantity'      => ['required', 'numeric', 'min:0'],
-            'ingredients.*.unit'          => ['nullable', 'string'],
-            'duration_days'               => ['nullable', 'integer', 'min:1'],
-            'daily_portions'              => ['nullable', 'integer', 'min:1'],
+            'ingredients.*.quantity' => ['required', 'numeric', 'min:0'],
+            'ingredients.*.unit' => ['nullable', 'string'],
+            'duration_days' => ['nullable', 'integer', 'min:1'],
+            'daily_portions' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

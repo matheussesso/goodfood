@@ -17,8 +17,6 @@ class GeneralSettingController extends Controller
 {
     /**
      * Return the settings singleton.
-     *
-     * @return JsonResponse
      */
     public function index(): JsonResponse
     {
@@ -27,9 +25,6 @@ class GeneralSettingController extends Controller
 
     /**
      * Update the settings singleton.
-     *
-     * @param  UpdateGeneralSettingRequest  $request
-     * @return JsonResponse
      */
     public function update(UpdateGeneralSettingRequest $request): JsonResponse
     {

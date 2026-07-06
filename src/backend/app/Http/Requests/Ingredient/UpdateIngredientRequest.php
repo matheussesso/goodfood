@@ -14,8 +14,6 @@ class UpdateIngredientRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
@@ -33,14 +31,14 @@ class UpdateIngredientRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'                  => ['sometimes', 'required', 'string', 'max:255'],
-            'category'              => ['nullable', 'string', 'max:255'],
-            'description'           => ['nullable', 'string'],
-            'unit'                  => ['sometimes', 'required', 'string'],
-            'cost_per_unit'         => ['sometimes', 'required', 'numeric', 'min:0'],
-            'loss_rate'             => ['nullable', 'numeric', 'min:0'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'unit' => ['sometimes', 'required', 'string'],
+            'cost_per_unit' => ['sometimes', 'required', 'numeric', 'min:0'],
+            'loss_rate' => ['nullable', 'numeric', 'min:0'],
             'difficulty_multiplier' => ['nullable', 'numeric', 'min:0'],
-            'is_active'             => ['boolean'],
+            'is_active' => ['boolean'],
         ];
     }
 }
