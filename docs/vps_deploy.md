@@ -185,6 +185,13 @@ DB_PASSWORD=troque-por-uma-senha-forte   # mesmo valor do .env acima
 # são domínios diferentes) e o Sanctum não emite cookie de sessão stateful.
 SANCTUM_STATEFUL_DOMAINS=app.seudominio.com
 CORS_ALLOWED_ORIGINS=https://app.seudominio.com
+
+# Obrigatório também: sem o domínio com ponto na frente, o cookie de
+# sessão/CSRF fica host-only só pra api.seudominio.com — o JS do frontend
+# em app.seudominio.com não consegue lê-lo via document.cookie pra montar
+# o header X-XSRF-TOKEN, e o login falha com "CSRF token mismatch" mesmo
+# com CORS correto.
+SESSION_DOMAIN=.seudominio.com
 ```
 
 Gere a `APP_KEY` (uma vez; a imagem ainda não existe localmente, então
