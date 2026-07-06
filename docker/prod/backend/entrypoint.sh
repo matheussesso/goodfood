@@ -1,16 +1,16 @@
 #!/bin/sh
 set -e
 
-# Config caches são gerados aqui (no start do container), nunca no build,
-# porque dependem de variáveis de ambiente injetadas em runtime (env_file
-# do docker-compose de produção).
+# Config caches are generated here (at container startup), never at build time,
+# because they depend on environment variables injected at runtime (env_file
+# from production docker-compose).
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# Roda migrations só a partir do serviço principal (frankenphp), para o
-# scheduler (mesma imagem, command diferente) não disputar a migration
-# com o backend na subida simultânea dos containers.
+# Run migrations only from the main service (frankenphp), so the
+# scheduler (same image, different command) does not race migrations
+# with the backend during simultaneous container startup.
 if [ "$1" = "frankenphp" ]; then
     php artisan migrate --force
 fi

@@ -2,14 +2,14 @@
 	frankenphp
 	order php_server before file_server
 
-	# Cloudflare está em modo "Full (strict)" na frente (edge já serve
-	# HTTPS ao visitante) — a origem usa um certificado Cloudflare Origin
-	# CA (não pública), então desligamos o ACME automático do Caddy e
-	# fornecemos o cert manualmente via diretiva `tls` em cada site.
+	# Cloudflare runs in "Full (strict)" mode in front (edge already serves
+	# HTTPS to visitors). The origin uses a Cloudflare Origin CA certificate
+	# (not publicly trusted), so we disable Caddy automatic ACME and
+	# provide the certificate manually via the tls directive on each site.
 	auto_https disable_certs
 }
 
-# API Laravel.
+# Laravel API.
 {$API_DOMAIN:localhost} {
 	tls /etc/caddy/certs/cloudflare-origin.pem /etc/caddy/certs/cloudflare-origin.key
 
@@ -22,9 +22,9 @@
 	file_server
 }
 
-# Frontend Next.js — este container atua como ingress único do VPS,
-# fazendo reverse proxy para o serviço "frontend" na rede interna do
-# Compose (evita expor uma segunda porta/TLS para o Next.js).
+# Next.js frontend. This container acts as the single VPS ingress,
+# reverse proxying to the "frontend" service on the internal Compose
+# network (avoids exposing a second port/TLS endpoint for Next.js).
 {$APP_DOMAIN:app.localhost} {
 	tls /etc/caddy/certs/cloudflare-origin.pem /etc/caddy/certs/cloudflare-origin.key
 

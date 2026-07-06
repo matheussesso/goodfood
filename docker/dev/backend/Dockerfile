@@ -1,6 +1,6 @@
 FROM dunglas/frankenphp:1-php8.4
 
-# Instalar dependências de sistema
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Instalar extensões PHP usando script do FrankenPHP
+# Install PHP extensions using FrankenPHP helper script
 RUN install-php-extensions \
     pdo_pgsql \
     mbstring \
@@ -22,14 +22,14 @@ RUN install-php-extensions \
     gd \
     zip
 
-# Obter o Composer mais recente
+# Get the latest Composer binary
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Definir o diretório de trabalho
+# Set the working directory
 WORKDIR /app
 
-# Copiar a configuração do Caddy
+# Copy Caddy configuration
 COPY docker/dev/backend/Caddyfile /etc/caddy/Caddyfile
 
-# Ajustar permissões para o usuário da aplicação (opcional para dev)
+# Adjust permissions for the app user (optional for dev)
 RUN chown -R www-data:www-data /app

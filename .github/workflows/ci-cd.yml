@@ -1,11 +1,13 @@
 name: CI/CD
 
+# Run validations on PRs and branch pushes; deploy only from main pushes.
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
 
+# Prevent overlapping runs for the same ref to save CI minutes.
 concurrency:
   group: ci-cd-${{ github.ref }}
   cancel-in-progress: true
@@ -18,6 +20,7 @@ env:
   NODE_VERSION: "24"
 
 jobs:
+  # Resolve reusable metadata shared by downstream jobs.
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
@@ -29,6 +32,7 @@ jobs:
       - id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
+  # Static quality gates: linting and type checks for backend/frontend.
   quality:
     name: Quality
     needs: prepare
@@ -77,6 +81,7 @@ jobs:
         working-directory: src/frontend
         run: npx tsc --noEmit
 
+  # Run automated tests against an ephemeral PostgreSQL service.
   test:
     name: Test
     needs: quality
@@ -148,6 +153,7 @@ jobs:
         working-directory: src/frontend
         run: npm run test
 
+  # Build and publish production images after tests pass on main.
   build:
     name: Build
     needs: [prepare, test]
@@ -195,6 +201,7 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
 
+  # Deploy the freshly built image tag to VPS via SSH.
   deploy:
     name: Deploy
     needs: [prepare, build]
@@ -211,10 +218,15 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             set -e
+            # Sync server working tree with the latest main commit.
             cd "${{ secrets.VPS_PROJECT_PATH }}"
             git fetch origin main
             git reset --hard origin/main
+
+            # Pull and start services using the image tag from this pipeline run.
             export IMAGE_TAG="${{ needs.prepare.outputs.sha_short }}"
             docker compose pull
             docker compose up -d --remove-orphans
+
+            # Remove dangling images to free up disk space on VPS.
             docker image prune -f

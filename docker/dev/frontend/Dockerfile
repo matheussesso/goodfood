@@ -1,7 +1,7 @@
 FROM node:24-slim
 
-# Definir diretório de trabalho
+# Set working directory
 WORKDIR /app
 
-# O código e pacotes serão mapeados via volume no docker-compose
+# Code and packages will be mounted via volume in docker-compose
 CMD ["npm", "run", "dev"]

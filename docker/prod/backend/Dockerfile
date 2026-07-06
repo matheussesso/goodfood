@@ -27,9 +27,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-# Instala dependências PHP antes de copiar o restante do código para
-# aproveitar o cache de camadas do Docker entre builds. Contexto de build
-# é a raiz do repositório (ver docker-compose.yml e ci-cd.yml).
+# Install PHP dependencies before copying the remaining code to
+# take advantage of Docker layer caching across builds. Build context
+# is the repository root (see docker-compose.yml and ci-cd.yml).
 COPY src/backend/composer.json src/backend/composer.lock ./
 RUN composer install \
     --no-dev \
