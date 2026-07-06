@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-slim AS deps
+FROM node:24-slim AS deps
 WORKDIR /app
 COPY src/frontend/package.json src/frontend/package-lock.json ./
 RUN npm ci
 
-FROM node:20-slim AS builder
+FROM node:24-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY src/frontend/. .
@@ -18,7 +18,7 @@ ENV NODE_ENV=production
 
 RUN npm run build
 
-FROM node:20-slim AS runner
+FROM node:24-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000

@@ -15,7 +15,7 @@ env:
   BACKEND_IMAGE: ${{ github.repository_owner }}/goodfood-backend
   FRONTEND_IMAGE: ${{ github.repository_owner }}/goodfood-frontend
   PHP_VERSION: "8.4"
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
 
 jobs:
   prepare:
@@ -150,7 +150,7 @@ jobs:
 
   build:
     name: Build
-    needs: test
+    needs: [prepare, test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
