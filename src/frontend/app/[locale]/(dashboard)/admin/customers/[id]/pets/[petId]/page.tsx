@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
-import { Link as RouterLink } from "@/i18n/routing";
+import { getApiErrorMessage } from "@/lib/api-error";
 
 /** Generates a deterministic HSL color from a string. */
 function nameToHsl(str: string): string {
@@ -104,8 +104,8 @@ export default function AdminPetProfilePage() {
       });
       queryClient.invalidateQueries({ queryKey: ["pet", petId] });
       setIsEditOpen(false);
-    } catch (err: any) {
-      setEditError(err?.response?.data?.message || "Erro ao salvar pet.");
+    } catch (err) {
+      setEditError(getApiErrorMessage(err, "Erro ao salvar pet."));
     }
   }
 
@@ -417,7 +417,7 @@ export default function AdminPetProfilePage() {
                       <div className="flex-1 py-2.5 flex flex-col items-center gap-0.5">
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Custo Est.</span>
                         <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
-                          R$ {Number((recipe as any).base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          R$ {Number(recipe.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>

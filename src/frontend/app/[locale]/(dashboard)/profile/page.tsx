@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { BRAZIL_STATES } from "@/lib/brazil-states";
 import { fetchAddressByCep } from "@/lib/viacep";
+import { getApiErrorMessage } from "@/lib/api-error";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,8 +99,8 @@ export default function ProfilePage() {
   const [prefFeedback, setPrefFeedback] = useState<FeedbackState>(null);
   const [isSavingPref, setIsSavingPref] = useState(false);
 
-  const memberSince = user
-    ? new Date(user.created_at ?? Date.now()).toLocaleDateString("pt-BR", {
+  const memberSince = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString("pt-BR", {
         month: "long",
         year: "numeric",
       })
@@ -128,11 +129,14 @@ export default function ProfilePage() {
     [t]
   );
 
-  useEffect(() => {
-    const digits = addrZipcode.replace(/\D/g, "");
+  /** Formats the zipcode, clears its error, and triggers a CEP lookup once 8 digits are entered. */
+  function handleZipcodeChange(raw: string) {
+    setAddrZipcode(formatCep(raw));
+    clearAddrError("zipcode");
+    const digits = raw.replace(/\D/g, "");
     if (digits.length === 8) fetchCep(digits);
     else setCepError("");
-  }, [addrZipcode, fetchCep]);
+  }
 
   // ── Validation ────────────────────────────────────────────────────────────
 
@@ -167,15 +171,27 @@ export default function ProfilePage() {
   }
 
   function clearProfileError(field: string) {
-    if (profileErrors[field]) setProfileErrors((e) => { const { [field]: _, ...rest } = e; return rest; });
+    if (profileErrors[field]) setProfileErrors((e) => {
+      const rest = { ...e };
+      delete rest[field];
+      return rest;
+    });
   }
 
   function clearAddrError(field: string) {
-    if (addrErrors[field]) setAddrErrors((e) => { const { [field]: _, ...rest } = e; return rest; });
+    if (addrErrors[field]) setAddrErrors((e) => {
+      const rest = { ...e };
+      delete rest[field];
+      return rest;
+    });
   }
 
   function clearPasswordError(field: string) {
-    if (passwordErrors[field]) setPasswordErrors((e) => { const { [field]: _, ...rest } = e; return rest; });
+    if (passwordErrors[field]) setPasswordErrors((e) => {
+      const rest = { ...e };
+      delete rest[field];
+      return rest;
+    });
   }
 
   // ── Submit handlers ───────────────────────────────────────────────────────
@@ -189,8 +205,8 @@ export default function ProfilePage() {
     try {
       await updateProfile(profileForm);
       setProfileFeedback({ type: "success", message: t("profile_updated") });
-    } catch (err: any) {
-      setProfileFeedback({ type: "error", message: err?.response?.data?.message || t("profile_error") });
+    } catch (err) {
+      setProfileFeedback({ type: "error", message: getApiErrorMessage(err, t("profile_error")) });
     } finally {
       setTimeout(() => setProfileFeedback(null), 4000);
     }
@@ -215,8 +231,8 @@ export default function ProfilePage() {
         zipcode:      addrZipcode.replace(/\D/g, ""),
       });
       setAddrFeedback({ type: "success", message: t("address_updated") });
-    } catch (err: any) {
-      setAddrFeedback({ type: "error", message: err?.response?.data?.message || t("profile_error") });
+    } catch (err) {
+      setAddrFeedback({ type: "error", message: getApiErrorMessage(err, t("profile_error")) });
     } finally {
       setTimeout(() => setAddrFeedback(null), 4000);
     }
@@ -232,8 +248,8 @@ export default function ProfilePage() {
       await updatePassword(passwordForm);
       setPasswordFeedback({ type: "success", message: t("password_updated") });
       setPasswordForm({ current_password: "", password: "", password_confirmation: "" });
-    } catch (err: any) {
-      setPasswordFeedback({ type: "error", message: err?.response?.data?.message || t("password_error") });
+    } catch (err) {
+      setPasswordFeedback({ type: "error", message: getApiErrorMessage(err, t("password_error")) });
     } finally {
       setTimeout(() => setPasswordFeedback(null), 4000);
     }
@@ -246,8 +262,8 @@ export default function ProfilePage() {
     try {
       await updateProfile({ ...profileForm, whatsapp_notifications: whatsapp });
       setPrefFeedback({ type: "success", message: t("preferences_updated") });
-    } catch (err: any) {
-      setPrefFeedback({ type: "error", message: err?.response?.data?.message || t("profile_error") });
+    } catch (err) {
+      setPrefFeedback({ type: "error", message: getApiErrorMessage(err, t("profile_error")) });
     } finally {
       setIsSavingPref(false);
       setTimeout(() => setPrefFeedback(null), 4000);
@@ -404,7 +420,7 @@ export default function ProfilePage() {
                         placeholder="00000-000"
                         inputMode="numeric"
                         value={addrZipcode}
-                        onChange={(e) => { setAddrZipcode(formatCep(e.target.value)); clearAddrError("zipcode"); }}
+                        onChange={(e) => handleZipcodeChange(e.target.value)}
                         className={cn("pr-9", (addrErrors.zipcode || cepError) && "border-destructive focus-visible:ring-destructive")}
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">

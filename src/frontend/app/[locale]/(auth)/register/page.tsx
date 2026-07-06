@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,7 @@ import { Link, useRouter } from "@/i18n/routing";
 import { BRAZIL_STATES } from "@/lib/brazil-states";
 import { fetchAddressByCep } from "@/lib/viacep";
 import { cn } from "@/lib/utils";
+import { getApiErrorMessage } from "@/lib/api-error";
 
 type FormErrors = Partial<Record<string, string>>;
 
@@ -93,11 +94,14 @@ export default function RegisterPage() {
     }
   }, [tP]);
 
-  useEffect(() => {
-    const digits = addrZipcode.replace(/\D/g, "");
+  /** Formats the zipcode, clears its error, and triggers a CEP lookup once 8 digits are entered. */
+  function handleZipcodeChange(raw: string) {
+    setAddrZipcode(formatCep(raw));
+    clearError("zipcode");
+    const digits = raw.replace(/\D/g, "");
     if (digits.length === 8) fetchCep(digits);
     else setCepError("");
-  }, [addrZipcode, fetchCep]);
+  }
 
   function validate(): FormErrors {
     const errs: FormErrors = {};
@@ -119,7 +123,11 @@ export default function RegisterPage() {
   }
 
   function clearError(field: string) {
-    if (errors[field]) setErrors((e) => { const { [field]: _, ...rest } = e; return rest; });
+    if (errors[field]) setErrors((e) => {
+      const rest = { ...e };
+      delete rest[field];
+      return rest;
+    });
   }
 
   const registerMutation = useMutation({
@@ -143,8 +151,8 @@ export default function RegisterPage() {
         router.push("/dashboard");
       }
     },
-    onError: (error: any) => {
-      setErrorMsg(error.response?.data?.message || t("register_error"));
+    onError: (error: unknown) => {
+      setErrorMsg(getApiErrorMessage(error, t("register_error")));
     },
   });
 
@@ -258,7 +266,7 @@ export default function RegisterPage() {
                 <Input
                   id="reg-zipcode"
                   value={addrZipcode}
-                  onChange={(e) => { setAddrZipcode(formatCep(e.target.value)); clearError("zipcode"); }}
+                  onChange={(e) => handleZipcodeChange(e.target.value)}
                   placeholder="00000-000"
                   inputMode="numeric"
                   maxLength={9}

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { useParams } from "next/navigation";
@@ -213,7 +212,7 @@ export default function OrderDetailPage() {
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 {t("order_number")}{order.id}
               </h1>
-              <StatusBadge status={order.status} label={t(`status_${order.status}` as any)} />
+              <StatusBadge status={order.status} label={t(`status_${order.status}` as `status_${OrderStatus}`)} />
             </div>
             <p className="text-muted-foreground mt-0.5 text-sm flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5" />
@@ -260,7 +259,7 @@ export default function OrderDetailPage() {
           {
             icon: ShoppingBag,
             label: tCommon("status"),
-            value: t(`status_${order.status}` as any),
+            value: t(`status_${order.status}` as `status_${OrderStatus}`),
             color: "text-blue-600 bg-blue-500/10",
           },
         ].map(({ icon: Icon, label, value, color }) => (
@@ -342,7 +341,7 @@ export default function OrderDetailPage() {
                               : "text-muted-foreground/40"
                           )}
                         >
-                          {t(`status_${s}` as any)}
+                          {t(`status_${s}` as `status_${OrderStatus}`)}
                         </p>
                       </div>
                     );
@@ -404,7 +403,7 @@ export default function OrderDetailPage() {
               </div>
               <div className="flex justify-between items-center px-5 py-3">
                 <span className="text-muted-foreground">{tCommon("status")}</span>
-                <StatusBadge status={order.status} label={t(`status_${order.status}` as any)} />
+                <StatusBadge status={order.status} label={t(`status_${order.status}` as `status_${OrderStatus}`)} />
               </div>
               <div className="flex justify-between items-center px-5 py-3">
                 <span className="text-muted-foreground">{t("recipe")}</span>

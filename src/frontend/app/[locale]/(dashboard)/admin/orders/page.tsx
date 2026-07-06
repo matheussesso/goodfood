@@ -19,8 +19,6 @@ import {
   Users,
   ChevronDown,
   Filter,
-  LayoutGrid,
-  List as ListIcon,
   FilterX,
   MapPin,
   Clock,
@@ -30,6 +28,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
 
 const STATUS_VALUES = [
   "pending",
@@ -204,7 +203,7 @@ function AdminOrderCard({
               </p>
             </div>
           </div>
-          <StatusBadge status={order.status} label={t(`status_${order.status}` as any)} />
+          <StatusBadge status={order.status} label={t(`status_${order.status}` as `status_${OrderStatus}`)} />
         </div>
 
         {/* Customer info */}
@@ -298,7 +297,7 @@ function AdminOrderRow({
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-sm text-foreground">{t("order_number")}{order.id}</span>
-            <StatusBadge status={order.status} label={t(`status_${order.status}` as any)} />
+            <StatusBadge status={order.status} label={t(`status_${order.status}` as `status_${OrderStatus}`)} />
           </div>
           {order.user && (
             <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
@@ -364,7 +363,7 @@ export default function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState("");
 
-  const statusLabel = (s: string) => t(`status_${s}` as any);
+  const statusLabel = (s: string) => t(`status_${s}` as `status_${OrderStatus}`);
 
   const filtered = useMemo<Order[]>(() => {
     if (!orders) return [];
@@ -403,33 +402,7 @@ export default function AdminOrdersPage() {
   }
 
   const isFiltering = search !== "" || filterStatus !== "all";
-
-  const ViewToggle = ({ mobile }: { mobile?: boolean }) => (
-    <div className={cn("flex border rounded-md h-10 shrink-0", mobile ? "w-full sm:hidden" : "hidden sm:flex")}>
-      <button
-        onClick={() => setViewMode("card")}
-        className={cn(
-          "flex items-center justify-center gap-2 px-3 transition-colors rounded-l-md",
-          mobile && "flex-1",
-          viewMode === "card" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"
-        )}
-      >
-        <LayoutGrid className="w-4 h-4" />
-        {mobile && <span className="text-sm">{tCommon("grid")}</span>}
-      </button>
-      <button
-        onClick={() => setViewMode("list")}
-        className={cn(
-          "flex items-center justify-center gap-2 px-3 transition-colors rounded-r-md",
-          mobile && "flex-1",
-          viewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"
-        )}
-      >
-        <ListIcon className="w-4 h-4" />
-        {mobile && <span className="text-sm">{tCommon("list")}</span>}
-      </button>
-    </div>
-  );
+  const viewToggleLabels = { grid: tCommon("grid"), list: tCommon("list") };
 
   return (
     <div className="space-y-6">
@@ -493,10 +466,10 @@ export default function AdminOrdersPage() {
               ))}
             </select>
           </div>
-          <ViewToggle />
+          <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} labels={viewToggleLabels} />
         </div>
       </div>
-      <ViewToggle mobile />
+      <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} labels={viewToggleLabels} mobile />
 
       {/* ── Content ─────────────────────────────────────────────────── */}
       {isLoading ? (

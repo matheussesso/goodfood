@@ -25,6 +25,7 @@ import { Modal } from "@/components/ui/modal";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { BRAZIL_STATES } from "@/lib/brazil-states";
 import { fetchAddressByCep } from "@/lib/viacep";
+import { getApiErrorMessage } from "@/lib/api-error";
 import {
   Select,
   SelectContent,
@@ -161,10 +162,13 @@ export default function CustomersPage() {
     }
   }, [t]);
 
-  useEffect(() => {
-    const digits = addr.zipcode.replace(/\D/g, "");
+  /** Formats the zipcode, clears its error, and triggers a CEP lookup once 8 digits are entered. */
+  function handleZipcodeChange(raw: string) {
+    setAddr((a) => ({ ...a, zipcode: formatCep(raw) }));
+    clearCreateError("zipcode");
+    const digits = raw.replace(/\D/g, "");
     if (digits.length === 8) fetchCep(digits);
-  }, [addr.zipcode, fetchCep]);
+  }
 
   function validateCreate(): FormErrors {
     const errs: FormErrors = {};
@@ -187,7 +191,11 @@ export default function CustomersPage() {
 
   function clearCreateError(field: string) {
     if (createErrors[field])
-      setCreateErrors((e) => { const { [field]: _, ...rest } = e; return rest; });
+      setCreateErrors((e) => {
+        const rest = { ...e };
+        delete rest[field];
+        return rest;
+      });
   }
 
   function openCreate() {
@@ -224,8 +232,8 @@ export default function CustomersPage() {
       });
       setCreateOk(t("customer_created"));
       setTimeout(() => setCreateOpen(false), 1200);
-    } catch (err: any) {
-      setCreateError(err.response?.data?.message || "Erro ao criar cliente.");
+    } catch (err) {
+      setCreateError(getApiErrorMessage(err, "Erro ao criar cliente."));
     }
   }
 
@@ -612,7 +620,7 @@ export default function CustomersPage() {
                 <Input
                   id="c-zipcode"
                   value={addr.zipcode}
-                  onChange={(e) => { setAddr((a) => ({ ...a, zipcode: formatCep(e.target.value) })); clearCreateError("zipcode"); }}
+                  onChange={(e) => handleZipcodeChange(e.target.value)}
                   placeholder="00000-000"
                   inputMode="numeric"
                   maxLength={9}

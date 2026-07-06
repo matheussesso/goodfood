@@ -167,15 +167,17 @@ export default function NewOrderPage() {
     }
   }, [t]);
 
-  // Auto-fetch when CEP reaches 8 digits
-  useEffect(() => {
-    const digits = addrZipcode.replace(/\D/g, "");
+  /** Formats the zipcode, clears its error, and triggers a CEP lookup once 8 digits are entered. */
+  function handleZipcodeChange(raw: string) {
+    setAddrZipcode(formatCep(raw));
+    setErrors((p) => ({ ...p, addrZipcode: "" }));
+    const digits = raw.replace(/\D/g, "");
     if (digits.length === 8) {
       fetchCep(digits);
     } else {
       setCepError("");
     }
-  }, [addrZipcode, fetchCep]);
+  }
 
   /** Fill address fields from the user's registered address. */
   function fillRegisteredAddress() {
@@ -527,10 +529,7 @@ export default function NewOrderPage() {
                     placeholder="00000-000"
                     inputMode="numeric"
                     value={addrZipcode}
-                    onChange={(e) => {
-                      setAddrZipcode(formatCep(e.target.value));
-                      setErrors((p) => ({ ...p, addrZipcode: "" }));
-                    }}
+                    onChange={(e) => handleZipcodeChange(e.target.value)}
                     className={cn(
                       "pr-9",
                       (errors.addrZipcode || cepError) && "border-destructive focus-visible:ring-destructive"

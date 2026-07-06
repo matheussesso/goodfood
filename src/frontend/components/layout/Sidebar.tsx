@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Link, usePathname } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,10 +12,8 @@ import {
   PackageSearch,
   Factory,
   Truck,
-  Menu,
   X,
   Users,
-  Settings2,
   UtensilsCrossed,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -31,7 +28,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen, setIsOpen, layoutMode = "vertical" }: SidebarProps) {
   const t = useTranslations("Navigation");
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const getLinksForRole = () => {
     const role = user?.role || "customer";

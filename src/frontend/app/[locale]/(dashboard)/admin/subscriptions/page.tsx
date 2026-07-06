@@ -20,14 +20,13 @@ import {
   XCircle,
   Filter,
   FilterX,
-  LayoutGrid,
-  List as ListIcon,
   Repeat2,
   Package,
   DollarSign,
   CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
 
 type SubStatus = "active" | "paused" | "cancelled";
 
@@ -121,40 +120,7 @@ export default function AdminSubscriptionsPage() {
     }
   }
 
-  /**
-   * Renders the desktop/mobile view mode toggle buttons.
-   *
-   * @param mobile - When true, renders full-width mobile variant.
-   * @returns The toggle button group element.
-   */
-  const ViewToggle = ({ mobile }: { mobile?: boolean }) => (
-    <div className={cn("flex border rounded-md h-10 shrink-0", mobile ? "w-full sm:hidden" : "hidden sm:flex")}>
-      <button
-        type="button"
-        onClick={() => setViewMode("card")}
-        className={cn(
-          "flex items-center justify-center gap-2 px-3 transition-colors rounded-l-md",
-          mobile && "flex-1",
-          viewMode === "card" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"
-        )}
-      >
-        <LayoutGrid className="w-4 h-4" />
-        {mobile && <span className="text-sm">{tCommon("grid")}</span>}
-      </button>
-      <button
-        type="button"
-        onClick={() => setViewMode("list")}
-        className={cn(
-          "flex items-center justify-center gap-2 px-3 transition-colors rounded-r-md",
-          mobile && "flex-1",
-          viewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"
-        )}
-      >
-        <ListIcon className="w-4 h-4" />
-        {mobile && <span className="text-sm">{tCommon("list")}</span>}
-      </button>
-    </div>
-  );
+  const viewToggleLabels = { grid: tCommon("grid"), list: tCommon("list") };
 
   return (
     <div className="space-y-6">
@@ -221,11 +187,11 @@ export default function AdminSubscriptionsPage() {
             </Button>
           )}
         </div>
-        <ViewToggle />
+        <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} labels={viewToggleLabels} />
       </div>
 
       {/* ── Mobile view toggle ─────────────────────────────────────── */}
-      <ViewToggle mobile />
+      <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} labels={viewToggleLabels} mobile />
 
       {/* ── Results count ──────────────────────────────────────────── */}
       {!isLoading && hasSubscriptions && (

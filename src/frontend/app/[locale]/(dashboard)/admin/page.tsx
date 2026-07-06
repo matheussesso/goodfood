@@ -3,14 +3,12 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { useCustomers } from "@/hooks/useCustomers";
-import { useOrders } from "@/hooks/useOrders";
 import { Users, ShoppingBag, DollarSign, Activity, ArrowRight, Package, TrendingUp } from "lucide-react";
 
 export default function AdminDashboardPage() {
   const t = useTranslations("admin");
   const { customers, isLoading: loadingCustomers } = useCustomers();
-  // We don't have useOrders hook implemented to fetch all orders yet, but we'll mock the stats for now.
-  
+
   const stats = [
     {
       title: t("total_customers"),

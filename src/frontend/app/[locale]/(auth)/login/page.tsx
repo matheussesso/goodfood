@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -42,12 +43,11 @@ export default function LoginPage() {
         }
       }
     },
-    onError: (error: any) => {
-      setErrorMsg(
-        error.response?.data?.message || 
-        error.response?.data?.errors?.email?.[0] || 
-        t("login_error")
-      );
+    onError: (error: unknown) => {
+      const data = error instanceof AxiosError
+        ? (error.response?.data as { message?: string; errors?: { email?: string[] } } | undefined)
+        : undefined;
+      setErrorMsg(data?.message || data?.errors?.email?.[0] || t("login_error"));
     },
   });
 

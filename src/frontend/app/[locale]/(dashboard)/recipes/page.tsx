@@ -5,7 +5,6 @@ import { useRecipes } from "@/hooks/useRecipes";
 import { Button } from "@/components/ui/button";
 import { UtensilsCrossed, Plus, Search, Loader2, LayoutGrid, List as ListIcon, Eye, Edit2, ChevronDown, ChevronUp } from "lucide-react";
 import { Link } from "@/i18n/routing";
-import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,7 +17,6 @@ import { Card, CardContent } from "@/components/ui/card";
  * @returns The recipes page element.
  */
 export default function RecipesPage() {
-  const t = useTranslations("Navigation");
   const tCat = useTranslations("Catalog");
   const tRec = useTranslations("Recipes");
   const tCommon = useTranslations("Common");
@@ -141,7 +139,7 @@ export default function RecipesPage() {
                       </div>
                       <div>
                         <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{tRec("estimated_cost")}</span>
-                        <span className="font-semibold text-xs text-amber-600 dark:text-amber-400">R$ {Number((rec as any).base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="font-semibold text-xs text-amber-600 dark:text-amber-400">R$ {Number(rec.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                     {rec.ingredients && rec.ingredients.length > 0 && (
@@ -263,7 +261,7 @@ export default function RecipesPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right font-semibold text-amber-600 dark:text-amber-400">R$ {Number((rec as any).base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="px-6 py-4 text-right font-semibold text-amber-600 dark:text-amber-400">R$ {Number(rec.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex gap-1 justify-end">
                           <Link href={`/recipes/${rec.id}`}>

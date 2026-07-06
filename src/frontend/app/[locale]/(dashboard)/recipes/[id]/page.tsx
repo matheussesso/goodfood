@@ -11,10 +11,8 @@ import {
   Package,
   FileText,
   Loader2,
-  CheckCircle,
   DollarSign,
   Scale,
-  ChevronRight,
   Dog,
 } from "lucide-react";
 import { useRecipe } from "@/hooks/useRecipes";

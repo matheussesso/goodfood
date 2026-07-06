@@ -227,7 +227,7 @@ export default function AdminOrderDetailPage() {
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 {t("order_number")}{order.id}
               </h1>
-              <StatusBadge status={order.status} label={t(`status_${order.status}` as any)} />
+              <StatusBadge status={order.status} label={t(`status_${order.status}` as `status_${OrderStatus}`)} />
             </div>
             {order.user && (
               <p className="text-muted-foreground mt-0.5 text-sm flex items-center gap-1.5">
@@ -272,7 +272,7 @@ export default function AdminOrderDetailPage() {
           {
             icon: ShoppingBag,
             label: tCommon("status"),
-            value: t(`status_${order.status}` as any),
+            value: t(`status_${order.status}` as `status_${OrderStatus}`),
             color: "text-blue-600 bg-blue-500/10",
           },
         ].map(({ icon: Icon, label, value, color }) => (
@@ -351,7 +351,7 @@ export default function AdminOrderDetailPage() {
                               : "text-muted-foreground/40"
                           )}
                         >
-                          {t(`status_${s}` as any)}
+                          {t(`status_${s}` as `status_${OrderStatus}`)}
                         </p>
                       </div>
                     );
@@ -405,7 +405,7 @@ export default function AdminOrderDetailPage() {
                 <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1.5">
                   {t("current_status")}
                 </p>
-                <StatusBadge status={order.status} label={t(`status_${order.status}` as any)} />
+                <StatusBadge status={order.status} label={t(`status_${order.status}` as `status_${OrderStatus}`)} />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground uppercase tracking-wide mb-1.5 block">
@@ -418,7 +418,7 @@ export default function AdminOrderDetailPage() {
                 >
                   {STATUS_VALUES.map((s) => (
                     <option key={s} value={s}>
-                      {t(`status_${s}` as any)}
+                      {t(`status_${s}` as `status_${OrderStatus}`)}
                     </option>
                   ))}
                 </select>

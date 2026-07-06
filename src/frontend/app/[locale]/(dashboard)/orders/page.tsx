@@ -20,8 +20,6 @@ import {
   Layers,
   Search,
   FilterX,
-  LayoutGrid,
-  List as ListIcon,
   Filter,
   ExternalLink,
   Salad,
@@ -31,6 +29,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ViewModeToggle, type ViewMode } from "@/components/ui/view-mode-toggle";
 
 const STATUS_PIPELINE = [
   "pending_payment",
@@ -230,7 +229,7 @@ function OrderCard({ order, t }: { order: Order; t: ReturnType<typeof useTransla
             </div>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <StatusBadge status={order.status} label={t(`status_${order.status}` as any)} />
+            <StatusBadge status={order.status} label={t(`status_${order.status}` as `status_${OrderStatus}`)} />
             {order.invoice && <InvoiceBadge invoice={order.invoice} t={t} />}
           </div>
         </div>
@@ -321,7 +320,7 @@ function OrderRow({ order, t }: { order: Order; t: ReturnType<typeof useTranslat
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-sm text-foreground">{t("order_number")}{order.id}</span>
-            <StatusBadge status={order.status} label={t(`status_${order.status}` as any)} />
+            <StatusBadge status={order.status} label={t(`status_${order.status}` as `status_${OrderStatus}`)} />
             {order.invoice && <InvoiceBadge invoice={order.invoice} t={t} />}
           </div>
           {order.delivery_address && (
@@ -357,6 +356,48 @@ function OrderRow({ order, t }: { order: Order; t: ReturnType<typeof useTranslat
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Renders a section (active or history) of orders in the given view mode.
+ *
+ * @param orders - Orders to display in this section.
+ * @param label - Section heading.
+ * @param pulse - Whether to show the "live" pulse dot next to the heading.
+ * @param viewMode - "card" for the grid layout, "list" for compact rows.
+ * @param t - Orders translation function.
+ */
+function OrdersSection({ orders: list, label, pulse, viewMode, t }: {
+  orders: Order[];
+  label: string;
+  pulse?: boolean;
+  viewMode: ViewMode;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  if (list.length === 0) return null;
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center gap-2">
+        {pulse && <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />}
+        <h2 className={cn(
+          "text-sm font-semibold text-muted-foreground uppercase tracking-wider",
+          !pulse && "border-b pb-2 w-full"
+        )}>
+          {label} ({list.length})
+        </h2>
+      </div>
+
+      {viewMode === "card" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {list.map((order) => <OrderCard key={order.id} order={order} t={t} />)}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {list.map((order) => <OrderRow key={order.id} order={order} t={t} />)}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -402,65 +443,7 @@ export default function OrdersPage() {
     setFilterStatus("all");
   }
 
-  /**
-   * Desktop / mobile view-mode toggle button pair.
-   *
-   * @param mobile - When true renders the full-width mobile variant.
-   */
-  const ViewToggle = ({ mobile }: { mobile?: boolean }) => (
-    <div className={cn("flex border rounded-md h-10 shrink-0", mobile ? "w-full sm:hidden" : "hidden sm:flex")}>
-      <button
-        onClick={() => setViewMode("card")}
-        className={cn(
-          "flex items-center justify-center gap-2 px-3 transition-colors rounded-l-md",
-          mobile && "flex-1",
-          viewMode === "card" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"
-        )}
-      >
-        <LayoutGrid className="w-4 h-4" />
-        {mobile && <span className="text-sm">{tCommon("grid")}</span>}
-      </button>
-      <button
-        onClick={() => setViewMode("list")}
-        className={cn(
-          "flex items-center justify-center gap-2 px-3 transition-colors rounded-r-md",
-          mobile && "flex-1",
-          viewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/50"
-        )}
-      >
-        <ListIcon className="w-4 h-4" />
-        {mobile && <span className="text-sm">{tCommon("list")}</span>}
-      </button>
-    </div>
-  );
-
-  /** Renders a section (active or history) in the correct view mode. */
-  function Section({ orders: list, label, pulse }: { orders: Order[]; label: string; pulse?: boolean }) {
-    if (list.length === 0) return null;
-    return (
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          {pulse && <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />}
-          <h2 className={cn(
-            "text-sm font-semibold text-muted-foreground uppercase tracking-wider",
-            !pulse && "border-b pb-2 w-full"
-          )}>
-            {label} ({list.length})
-          </h2>
-        </div>
-
-        {viewMode === "card" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {list.map((order) => <OrderCard key={order.id} order={order} t={t} />)}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {list.map((order) => <OrderRow key={order.id} order={order} t={t} />)}
-          </div>
-        )}
-      </section>
-    );
-  }
+  const viewToggleLabels = { grid: tCommon("grid"), list: tCommon("list") };
 
   return (
     <div className="space-y-6">
@@ -503,14 +486,14 @@ export default function OrdersPage() {
                 >
                   <option value="all">{t("all_statuses")}</option>
                   {ALL_STATUSES.map((s) => (
-                    <option key={s} value={s}>{t(`status_${s}` as any)}</option>
+                    <option key={s} value={s}>{t(`status_${s}` as `status_${OrderStatus}`)}</option>
                   ))}
                 </select>
               </div>
-              <ViewToggle />
+              <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} labels={viewToggleLabels} />
             </div>
           </div>
-          <ViewToggle mobile />
+          <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} labels={viewToggleLabels} mobile />
         </>
       )}
 
@@ -553,8 +536,8 @@ export default function OrdersPage() {
 
       ) : (
         <div className="space-y-8">
-          <Section orders={activeFiltered} label={t("in_progress")} pulse />
-          <Section orders={pastFiltered}   label={t("history")} />
+          <OrdersSection orders={activeFiltered} label={t("in_progress")} pulse viewMode={viewMode} t={t} />
+          <OrdersSection orders={pastFiltered}   label={t("history")} viewMode={viewMode} t={t} />
         </div>
       )}
     </div>
