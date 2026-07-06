@@ -1,11 +1,18 @@
 {
 	frankenphp
 	order php_server before file_server
+
+	# Cloudflare está em modo "Full (strict)" na frente (edge já serve
+	# HTTPS ao visitante) — a origem usa um certificado Cloudflare Origin
+	# CA (não pública), então desligamos o ACME automático do Caddy e
+	# fornecemos o cert manualmente via diretiva `tls` em cada site.
+	auto_https disable_certs
 }
 
-# API Laravel — HTTPS automático (Let's Encrypt) via FrankenPHP/Caddy.
-# Requer DNS de {$API_DOMAIN} apontando para o VPS e portas 80/443 abertas.
+# API Laravel.
 {$API_DOMAIN:localhost} {
+	tls /etc/caddy/certs/cloudflare-origin.pem /etc/caddy/certs/cloudflare-origin.key
+
 	root * /app/public
 
 	encode zstd br gzip
@@ -19,6 +26,8 @@
 # fazendo reverse proxy para o serviço "frontend" na rede interna do
 # Compose (evita expor uma segunda porta/TLS para o Next.js).
 {$APP_DOMAIN:app.localhost} {
+	tls /etc/caddy/certs/cloudflare-origin.pem /etc/caddy/certs/cloudflare-origin.key
+
 	encode zstd br gzip
 
 	reverse_proxy frontend:3000

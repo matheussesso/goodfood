@@ -4,3 +4,4 @@ CLAUDE.md
 GEMINI.md
 node_modules/
 .env
+/certs/

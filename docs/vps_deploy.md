@@ -65,18 +65,55 @@ ufw enable
 ```
 
 Portas 80/443 são obrigatórias: o container `backend` roda Caddy
-(FrankenPHP) e emite certificados TLS automáticos via Let's Encrypt tanto
-para a API quanto, em reverse proxy, para o frontend (ver
+(FrankenPHP), que termina TLS na origem e faz reverse proxy pro
+frontend (ver
 [`docker/prod/backend/Caddyfile`](../docker/prod/backend/Caddyfile)).
 
-### 1.4 Apontar DNS
+Opcional (recomendado): já que todo tráfego público passa pela
+Cloudflare (proxy laranja, passo 1.4), restrinja 80/443 só aos ranges de
+IP da Cloudflare em vez de liberar geral:
 
-Crie dois registros `A` apontando para o IP do VPS:
+```bash
+for ip in $(curl -s https://www.cloudflare.com/ips-v4); do ufw allow from $ip to any port 80,443 proto tcp; done
+for ip in $(curl -s https://www.cloudflare.com/ips-v6); do ufw allow from $ip to any port 80,443 proto tcp; done
+```
 
-| Tipo | Host | Valor |
-| --- | --- | --- |
-| A | `api.seudominio.com` | IP do VPS |
-| A | `app.seudominio.com` | IP do VPS |
+### 1.4 Apontar DNS (Cloudflare, proxy laranja) + Origin CA cert
+
+Crie dois registros `A` no painel Cloudflare, **com proxy ativado**
+(nuvem laranja) — é a Cloudflare que serve HTTPS pro visitante final:
+
+| Tipo | Host | Valor | Proxy |
+| --- | --- | --- | --- |
+| A | `api.seudominio.com` | IP do VPS | Proxied (laranja) |
+| A | `app.seudominio.com` | IP do VPS | Proxied (laranja) |
+
+Em **SSL/TLS → Overview**, defina o modo como **Full (strict)** — exige
+que a origem (o VPS) tenha um certificado válido também, não só a borda
+Cloudflare. Para isso:
+
+1. **SSL/TLS → Origin Server → Create Certificate** (deixe os defaults:
+   RSA 2048, cobre `*.seudominio.com` + `seudominio.com`, validade 15
+   anos).
+2. A Cloudflare mostra dois blocos: **Origin Certificate** e **Private
+   Key**. No VPS, dentro da pasta do projeto:
+   ```bash
+   mkdir -p ~/apps/goodfood/certs
+   nano ~/apps/goodfood/certs/cloudflare-origin.pem   # cole o Origin Certificate
+   nano ~/apps/goodfood/certs/cloudflare-origin.key   # cole a Private Key
+   chmod 600 ~/apps/goodfood/certs/cloudflare-origin.key
+   ```
+   Esses arquivos **não são versionados** (`.gitignore` já cobre
+   `/certs/`) — existem só no VPS. O `docker-compose.yml` monta os dois
+   em `/etc/caddy/certs/` no container `backend`, e o Caddyfile de
+   produção usa esse cert diretamente (ACME público desligado via
+   `auto_https disable_certs`, porque atrás do proxy da Cloudflare o
+   desafio HTTP-01 do Let's Encrypt não é confiável).
+
+Esse certificado é assinado pela CA da própria Cloudflare — só é
+confiável *entre Cloudflare e a origem*; o navegador nunca o vê
+diretamente (quem serve HTTPS pro visitante é sempre a borda
+Cloudflare).
 
 ### 1.5 Gerar Deploy Key do VPS pro GitHub (repo privado)
 
@@ -149,6 +186,12 @@ Gere a `APP_KEY` (uma vez; a imagem ainda não existe localmente, então
 rode em qualquer PHP 8.4 disponível ou deixe para depois do primeiro
 `docker compose up` e rode via `docker compose exec backend php artisan
 key:generate` — nesse caso reinicie o container depois).
+
+Com Cloudflare + Caddy na frente do Laravel, `trustProxies(at: '*')` já
+está configurado em `bootstrap/app.php` — seguro porque o firewall do
+passo 1.3 só aceita 80/443 vindos dos ranges de IP da Cloudflare, então
+`REMOTE_ADDR` é sempre uma borda confiável e `X-Forwarded-*` reflete o
+cliente real (`request()->ip()`, `url()->secure()` etc.).
 
 ### 1.8 Autenticar o Docker do VPS no GHCR
 

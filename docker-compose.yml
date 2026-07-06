@@ -7,6 +7,11 @@
 #   GHCR_OWNER, IMAGE_TAG, DB_DATABASE, DB_USERNAME, DB_PASSWORD,
 #   API_DOMAIN, APP_DOMAIN
 # Variáveis do Laravel (APP_KEY, etc.) ficam em ./src/backend/.env.
+#
+# TLS: Cloudflare em modo "Full (strict)" na frente — o Caddy do serviço
+# "backend" usa um certificado Cloudflare Origin CA (não Let's Encrypt).
+# Os arquivos do certificado ficam em ./certs/ (não versionado, ver
+# docs/vps_deploy.md).
 
 services:
   db:
@@ -41,8 +46,8 @@ services:
       APP_DOMAIN: ${APP_DOMAIN}
     volumes:
       - backend_storage:/app/storage/app
-      - caddy_data:/data
-      - caddy_config:/config
+      - ./certs/cloudflare-origin.pem:/etc/caddy/certs/cloudflare-origin.pem:ro
+      - ./certs/cloudflare-origin.key:/etc/caddy/certs/cloudflare-origin.key:ro
     depends_on:
       db:
         condition: service_healthy
@@ -81,8 +86,4 @@ volumes:
   dbdata:
     driver: local
   backend_storage:
-    driver: local
-  caddy_data:
-    driver: local
-  caddy_config:
     driver: local

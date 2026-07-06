@@ -25,6 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Authenticate the Next.js SPA via Sanctum's stateful session cookies
         // (httpOnly) instead of bearer tokens stored in the browser.
         $middleware->statefulApi();
+
+        // '*' is safe here: inbound 80/443 is firewalled to Cloudflare's IP
+        // ranges only (see docs/vps_deploy.md), so REMOTE_ADDR is always a
+        // trusted Cloudflare edge, and X-Forwarded-* reflects the real client.
+        $middleware->trustProxies(at: '*');
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('subscriptions:generate-orders')->daily();
