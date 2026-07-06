@@ -46,6 +46,7 @@ services:
       APP_DOMAIN: ${APP_DOMAIN}
     volumes:
       - backend_storage:/app/storage/app
+      - ./src/backend/.env:/app/.env
       - ./certs/cloudflare-origin.pem:/etc/caddy/certs/cloudflare-origin.pem:ro
       - ./certs/cloudflare-origin.key:/etc/caddy/certs/cloudflare-origin.key:ro
     depends_on:
@@ -63,6 +64,7 @@ services:
       - ./src/backend/.env
     volumes:
       - backend_storage:/app/storage/app
+      - ./src/backend/.env:/app/.env
     depends_on:
       db:
         condition: service_healthy
