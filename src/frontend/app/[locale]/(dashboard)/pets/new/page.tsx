@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, PawPrint, Info, Stethoscope, Camera, Loader2, Dog, Cat } from "lucide-react";
+import { ArrowLeft, PawPrint, Info, Stethoscope, Camera, Loader2, Dog, Cat, PartyPopper } from "lucide-react";
 
 /**
  * Dedicated page for registering a new pet. Health-record features
@@ -32,6 +32,7 @@ export default function NewPetPage() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [confirmedPetId, setConfirmedPetId] = useState<number | null>(null);
 
   const { register, control, handleSubmit, setValue, formState: { errors } } = useForm<PetFormData>({
     resolver: zodResolver(petFormSchema),
@@ -68,11 +69,49 @@ export default function NewPetPage() {
     try {
       const result = await createPet(data);
       const newId = result?.data?.id;
-      router.push(newId ? `/pets/${newId}/edit` : "/pets");
+      if (newId) {
+        setConfirmedPetId(newId);
+      } else {
+        router.push("/pets");
+      }
     } catch (err) {
       setSubmitError(getApiErrorMessage(err, tCommon("error")));
     }
   };
+
+  // Auto-redirect to the edit page (to continue with vaccines/documents)
+  // shortly after the success screen is shown.
+  useEffect(() => {
+    if (confirmedPetId === null) return;
+    const timer = setTimeout(() => router.push(`/pets/${confirmedPetId}/edit`), 2500);
+    return () => clearTimeout(timer);
+  }, [confirmedPetId, router]);
+
+  if (confirmedPetId !== null) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-6 px-4">
+        <div className="w-24 h-24 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center animate-bounce">
+          <PartyPopper className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-foreground">{t("pet_created_success")}</h1>
+          <p className="text-muted-foreground max-w-sm mx-auto">{t("pet_created_next_step")}</p>
+        </div>
+        <div className="flex flex-col items-center gap-3">
+          <Link href={`/pets/${confirmedPetId}/edit`}>
+            <Button size="lg" className="gap-2">
+              <PawPrint className="w-5 h-5" />
+              {t("continue_pet_setup")}
+            </Button>
+          </Link>
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            {t("pet_created_redirect")}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 mx-auto">
@@ -112,7 +151,7 @@ export default function NewPetPage() {
                   <div
                     onClick={() => setValue("type", "dog", { shouldValidate: true })}
                     className={cn(
-                      "cursor-pointer border-2 rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all",
+                      "cursor-pointer border-1 rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all",
                       type === "dog" ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
                     )}
                   >
@@ -122,7 +161,7 @@ export default function NewPetPage() {
                   <div
                     onClick={() => setValue("type", "cat", { shouldValidate: true })}
                     className={cn(
-                      "cursor-pointer border-2 rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all",
+                      "cursor-pointer border-1 rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all",
                       type === "cat" ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
                     )}
                   >
@@ -135,18 +174,27 @@ export default function NewPetPage() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="breed">{t("breed")}</Label>
+                  <Label htmlFor="breed">{t("breed")} *</Label>
                   <Input id="breed" maxLength={255} {...register("breed")} />
+                  {errors.breed && <p className="text-xs text-destructive">{tCommon("validation_required")}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="age">{t("age_months")}</Label>
+                  <Label htmlFor="age">{t("age_months")} *</Label>
                   <Input id="age" type="number" min="0" max="360" step="1" {...register("age", { setValueAs: (v) => (v === "" ? undefined : Number(v)) })} />
-                  {errors.age && <p className="text-xs text-destructive">{tCat("validation_non_negative")}</p>}
+                  {errors.age && (
+                    <p className="text-xs text-destructive">
+                      {errors.age.type === "invalid_type" ? tCommon("validation_required") : tCat("validation_non_negative")}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="weight">{t("weight_kg")}</Label>
+                  <Label htmlFor="weight">{t("weight_kg")} *</Label>
                   <Input id="weight" type="number" step="0.1" min="0" max="120" {...register("weight", { setValueAs: (v) => (v === "" ? undefined : Number(v)) })} />
-                  {errors.weight && <p className="text-xs text-destructive">{tCat("validation_non_negative")}</p>}
+                  {errors.weight && (
+                    <p className="text-xs text-destructive">
+                      {errors.weight.type === "invalid_type" ? tCommon("validation_required") : tCat("validation_non_negative")}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

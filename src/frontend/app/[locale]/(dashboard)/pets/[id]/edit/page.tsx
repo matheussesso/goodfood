@@ -33,6 +33,7 @@ import {
   Trash2,
   ExternalLink,
   AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 
 const DOCUMENT_CATEGORIES: PetDocumentCategory[] = ["exam", "prescription", "report", "other"];
@@ -58,6 +59,7 @@ export default function EditPetPage() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const [vaccineForm, setVaccineForm] = useState({ name: "", application_date: "", next_due_date: "" });
   const [vaccineError, setVaccineError] = useState<string | null>(null);
@@ -127,7 +129,8 @@ export default function EditPetPage() {
     setSubmitError(null);
     try {
       await updatePet({ id: Number(id), ...data });
-      router.push(`/pets/${id}`);
+      setSubmitSuccess(true);
+      setTimeout(() => router.push(`/pets/${id}`), 1200);
     } catch (err) {
       setSubmitError(getApiErrorMessage(err, tCommon("error")));
     }
@@ -227,7 +230,7 @@ export default function EditPetPage() {
                   <div
                     onClick={() => setValue("type", "dog", { shouldValidate: true })}
                     className={cn(
-                      "cursor-pointer border-2 rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all",
+                      "cursor-pointer border-1 rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all",
                       type === "dog" ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
                     )}
                   >
@@ -237,7 +240,7 @@ export default function EditPetPage() {
                   <div
                     onClick={() => setValue("type", "cat", { shouldValidate: true })}
                     className={cn(
-                      "cursor-pointer border-2 rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all",
+                      "cursor-pointer border-1 rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all",
                       type === "cat" ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
                     )}
                   >
@@ -250,18 +253,27 @@ export default function EditPetPage() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="breed">{t("breed")}</Label>
+                  <Label htmlFor="breed">{t("breed")} *</Label>
                   <Input id="breed" maxLength={255} {...register("breed")} />
+                  {errors.breed && <p className="text-xs text-destructive">{tCommon("validation_required")}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="age">{t("age_months")}</Label>
+                  <Label htmlFor="age">{t("age_months")} *</Label>
                   <Input id="age" type="number" min="0" max="360" step="1" {...register("age", { setValueAs: (v) => (v === "" ? undefined : Number(v)) })} />
-                  {errors.age && <p className="text-xs text-destructive">{tCat("validation_non_negative")}</p>}
+                  {errors.age && (
+                    <p className="text-xs text-destructive">
+                      {errors.age.type === "invalid_type" ? tCommon("validation_required") : tCat("validation_non_negative")}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="weight">{t("weight_kg")}</Label>
+                  <Label htmlFor="weight">{t("weight_kg")} *</Label>
                   <Input id="weight" type="number" step="0.1" min="0" max="120" {...register("weight", { setValueAs: (v) => (v === "" ? undefined : Number(v)) })} />
-                  {errors.weight && <p className="text-xs text-destructive">{tCat("validation_non_negative")}</p>}
+                  {errors.weight && (
+                    <p className="text-xs text-destructive">
+                      {errors.weight.type === "invalid_type" ? tCommon("validation_required") : tCat("validation_non_negative")}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -602,6 +614,13 @@ export default function EditPetPage() {
             </div>
           </div>
 
+          {submitSuccess && (
+            <p className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-200 dark:border-emerald-800/50 rounded-lg px-4 py-2.5">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              {t("pet_updated_success")}
+            </p>
+          )}
+
           {Object.keys(errors).length > 0 && (
             <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-2.5">
               {t("form_has_errors")}
@@ -614,7 +633,7 @@ export default function EditPetPage() {
             </p>
           )}
 
-          <Button type="submit" className="w-full gap-2" size="lg" disabled={isUpdating || isUploadingPhoto}>
+          <Button type="submit" className="w-full gap-2" size="lg" disabled={isUpdating || isUploadingPhoto || submitSuccess}>
             {isUpdating && <Loader2 className="w-4 h-4 animate-spin" />}
             {isUpdating ? t("saving_pet") : tCommon("save_changes")}
           </Button>

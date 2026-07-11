@@ -268,7 +268,7 @@ export default function EditRecipePage() {
                       }
                     }}
                     className={cn(
-                      "cursor-pointer border-2 rounded-lg p-2.5 flex flex-row items-center justify-center gap-2 transition-all",
+                      "cursor-pointer border-1 rounded-lg p-2.5 flex flex-row items-center justify-center gap-2 transition-all",
                       (watchedValues.pet_type === "dog" || watchedValues.pet_type === "both")
                         ? "border-primary bg-primary/10 text-primary shadow-sm"
                         : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
@@ -295,7 +295,7 @@ export default function EditRecipePage() {
                       }
                     }}
                     className={cn(
-                      "cursor-pointer border-2 rounded-lg p-2.5 flex flex-row items-center justify-center gap-2 transition-all",
+                      "cursor-pointer border-1 rounded-lg p-2.5 flex flex-row items-center justify-center gap-2 transition-all",
                       (watchedValues.pet_type === "cat" || watchedValues.pet_type === "both")
                         ? "border-primary bg-primary/10 text-primary shadow-sm"
                         : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"

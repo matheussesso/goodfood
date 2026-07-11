@@ -57,10 +57,25 @@ describe("petFormSchema", () => {
     expect(petFormSchema.safeParse({ ...validPet, age: 400 }).success).toBe(false);
   });
 
-  it("accepts weight and age omitted", () => {
-    const withoutWeightAge: Record<string, unknown> = { ...validPet };
-    delete withoutWeightAge.weight;
-    delete withoutWeightAge.age;
-    expect(petFormSchema.safeParse(withoutWeightAge).success).toBe(true);
+  it("requires breed", () => {
+    const withoutBreed: Record<string, unknown> = { ...validPet };
+    delete withoutBreed.breed;
+    expect(petFormSchema.safeParse(withoutBreed).success).toBe(false);
+  });
+
+  it("rejects a blank breed", () => {
+    expect(petFormSchema.safeParse({ ...validPet, breed: "   " }).success).toBe(false);
+  });
+
+  it("requires weight", () => {
+    const withoutWeight: Record<string, unknown> = { ...validPet };
+    delete withoutWeight.weight;
+    expect(petFormSchema.safeParse(withoutWeight).success).toBe(false);
+  });
+
+  it("requires age", () => {
+    const withoutAge: Record<string, unknown> = { ...validPet };
+    delete withoutAge.age;
+    expect(petFormSchema.safeParse(withoutAge).success).toBe(false);
   });
 });
