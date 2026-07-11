@@ -3,122 +3,23 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { usePets, Pet } from "@/hooks/usePets";
-import { apiClient } from "@/lib/api-client";
+import { usePets } from "@/hooks/usePets";
 import { Link } from "@/i18n/routing";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Modal } from "@/components/ui/modal";
-import { Plus, Edit2, Trash2, Dog, Loader2, LayoutGrid, List as ListIcon, Camera, ChevronRight, Search, FilterX } from "lucide-react";
+import { Plus, Edit2, Trash2, Dog, Loader2, LayoutGrid, List as ListIcon, ChevronRight, Search, FilterX } from "lucide-react";
 
 export default function PetsPage() {
   const tNav = useTranslations("Navigation");
   const t = useTranslations("Pets");
   const tCommon = useTranslations("Common");
   const tCat = useTranslations("Catalog");
-  const { pets, isLoading, createPet, updatePet, deletePet, isCreating, isUpdating } = usePets();
-  
+  const { pets, isLoading, deletePet } = usePets();
+
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "dog" | "cat">("all");
-  
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingPet, setEditingPet] = useState<Pet | null>(null);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    type: "dog",
-    breed: "",
-    weight: "",
-    age: "",
-    restrictions: "",
-    allergies: "",
-    special_needs: "",
-    photo_url: "",
-  });
-
-  const handleOpenModal = (pet?: Pet) => {
-    if (pet) {
-      setEditingPet(pet);
-      setFormData({
-        name: pet.name,
-        type: pet.type || "dog",
-        breed: pet.breed || "",
-        weight: pet.weight ? pet.weight.toString() : "",
-        age: pet.age ? pet.age.toString() : "",
-        restrictions: pet.restrictions || "",
-        allergies: pet.allergies || "",
-        special_needs: pet.special_needs || "",
-        photo_url: pet.photo_url || "",
-      });
-    } else {
-      setEditingPet(null);
-      setFormData({
-        name: "",
-        type: "dog",
-        breed: "",
-        weight: "",
-        age: "",
-        restrictions: "",
-        allergies: "",
-        special_needs: "",
-        photo_url: "",
-      });
-    }
-    setIsModalOpen(true);
-  };
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingPhoto(true);
-    try {
-      const formDataUpload = new FormData();
-      formDataUpload.append("photo", file);
-
-      const { data } = await apiClient.post("/pets/upload-photo", formDataUpload, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      setFormData(prev => ({ ...prev, photo_url: data.data.photo_url }));
-    } catch (error) {
-      console.error("Failed to upload photo:", error);
-      alert(error instanceof Error ? error.message : tCommon("error"));
-    } finally {
-      setIsUploadingPhoto(false);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const data = {
-      name: formData.name,
-      type: formData.type as "dog" | "cat",
-      breed: formData.breed,
-      weight: formData.weight ? parseFloat(formData.weight) : undefined,
-      age: formData.age ? parseInt(formData.age, 10) : undefined,
-      restrictions: formData.restrictions,
-      allergies: formData.allergies,
-      special_needs: formData.special_needs,
-      photo_url: formData.photo_url,
-    };
-
-    if (editingPet) {
-      await updatePet({ id: editingPet.id, ...data });
-    } else {
-      await createPet(data);
-    }
-    
-    setIsModalOpen(false);
-  };
 
   const handleDelete = async (id: number) => {
     if (confirm(tCommon("confirm_delete_pet"))) {
@@ -127,7 +28,7 @@ export default function PetsPage() {
   };
 
   const filteredPets = pets?.filter(pet => {
-    const matchesSearch = pet.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = pet.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (pet.breed || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = filterType === "all" || pet.type === filterType;
     return matchesSearch && matchesType;
@@ -145,10 +46,12 @@ export default function PetsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => handleOpenModal()}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t("new_pet")}
-          </Button>
+          <Link href="/pets/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              {t("new_pet")}
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -156,14 +59,14 @@ export default function PetsPage() {
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-card p-4 rounded-lg border shadow-sm">
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder={tCommon("search")} 
-              className="pl-9" 
+            <Input
+              placeholder={tCommon("search")}
+              className="pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          
+
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <select
               className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -205,10 +108,12 @@ export default function PetsPage() {
             <p className="text-sm text-muted-foreground max-w-sm">
               {t("no_pets_desc")}
             </p>
-            <Button onClick={() => handleOpenModal()} className="mt-4">
-              <Plus className="mr-2 h-4 w-4" />
-              {t("new_pet")}
-            </Button>
+            <Link href="/pets/new" className="mt-4">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                {t("new_pet")}
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       ) : filteredPets.length === 0 ? (
@@ -232,9 +137,11 @@ export default function PetsPage() {
             {filteredPets.map((pet) => (
               <Card key={pet.id} className="relative overflow-hidden group flex flex-col">
                 <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
-                  <Button variant="secondary" size="icon" className="w-8 h-8 rounded-full shadow-sm" onClick={() => handleOpenModal(pet)}>
-                    <Edit2 className="w-3 h-3" />
-                  </Button>
+                  <Link href={`/pets/${pet.id}/edit`}>
+                    <Button variant="secondary" size="icon" className="w-8 h-8 rounded-full shadow-sm">
+                      <Edit2 className="w-3 h-3" />
+                    </Button>
+                  </Link>
                   <Button variant="destructive" size="icon" className="w-8 h-8 rounded-full shadow-sm" onClick={() => handleDelete(pet.id)}>
                     <Trash2 className="w-3 h-3" />
                   </Button>
@@ -269,7 +176,7 @@ export default function PetsPage() {
                       <span>{pet.age ? `${pet.age} m` : '-'}</span>
                     </div>
                   </div>
-                  
+
                   {(pet.allergies || pet.restrictions || pet.special_needs) && (
                     <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/50">
                       {pet.allergies && <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full font-medium border border-red-200 dark:border-red-800">{t("badge_allergies")}</span>}
@@ -334,9 +241,11 @@ export default function PetsPage() {
                         <Link href={`/pets/${pet.id}`}>
                           <Button variant="ghost" size="sm" className="text-xs font-medium">{t("view_profile")}</Button>
                         </Link>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenModal(pet)}>
-                          <Edit2 className="h-4 w-4 text-muted-foreground" />
-                        </Button>
+                        <Link href={`/pets/${pet.id}/edit`}>
+                          <Button variant="ghost" size="icon">
+                            <Edit2 className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -346,122 +255,6 @@ export default function PetsPage() {
           </div>
         )
       )}
-
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)}
-        title={editingPet ? t("edit_pet") : t("new_pet")}
-        className="max-w-2xl"
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          
-          <div className="flex flex-col items-center justify-center mb-4 gap-3">
-            <div className="relative group">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-border/50 bg-muted/30 flex items-center justify-center relative">
-                {isUploadingPhoto ? (
-                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                ) : formData.photo_url ? (
-                  <Image src={formData.photo_url} alt="Pet" fill sizes="96px" className="object-cover" />
-                ) : (
-                  <Camera className="w-8 h-8 text-muted-foreground/50" />
-                )}
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                  <Camera className="w-6 h-6 text-white" />
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    onChange={handlePhotoUpload}
-                    disabled={isUploadingPhoto}
-                  />
-                </div>
-              </div>
-            </div>
-            <span className="text-xs text-muted-foreground font-medium">
-              {isUploadingPhoto ? t("photo_uploading") : t("photo_change_hint")}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">{t("name")} *</Label>
-              <Input id="name" required value={formData.name} onChange={handleChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="type">{t("species")}</Label>
-              <select 
-                id="type"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                value={formData.type} 
-                onChange={handleChange}
-              >
-                <option value="dog">{t("dog")}</option>
-                <option value="cat">{t("cat")}</option>
-              </select>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="breed">{t("breed")}</Label>
-              <Input id="breed" value={formData.breed} onChange={handleChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="age">{t("age_months")}</Label>
-              <Input id="age" type="number" min="0" value={formData.age} onChange={handleChange} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="weight">{t("weight_kg")}</Label>
-              <Input id="weight" type="number" step="0.1" min="0" value={formData.weight} onChange={handleChange} />
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="restrictions">{t("dietary_restrictions")}</Label>
-            <textarea 
-              id="restrictions" 
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px]"
-              value={formData.restrictions} 
-              onChange={handleChange} 
-              placeholder={t("restrictions_placeholder")}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="allergies">{t("allergies")}</Label>
-            <textarea 
-              id="allergies" 
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px]"
-              value={formData.allergies} 
-              onChange={handleChange} 
-              placeholder={t("allergies_placeholder")}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="special_needs">{t("special_needs")}</Label>
-            <textarea 
-              id="special_needs" 
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[60px]"
-              value={formData.special_needs} 
-              onChange={handleChange} 
-              placeholder={t("special_needs_placeholder")}
-            />
-          </div>
-          
-          <div className="pt-4 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
-              {tCommon("cancel")}
-            </Button>
-            <Button type="submit" disabled={isCreating || isUpdating}>
-              {(isCreating || isUpdating) ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              {tCommon("save")}
-            </Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }

@@ -20,6 +20,10 @@ import {
   Scale,
   Clock,
   AlertTriangle,
+  Stethoscope,
+  Syringe,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -170,15 +174,22 @@ export default function PetProfilePage() {
               )}
             </div>
 
-            {/* Quick-stats chips */}
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="flex flex-col items-center px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-xl">
-                <span className="font-bold text-xl leading-none">{pet.recipes?.length ?? 0}</span>
-                <span className="text-[10px] uppercase tracking-wider mt-0.5">{t("recipes")}</span>
-              </div>
-              <div className="flex flex-col items-center px-4 py-2 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 rounded-xl">
-                <span className="font-bold text-xl leading-none">{pet.orders?.length ?? 0}</span>
-                <span className="text-[10px] uppercase tracking-wider mt-0.5">{t("orders")}</span>
+            {/* Quick-stats + edit */}
+            <div className="flex flex-col items-end gap-3 shrink-0">
+              <Link href={`/pets/${pet.id}/edit`}>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Edit2 className="w-3.5 h-3.5" /> {tCommon("edit")}
+                </Button>
+              </Link>
+              <div className="flex items-center gap-2">
+                <div className="flex flex-col items-center px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-xl">
+                  <span className="font-bold text-xl leading-none">{pet.recipes?.length ?? 0}</span>
+                  <span className="text-[10px] uppercase tracking-wider mt-0.5">{t("recipes")}</span>
+                </div>
+                <div className="flex flex-col items-center px-4 py-2 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 rounded-xl">
+                  <span className="font-bold text-xl leading-none">{pet.orders?.length ?? 0}</span>
+                  <span className="text-[10px] uppercase tracking-wider mt-0.5">{t("orders")}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -221,6 +232,7 @@ export default function PetProfilePage() {
       <div className="mt-2">
         {/* ── Overview tab ────────────────────────────────────────────── */}
         {activeTab === "overview" && (
+          <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Breed & traits card */}
             <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
@@ -233,6 +245,7 @@ export default function PetProfilePage() {
                 {[
                   { label: t("breed"), value: pet.breed || t("no_breed") },
                   { label: t("species"), value: speciesLabel },
+                  ...(pet.sex ? [{ label: t("sex"), value: pet.sex === "male" ? t("sex_male") : t("sex_female") }] : []),
                   { label: t("age_months"), value: pet.age ? `${pet.age} meses` : "—" },
                   { label: t("weight_kg"), value: pet.weight ? `${pet.weight} kg` : "—" },
                 ].map(({ label, value }) => (
@@ -290,6 +303,98 @@ export default function PetProfilePage() {
               </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
+            {/* Vet & identification card */}
+            <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+              <div className="flex items-center px-5 py-4 border-b bg-muted/20">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Stethoscope className="w-4 h-4 text-primary" /> {t("vet_info")}
+                </h3>
+              </div>
+              <div className="divide-y divide-border/50">
+                {[
+                  ...(pet.neutered !== undefined && pet.neutered !== null ? [{ label: t("neutered"), value: pet.neutered ? t("neutered_yes") : t("neutered_no") }] : []),
+                  { label: t("microchip_number"), value: pet.microchip_number || "—" },
+                  { label: t("vet_name"), value: pet.vet_name || "—" },
+                  { label: t("vet_phone"), value: pet.vet_phone || "—" },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-center gap-4 px-5 py-3.5">
+                    <div className="min-w-0 flex-1 flex justify-between items-center">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
+                      <p className="text-sm font-medium text-foreground">{value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Vaccines card */}
+            <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+              <div className="flex items-center px-5 py-4 border-b bg-muted/20">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Syringe className="w-4 h-4 text-primary" /> {t("vaccines")}
+                </h3>
+              </div>
+              {pet.vaccines && pet.vaccines.length > 0 ? (
+                <div className="divide-y divide-border/50">
+                  {pet.vaccines.map((vaccine) => {
+                    const overdue = vaccine.next_due_date ? new Date(vaccine.next_due_date) < new Date() : false;
+                    return (
+                      <div key={vaccine.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">{vaccine.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {new Date(vaccine.application_date).toLocaleDateString("pt-BR")}
+                            {vaccine.next_due_date && ` → ${new Date(vaccine.next_due_date).toLocaleDateString("pt-BR")}`}
+                          </p>
+                        </div>
+                        {overdue && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 shrink-0">
+                            {t("vaccine_overdue")}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-6">{t("no_vaccines")}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Documents card */}
+          <div className="bg-card border rounded-xl shadow-sm overflow-hidden mt-5">
+            <div className="flex items-center px-5 py-4 border-b bg-muted/20">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <FileText className="w-4 h-4 text-primary" /> {t("documents")}
+              </h3>
+            </div>
+            {pet.documents && pet.documents.length > 0 ? (
+              <div className="divide-y divide-border/50">
+                {pet.documents.map((doc) => (
+                  <div key={doc.id} className="flex items-center gap-3 px-5 py-3">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                      {t(`category_${doc.category}` as "category_exam")}
+                    </span>
+                    <p className="flex-1 min-w-0 text-sm font-medium text-foreground truncate">{doc.name}</p>
+                    <a
+                      href={doc.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline flex items-center gap-1 shrink-0"
+                    >
+                      {t("view_document")} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-6">{t("no_documents")}</p>
+            )}
+          </div>
+          </>
         )}
 
         {/* ── Recipes tab ─────────────────────────────────────────────── */}

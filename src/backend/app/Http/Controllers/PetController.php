@@ -58,7 +58,7 @@ class PetController extends Controller
         $this->authorize('view', $pet);
 
         return $this->respondSuccess(
-            PetResource::make($pet->load(['recipes.ingredients', 'orders', 'subscriptions'])),
+            PetResource::make($pet->load(['recipes.ingredients', 'orders', 'subscriptions', 'vaccines', 'documents'])),
             'Pet fetched successfully'
         );
     }

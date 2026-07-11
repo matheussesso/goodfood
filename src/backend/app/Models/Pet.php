@@ -37,6 +37,7 @@ class Pet extends Model
         'user_id',
         'name',
         'type',
+        'sex',
         'breed',
         'weight',
         'age',
@@ -45,6 +46,10 @@ class Pet extends Model
         'allergies',
         'special_needs',
         'photo_url',
+        'neutered',
+        'microchip_number',
+        'vet_name',
+        'vet_phone',
     ];
 
     /**
@@ -56,6 +61,7 @@ class Pet extends Model
         'weight' => 'decimal:2',
         'age' => 'integer',
         'birth_date' => 'date',
+        'neutered' => 'boolean',
     ];
 
     /**
@@ -79,5 +85,17 @@ class Pet extends Model
     public function recipes()
     {
         return $this->belongsToMany(Recipe::class)->withTimestamps();
+    }
+
+    /** @return \Illuminate\Database\Eloquent\Relations\HasMany<PetVaccine, $this> */
+    public function vaccines()
+    {
+        return $this->hasMany(PetVaccine::class)->orderByDesc('application_date');
+    }
+
+    /** @return \Illuminate\Database\Eloquent\Relations\HasMany<PetDocument, $this> */
+    public function documents()
+    {
+        return $this->hasMany(PetDocument::class)->latest();
     }
 }

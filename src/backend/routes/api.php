@@ -6,6 +6,8 @@ use App\Http\Controllers\GeneralSettingController;
 use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PetController;
+use App\Http\Controllers\PetDocumentController;
+use App\Http\Controllers\PetVaccineController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Middleware\AdminMiddleware;
@@ -33,6 +35,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('pets/upload-photo', [PetController::class, 'uploadPhoto']);
     Route::apiResource('pets', PetController::class);
+    Route::post('pets/{pet}/vaccines', [PetVaccineController::class, 'store']);
+    Route::put('pets/{pet}/vaccines/{vaccine}', [PetVaccineController::class, 'update']);
+    Route::delete('pets/{pet}/vaccines/{vaccine}', [PetVaccineController::class, 'destroy']);
+    Route::post('pets/{pet}/documents', [PetDocumentController::class, 'store']);
+    Route::delete('pets/{pet}/documents/{document}', [PetDocumentController::class, 'destroy']);
     Route::apiResource('ingredients', IngredientController::class);
     Route::apiResource('recipes', RecipeController::class);
     Route::post('recipes/calculate-cost', [RecipeController::class, 'calculateCost']);

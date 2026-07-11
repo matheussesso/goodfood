@@ -3,12 +3,15 @@ import { apiClient } from "@/lib/api-client";
 import { Recipe } from "./useRecipes";
 import { Order } from "./useOrders";
 import { Subscription } from "./useSubscriptions";
+import { PetVaccine } from "./usePetVaccines";
+import { PetDocument } from "./usePetDocuments";
 
 export interface Pet {
   id: number;
   user_id: number;
   name: string;
   type?: "dog" | "cat";
+  sex?: "male" | "female";
   breed?: string;
   weight?: number;
   age?: number;
@@ -21,11 +24,17 @@ export interface Pet {
   allergies?: string;
   special_needs?: string;
   photo_url?: string;
+  neutered?: boolean;
+  microchip_number?: string;
+  vet_name?: string;
+  vet_phone?: string;
   created_at: string;
   updated_at: string;
   recipes?: Recipe[];
   orders?: Order[];
   subscriptions?: Subscription[];
+  vaccines?: PetVaccine[];
+  documents?: PetDocument[];
 }
 
 export function usePets() {
