@@ -187,7 +187,7 @@ export default function PetsPage() {
                     </div>
 
                     {hasAlerts && (
-                      <div className="flex flex-wrap gap-1 mt-2.5">
+                      <div className="flex flex-wrap gap-1 mt-2.5 mb-2.5">
                         {pet.allergies && <span className="text-[9px] px-1.5 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full font-medium border border-red-200 dark:border-red-800">{t("badge_allergies")}</span>}
                         {pet.restrictions && <span className="text-[9px] px-1.5 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-full font-medium border border-amber-200 dark:border-amber-800">{t("badge_restrictions")}</span>}
                         {pet.special_needs && <span className="text-[9px] px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full font-medium border border-blue-200 dark:border-blue-800">{t("badge_special_needs")}</span>}
