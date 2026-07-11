@@ -85,7 +85,10 @@ export default function EditPetPage() {
       microchip_number: pet.microchip_number || "",
       vet_name: pet.vet_name || "",
       vet_phone: pet.vet_phone || "",
-    };
+      // Existing pets created before sex/neutered became required fields may
+      // still lack them; the cast reflects that real gap and forces the user
+      // to fill it in before the form can be re-saved (as intended).
+    } as PetFormData;
   }, [pet]);
 
   const { register, control, handleSubmit, setValue, formState: { errors } } = useForm<PetFormData>({
@@ -222,7 +225,7 @@ export default function EditPetPage() {
                 <Label>{t("species")}</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <div
-                    onClick={() => setValue("type", "dog")}
+                    onClick={() => setValue("type", "dog", { shouldValidate: true })}
                     className={cn(
                       "cursor-pointer border-2 rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all",
                       type === "dog" ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
@@ -232,7 +235,7 @@ export default function EditPetPage() {
                     <span className="text-sm font-semibold">{t("dog")}</span>
                   </div>
                   <div
-                    onClick={() => setValue("type", "cat")}
+                    onClick={() => setValue("type", "cat", { shouldValidate: true })}
                     className={cn(
                       "cursor-pointer border-2 rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all",
                       type === "cat" ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
@@ -242,6 +245,7 @@ export default function EditPetPage() {
                     <span className="text-sm font-semibold">{t("cat")}</span>
                   </div>
                 </div>
+                <input type="hidden" {...register("type")} />
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -271,11 +275,11 @@ export default function EditPetPage() {
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>{t("sex")}</Label>
+                  <Label>{t("sex")} *</Label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => setValue("sex", sex === "male" ? undefined : "male")}
+                      onClick={() => setValue("sex", "male", { shouldValidate: true })}
                       className={cn(
                         "text-sm px-3 py-2 rounded-lg border font-medium transition-colors",
                         sex === "male" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"
@@ -285,7 +289,7 @@ export default function EditPetPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setValue("sex", sex === "female" ? undefined : "female")}
+                      onClick={() => setValue("sex", "female", { shouldValidate: true })}
                       className={cn(
                         "text-sm px-3 py-2 rounded-lg border font-medium transition-colors",
                         sex === "female" ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"
@@ -294,13 +298,15 @@ export default function EditPetPage() {
                       {t("sex_female")}
                     </button>
                   </div>
+                  <input type="hidden" {...register("sex")} />
+                  {errors.sex && <p className="text-xs text-destructive">{tCommon("validation_required")}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>{t("neutered")}</Label>
+                  <Label>{t("neutered")} *</Label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      onClick={() => setValue("neutered", true)}
+                      onClick={() => setValue("neutered", true, { shouldValidate: true })}
                       className={cn(
                         "text-sm px-3 py-2 rounded-lg border font-medium transition-colors",
                         neutered === true ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"
@@ -310,7 +316,7 @@ export default function EditPetPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setValue("neutered", false)}
+                      onClick={() => setValue("neutered", false, { shouldValidate: true })}
                       className={cn(
                         "text-sm px-3 py-2 rounded-lg border font-medium transition-colors",
                         neutered === false ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:bg-muted"
@@ -319,6 +325,8 @@ export default function EditPetPage() {
                       {t("neutered_no")}
                     </button>
                   </div>
+                  <input type="hidden" {...register("neutered")} />
+                  {errors.neutered && <p className="text-xs text-destructive">{tCommon("validation_required")}</p>}
                 </div>
               </div>
 
@@ -593,6 +601,12 @@ export default function EditPetPage() {
               </span>
             </div>
           </div>
+
+          {Object.keys(errors).length > 0 && (
+            <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-2.5">
+              {t("form_has_errors")}
+            </p>
+          )}
 
           {submitError && (
             <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-2.5">

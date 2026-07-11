@@ -340,6 +340,7 @@
     "confirm_delete_vaccine": "Remover esta vacina?",
     "vaccine_added_error": "Erro ao adicionar vacina.",
     "next_due_before_application_error": "A próxima dose não pode ser antes da data de aplicação.",
+    "form_has_errors": "Existem campos obrigatórios ou inválidos. Revise o formulário antes de salvar.",
     "documents": "Documentos",
     "documents_desc": "Exames, laudos e outros documentos do pet.",
     "add_document": "Adicionar Documento",

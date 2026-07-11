@@ -340,6 +340,7 @@
     "confirm_delete_vaccine": "Remove this vaccine?",
     "vaccine_added_error": "Error adding vaccine.",
     "next_due_before_application_error": "The next due date cannot be before the application date.",
+    "form_has_errors": "There are required or invalid fields. Please review the form before saving.",
     "documents": "Documents",
     "documents_desc": "Exams, reports and other pet documents.",
     "add_document": "Add Document",

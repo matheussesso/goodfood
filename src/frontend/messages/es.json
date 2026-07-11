@@ -340,6 +340,7 @@
     "confirm_delete_vaccine": "¿Eliminar esta vacuna?",
     "vaccine_added_error": "Error al agregar la vacuna.",
     "next_due_before_application_error": "La próxima dosis no puede ser anterior a la fecha de aplicación.",
+    "form_has_errors": "Hay campos obligatorios o inválidos. Revisa el formulario antes de guardar.",
     "documents": "Documentos",
     "documents_desc": "Exámenes, informes y otros documentos de la mascota.",
     "add_document": "Agregar Documento",

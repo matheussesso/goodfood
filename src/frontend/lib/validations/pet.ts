@@ -11,7 +11,7 @@ import { z } from "zod";
 export const petFormSchema = z.object({
   name: z.string().trim().min(1).max(255),
   type: z.enum(["dog", "cat"]),
-  sex: z.enum(["male", "female"]).optional(),
+  sex: z.enum(["male", "female"]),
   breed: z.string().max(255).optional(),
   weight: z.number().min(0).max(120).optional(),
   age: z.number().int().min(0).max(360).optional(),
@@ -19,7 +19,7 @@ export const petFormSchema = z.object({
   allergies: z.string().max(1000).optional(),
   special_needs: z.string().max(1000).optional(),
   photo_url: z.string().optional(),
-  neutered: z.boolean().optional(),
+  neutered: z.boolean(),
   microchip_number: z.string().regex(/^\d{9,15}$/).optional().or(z.literal("")),
   vet_name: z.string().max(255).optional(),
   vet_phone: z.string().optional(),
