@@ -13,7 +13,7 @@ import { Ingredient } from "@/hooks/useIngredients";
 import { calculateRecipeCost, Recipe } from "@/hooks/useRecipes";
 import { usePets } from "@/hooks/usePets";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp, PartyPopper, Dog, Cat } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp, PartyPopper, Dog, Cat, Clock, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -226,11 +226,11 @@ export default function NewRecipePage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <UtensilsCrossed className="w-7 h-7 text-primary" />
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
+            <UtensilsCrossed className="w-6 h-6 text-primary" />
             {t("title")}
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-0.5">
             {step === "choose_method" ? t("subtitle_method") : t("subtitle_builder")}
           </p>
         </div>
@@ -238,7 +238,7 @@ export default function NewRecipePage() {
 
       {step === "choose_method" && (
         <div className="grid md:grid-cols-2 gap-6 mt-8">
-          <div 
+          <div
             onClick={handleStartScratch}
             className="border-2 border-dashed border-primary/30 hover:border-primary/60 bg-card hover:bg-primary/5 rounded-2xl p-8 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-4 h-64"
           >
@@ -264,8 +264,8 @@ export default function NewRecipePage() {
                 <div className="text-sm text-center p-4 bg-muted/30 rounded-lg">{t("no_templates")}</div>
               )}
               {templates?.map(t => (
-                <div 
-                  key={t.id} 
+                <div
+                  key={t.id}
                   onClick={() => handleSelectTemplate(t)}
                   className="flex items-center justify-between p-3 border rounded-lg hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-colors"
                 >
@@ -282,12 +282,15 @@ export default function NewRecipePage() {
       )}
 
       {step === "builder" && (
-        <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <div className="lg:col-span-2 space-y-3">
             {pets && pets.length > 0 && (
-              <div className="bg-card border rounded-xl p-6 shadow-sm">
-                <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2">Vincular a pets (opcional)</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b bg-muted/20 flex items-center gap-2">
+                  <Dog className="w-4 h-4 text-primary" />
+                  <h3 className="font-semibold text-foreground">{t("link_pets_optional")}</h3>
+                </div>
+                <div className="p-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {pets.map(pet => (
                     <div key={pet.id} className="flex items-center space-x-2 border p-3 rounded-lg bg-background">
                       <Checkbox
@@ -311,10 +314,12 @@ export default function NewRecipePage() {
               </div>
             )}
 
-            <div className="bg-card border rounded-xl p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2">{t("basic_details")}</h3>
-              
-              <div className="space-y-4">
+            <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b bg-muted/20 flex items-center gap-2">
+                <Info className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-foreground">{t("basic_details")}</h3>
+              </div>
+              <div className="p-5 space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">{t("recipe_name")}</label>
                   <input
@@ -333,67 +338,67 @@ export default function NewRecipePage() {
                   />
                   {errors.description && <span className="text-xs text-destructive">{t("required")}</span>}
                 </div>
-                
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2">{t("pet_type")}</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div 
-                        onClick={() => {
-                          const current = watchedValues.pet_type;
-                          const isCat = current === "cat" || current === "both";
-                          const isDog = current === "dog" || current === "both";
-                          
-                          const newIsDog = !isDog;
-                          let next = "";
-                          if (newIsDog && isCat) next = "both";
-                          else if (newIsDog && !isCat) next = "dog";
-                          else if (!newIsDog && isCat) next = "cat";
-                          
-                          if (next !== "") {
-                            setValue("pet_type", next, { shouldValidate: true });
-                          }
-                        }}
-                        className={cn(
-                          "cursor-pointer border-2 rounded-lg p-2.5 flex flex-row items-center justify-center gap-2 transition-all", 
-                          (watchedValues.pet_type === "dog" || watchedValues.pet_type === "both") 
-                            ? "border-primary bg-primary/10 text-primary shadow-sm" 
-                            : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
-                        )}
-                      >
-                        <Dog className={cn("w-5 h-5", (watchedValues.pet_type === "dog" || watchedValues.pet_type === "both") ? "text-primary" : "text-muted-foreground")} />
-                        <span className="text-sm font-semibold">{tCat("dog")}</span>
-                      </div>
-                      
-                      <div 
-                        onClick={() => {
-                          const current = watchedValues.pet_type;
-                          const isCat = current === "cat" || current === "both";
-                          const isDog = current === "dog" || current === "both";
-                          
-                          const newIsCat = !isCat;
-                          let next = "";
-                          if (newIsCat && isDog) next = "both";
-                          else if (newIsCat && !isDog) next = "cat";
-                          else if (!newIsCat && isDog) next = "dog";
-                          
-                          if (next !== "") {
-                            setValue("pet_type", next, { shouldValidate: true });
-                          }
-                        }}
-                        className={cn(
-                          "cursor-pointer border-2 rounded-lg p-2.5 flex flex-row items-center justify-center gap-2 transition-all", 
-                          (watchedValues.pet_type === "cat" || watchedValues.pet_type === "both") 
-                            ? "border-primary bg-primary/10 text-primary shadow-sm" 
-                            : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
-                        )}
-                      >
-                        <Cat className={cn("w-5 h-5", (watchedValues.pet_type === "cat" || watchedValues.pet_type === "both") ? "text-primary" : "text-muted-foreground")} />
-                        <span className="text-sm font-semibold">{tCat("cat")}</span>
-                      </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">{t("pet_type")}</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div
+                      onClick={() => {
+                        const current = watchedValues.pet_type;
+                        const isCat = current === "cat" || current === "both";
+                        const isDog = current === "dog" || current === "both";
+
+                        const newIsDog = !isDog;
+                        let next = "";
+                        if (newIsDog && isCat) next = "both";
+                        else if (newIsDog && !isCat) next = "dog";
+                        else if (!newIsDog && isCat) next = "cat";
+
+                        if (next !== "") {
+                          setValue("pet_type", next, { shouldValidate: true });
+                        }
+                      }}
+                      className={cn(
+                        "cursor-pointer border-2 rounded-lg p-2.5 flex flex-row items-center justify-center gap-2 transition-all",
+                        (watchedValues.pet_type === "dog" || watchedValues.pet_type === "both")
+                          ? "border-primary bg-primary/10 text-primary shadow-sm"
+                          : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
+                      )}
+                    >
+                      <Dog className={cn("w-5 h-5", (watchedValues.pet_type === "dog" || watchedValues.pet_type === "both") ? "text-primary" : "text-muted-foreground")} />
+                      <span className="text-sm font-semibold">{tCat("dog")}</span>
                     </div>
-                    <input type="hidden" {...register("pet_type")} />
-                    {errors.pet_type && <span className="text-xs text-destructive mt-1 block">{tCommon("validation_required")}</span>}
+
+                    <div
+                      onClick={() => {
+                        const current = watchedValues.pet_type;
+                        const isCat = current === "cat" || current === "both";
+                        const isDog = current === "dog" || current === "both";
+
+                        const newIsCat = !isCat;
+                        let next = "";
+                        if (newIsCat && isDog) next = "both";
+                        else if (newIsCat && !isDog) next = "cat";
+                        else if (!newIsCat && isDog) next = "dog";
+
+                        if (next !== "") {
+                          setValue("pet_type", next, { shouldValidate: true });
+                        }
+                      }}
+                      className={cn(
+                        "cursor-pointer border-2 rounded-lg p-2.5 flex flex-row items-center justify-center gap-2 transition-all",
+                        (watchedValues.pet_type === "cat" || watchedValues.pet_type === "both")
+                          ? "border-primary bg-primary/10 text-primary shadow-sm"
+                          : "border-border hover:border-primary/50 text-muted-foreground bg-card hover:bg-muted/50"
+                      )}
+                    >
+                      <Cat className={cn("w-5 h-5", (watchedValues.pet_type === "cat" || watchedValues.pet_type === "both") ? "text-primary" : "text-muted-foreground")} />
+                      <span className="text-sm font-semibold">{tCat("cat")}</span>
+                    </div>
                   </div>
+                  <input type="hidden" {...register("pet_type")} />
+                  {errors.pet_type && <span className="text-xs text-destructive mt-1 block">{tCommon("validation_required")}</span>}
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-1">{tCat("instructions")}</label>
@@ -408,9 +413,13 @@ export default function NewRecipePage() {
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="bg-card border rounded-xl p-6 shadow-sm">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b bg-muted/20 flex items-center gap-2">
+                <Search className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-foreground">{t("ingredient_catalog")}</h3>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <input
@@ -473,14 +482,15 @@ export default function NewRecipePage() {
                   })}
                 </div>
               </div>
+            </div>
 
-              <div className="bg-card border rounded-xl p-6 shadow-sm">
-                <h3 className="text-lg font-semibold mb-4 text-primary flex items-center gap-2 border-b pb-2">
-                  <UtensilsCrossed className="w-5 h-5" />
-                  {t("ingredients")}
-                </h3>
-                
-                <div className="bg-primary/10 border border-primary/20 text-primary text-sm p-3 rounded-lg flex gap-2 mb-4">
+            <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b bg-muted/20 flex items-center gap-2">
+                <UtensilsCrossed className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-foreground">{t("ingredients")}</h3>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="bg-primary/10 border border-primary/20 text-primary text-sm p-3 rounded-lg flex gap-2">
                   <Info className="w-5 h-5 shrink-0" />
                   <span><strong>{tCommon("error") === "Erro!" ? "Importante:" : tCommon("error") === "Error!" ? "Important:" : "Importante:"}</strong> {t("important_daily_qty")}</span>
                 </div>
@@ -536,9 +546,12 @@ export default function NewRecipePage() {
               </div>
             </div>
 
-            <div className="bg-card border rounded-xl p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2">{t("planning_and_portions")}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b bg-muted/20 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-foreground">{t("planning_and_portions")}</h3>
+              </div>
+              <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">{t("duration_days")}</label>
                   <input
@@ -563,14 +576,15 @@ export default function NewRecipePage() {
             </div>
           </div>
 
-          <div className="lg:col-span-1">
-            <div className="bg-card border rounded-xl p-6 shadow-sm sticky top-6">
-              <h3 className="text-lg font-semibold mb-4 text-primary border-b pb-2 flex items-center gap-2">
-                {t("cost_summary")}
-                {isCalculatingCost && <Loader2 className="w-4 h-4 animate-spin" />}
-              </h3>
-              
-              <div className="space-y-4">
+          <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-6">
+            <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b bg-muted/20 flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-foreground flex-1">{t("cost_summary")}</h3>
+                {isCalculatingCost && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+              </div>
+
+              <div className="p-5 space-y-4">
                 {user?.role === "customer" && totalWeightAcrossDays < 1.5 ? (
                   <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-lg flex gap-2">
                     <Info className="w-5 h-5 flex-shrink-0" />
@@ -660,7 +674,7 @@ export default function NewRecipePage() {
                 <button
                   type="submit"
                   disabled={createRecipe.isPending || isCalculatingCost || (user?.role === "customer" && totalWeightAcrossDays < 1.5)}
-                  className="w-full mt-6 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 disabled:opacity-50"
+                  className="w-full mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 disabled:opacity-50"
                 >
                   {createRecipe.isPending ? t("saving") : (
                     <span className="flex items-center gap-2">
