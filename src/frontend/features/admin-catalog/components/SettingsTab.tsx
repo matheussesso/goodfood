@@ -7,7 +7,6 @@ import { useSettings, GeneralSettings } from "@/hooks/useSettings";
 import { generalSettingsSchema } from "@/lib/validations/settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { AlertCircle, Loader2, Save, Settings2 } from "lucide-react";
 
 /**
@@ -105,25 +104,26 @@ export function SettingsTab() {
         <div className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {sections.map((section, idx) => (
               <div key={idx} className="bg-card border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                <div className="p-5">
-                  <div className="flex items-center gap-2 mb-4">
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
                     <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
                       <Settings2 className="w-3.5 h-3.5 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-sm text-foreground">{section.title}</h3>
+                    <h3 className="font-semibold text-sm text-foreground truncate">{section.title}</h3>
                   </div>
-                  <div className={cn("gap-4", section.fields.length > 1 ? "grid grid-cols-1 sm:grid-cols-2" : "flex flex-col")}>
+                  <div className="flex gap-2">
                     {section.fields.map((field) => (
-                      <div key={field.name} className="space-y-1.5">
-                        <label className="block text-xs font-medium text-muted-foreground">
+                      <div key={field.name} className="flex-1 min-w-0 space-y-1.5">
+                        <label className="block text-[11px] font-medium text-muted-foreground truncate" title={field.label}>
                           {field.label}
                         </label>
                         <Input
                           type="number"
                           step={field.step}
+                          className="px-2"
                           {...register(field.name, { valueAsNumber: true })}
                         />
                         {errors[field.name] && (

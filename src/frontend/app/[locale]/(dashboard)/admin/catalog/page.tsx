@@ -8,7 +8,7 @@ import { useRecipes, Recipe } from "@/hooks/useRecipes";
 import { SettingsTab } from "@/features/admin-catalog/components/SettingsTab";
 import { IngredientFormModal } from "@/features/admin-catalog/components/IngredientFormModal";
 import { TemplateRecipeModal } from "@/features/admin-catalog/components/TemplateRecipeModal";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Edit2, Trash2, Loader2, BookOpen, Apple, Settings2, AlertCircle, Search, LayoutGrid, List, CheckCircle2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, X } from "lucide-react";
@@ -419,136 +419,142 @@ export default function CatalogPage() {
           {isLoadingRec ? (
             <div className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
           ) : recipesViewMode === "grid" ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredTemplates.map(rec => (
-                <Card key={rec.id} className="flex flex-col overflow-hidden hover:border-primary/30 hover:shadow-md transition-all">
-                  <div className="p-4 pb-3 border-b bg-muted/20 flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-base line-clamp-1">{rec.name}</h4>
-                      <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1 min-h-[1.25rem]">{rec.description || tRec("no_description")}</p>
-                    </div>
-                    <div className="flex gap-0.5 shrink-0">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => handleOpenRecModal(rec)}><Edit2 className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRec(rec.id)}><Trash2 className="h-4 w-4" /></Button>
-                    </div>
-                  </div>
-                  <CardContent className="pt-4 flex-1 flex flex-col">
-                    <div className="grid grid-cols-4 gap-x-2 gap-y-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{tRec("pet_type")}</span>
-                        <span className="font-medium text-xs">{rec.pet_type === 'cat' ? t("cat") : rec.pet_type === 'dog' ? t("dog") : t("general")}</span>
+                <div key={rec.id} className="group bg-card border rounded-xl shadow-sm overflow-hidden hover:shadow-md hover:border-primary/30 transition-all flex flex-col">
+                  <div className="p-4 flex-1 flex flex-col">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                          <BookOpen className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-sm leading-tight truncate" title={rec.name}>{rec.name}</h4>
+                          <span className="text-[11px] text-muted-foreground truncate block">{rec.description || tRec("no_description")}</span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{t("duration")}</span>
-                        <span className="font-medium text-xs">{rec.duration_days}d</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{tRec("portions_per_day_caps").split("/")[0]}</span>
-                        <span className="font-medium text-xs">{rec.daily_portions}/{t("days").slice(0, 3)}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase tracking-wider mb-0.5">{tRec("estimated_cost")}</span>
-                        <span className="font-semibold text-xs text-amber-600 dark:text-amber-400">R$ {Number(rec.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => handleOpenRecModal(rec)}><Edit2 className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRec(rec.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                       </div>
                     </div>
+
+                    <div className="grid grid-cols-4 divide-x divide-border/50 bg-muted/30 rounded-lg">
+                      <div className="px-1.5 py-2 text-center min-w-0">
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{tRec("pet_type")}</span>
+                        <span className="font-medium text-xs truncate block">{rec.pet_type === 'cat' ? t("cat") : rec.pet_type === 'dog' ? t("dog") : t("general")}</span>
+                      </div>
+                      <div className="px-1.5 py-2 text-center min-w-0">
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("duration")}</span>
+                        <span className="font-medium text-xs truncate block">{rec.duration_days}d</span>
+                      </div>
+                      <div className="px-1.5 py-2 text-center min-w-0">
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{tRec("portions_per_day_caps").split("/")[0]}</span>
+                        <span className="font-medium text-xs truncate block">{rec.daily_portions}x</span>
+                      </div>
+                      <div className="px-1.5 py-2 text-center min-w-0">
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{tRec("estimated_cost")}</span>
+                        <span className="font-semibold text-xs text-amber-600 dark:text-amber-400 truncate block">R$ {Number(rec.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                      </div>
+                    </div>
+
                     {rec.ingredients && rec.ingredients.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border/50 flex-1">
-                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">{tRec("recipe_composition")}</p>
-                        <ul className="space-y-1">
-                          {(expandedRecipes.has(rec.id) ? rec.ingredients : rec.ingredients.slice(0, 3)).map(i => (
-                            <li key={i.id} className="flex items-center justify-between text-xs">
-                              <span className="text-muted-foreground truncate flex-1 mr-2">{i.name}</span>
-                              <span className="font-medium shrink-0 text-[10px] bg-muted px-1.5 py-0.5 rounded">{i.pivot.quantity} {i.pivot.unit || i.unit}/{t("days").slice(0, 3)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        {rec.ingredients.length > 3 && (
-                          <button
-                            type="button"
-                            onClick={() => setExpandedRecipes(prev => {
-                              const next = new Set(prev);
-                              if (next.has(rec.id)) next.delete(rec.id); else next.add(rec.id);
-                              return next;
-                            })}
-                            className="mt-2 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
-                          >
-                            {expandedRecipes.has(rec.id)
-                              ? <><ChevronUp className="w-3 h-3" /> {tCommon("back")}</>
-                              : <><ChevronDown className="w-3 h-3" /> +{rec.ingredients.length - 3}</>
-                            }
-                          </button>
+                      <div className="mt-2.5 pt-2 border-t border-border/50">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedRecipes(prev => {
+                            const next = new Set(prev);
+                            if (next.has(rec.id)) next.delete(rec.id); else next.add(rec.id);
+                            return next;
+                          })}
+                          className="w-full flex items-center justify-between text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
+                        >
+                          <span>{tRec("recipe_composition")} ({rec.ingredients.length})</span>
+                          {expandedRecipes.has(rec.id) ? <ChevronUp className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
+                        </button>
+                        {expandedRecipes.has(rec.id) && (
+                          <ul className="mt-2 space-y-1 max-h-32 overflow-y-auto pr-1">
+                            {rec.ingredients.map(i => (
+                              <li key={i.id} className="flex items-center justify-between text-[11px] gap-2">
+                                <span className="text-muted-foreground truncate flex-1">{i.name}</span>
+                                <span className="font-medium shrink-0 text-[10px] bg-muted px-1.5 py-0.5 rounded">{i.pivot.quantity} {i.pivot.unit || i.unit}/{t("days").slice(0, 3)}</span>
+                              </li>
+                            ))}
+                          </ul>
                         )}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
               {filteredTemplates.length === 0 && (
-                <div className="col-span-3 p-12 text-center text-muted-foreground border rounded-lg border-dashed">
+                <div className="col-span-full p-12 text-center text-muted-foreground border rounded-lg border-dashed">
                   <BookOpen className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
                   <p>{t("no_recipes")}</p>
                 </div>
               )}
             </div>
           ) : (
-            <div className="border rounded-lg bg-card">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-muted-foreground bg-muted/50 uppercase">
-                  <tr>
-                    <th className="px-6 py-3 font-medium rounded-tl-lg">{t("name")}</th>
-                    <th className="px-6 py-3 font-medium text-center">{tRec("pet_type")}</th>
-                    <th className="px-6 py-3 font-medium text-center">{t("duration")}</th>
-                    <th className="px-6 py-3 font-medium text-center">{tRec("portions_per_day_caps")}</th>
-                    <th className="px-6 py-3 font-medium text-center">{tRec("ingredients")}</th>
-                    <th className="px-6 py-3 font-medium text-right">{t("base_price_table_header")}</th>
-                    <th className="px-6 py-3 font-medium text-right rounded-tr-lg">{tCommon("actions")}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {filteredTemplates.map(rec => (
-                    <tr key={rec.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-semibold">{rec.name}</div>
-                        <div className="text-xs text-muted-foreground line-clamp-1 max-w-[220px] mt-0.5">{rec.description}</div>
-                      </td>
-                      <td className="px-6 py-4 text-center">{rec.pet_type === 'cat' ? t("cat") : rec.pet_type === 'dog' ? t("dog") : t("general")}</td>
-                      <td className="px-6 py-4 text-center">{rec.duration_days} {t("days")}</td>
-                      <td className="px-6 py-4 text-center">{rec.daily_portions}</td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="relative inline-flex group/ing cursor-default">
-                          <span className="underline decoration-dotted decoration-muted-foreground/50">
-                            {rec.ingredients?.length ?? 0}
-                          </span>
-                          {(rec.ingredients?.length ?? 0) > 0 && (
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20 hidden group-hover/ing:block pointer-events-none">
-                              <div className="bg-popover border border-border shadow-lg rounded-lg p-2.5 text-left min-w-[180px] max-w-[260px]">
-                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 border-b pb-1">{tRec("ingredients")}</p>
-                                <ul className="space-y-1">
-                                  {rec.ingredients?.map(i => (
-                                    <li key={i.id} className="flex items-center gap-1.5 text-xs">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                                      <span className="text-foreground truncate flex-1">{i.name}</span>
-                                      <span className="text-muted-foreground text-[10px] shrink-0 ml-1">{String(parseFloat(i.pivot.quantity) || 0)}{i.pivot.unit || i.unit}/d</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                              <div className="w-2.5 h-2.5 bg-popover border-b border-r border-border rotate-45 mx-auto -mt-[5px]" />
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right font-semibold text-amber-600 dark:text-amber-400">R$ {Number(rec.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex gap-1 justify-end">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenRecModal(rec)}><Edit2 className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRec(rec.id)}><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                      </td>
+            <div className="border rounded-lg bg-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left min-w-[800px]">
+                  <thead className="text-xs text-muted-foreground bg-muted/50 uppercase">
+                    <tr>
+                      <th className="px-6 py-3 font-medium rounded-tl-lg">{t("name")}</th>
+                      <th className="px-6 py-3 font-medium text-center">{tRec("pet_type")}</th>
+                      <th className="px-6 py-3 font-medium text-center">{t("duration")}</th>
+                      <th className="px-6 py-3 font-medium text-center">{tRec("portions_per_day_caps")}</th>
+                      <th className="px-6 py-3 font-medium text-center">{tRec("ingredients")}</th>
+                      <th className="px-6 py-3 font-medium text-right">{t("base_price_table_header")}</th>
+                      <th className="px-6 py-3 font-medium text-right rounded-tr-lg">{tCommon("actions")}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {filteredTemplates.map(rec => (
+                      <tr key={rec.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-6 py-3.5">
+                          <div className="font-semibold">{rec.name}</div>
+                          <div className="text-xs text-muted-foreground line-clamp-1 max-w-[220px] mt-0.5">{rec.description}</div>
+                        </td>
+                        <td className="px-6 py-3.5 text-center">{rec.pet_type === 'cat' ? t("cat") : rec.pet_type === 'dog' ? t("dog") : t("general")}</td>
+                        <td className="px-6 py-3.5 text-center">{rec.duration_days} {t("days")}</td>
+                        <td className="px-6 py-3.5 text-center">{rec.daily_portions}</td>
+                        <td className="px-6 py-3.5 text-center">
+                          <div className="relative inline-flex group/ing cursor-default">
+                            <span className="underline decoration-dotted decoration-muted-foreground/50">
+                              {rec.ingredients?.length ?? 0}
+                            </span>
+                            {(rec.ingredients?.length ?? 0) > 0 && (
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-20 hidden group-hover/ing:block pointer-events-none">
+                                <div className="bg-popover border border-border shadow-lg rounded-lg p-2.5 text-left min-w-[180px] max-w-[260px]">
+                                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 border-b pb-1">{tRec("ingredients")}</p>
+                                  <ul className="space-y-1">
+                                    {rec.ingredients?.map(i => (
+                                      <li key={i.id} className="flex items-center gap-1.5 text-xs">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                        <span className="text-foreground truncate flex-1">{i.name}</span>
+                                        <span className="text-muted-foreground text-[10px] shrink-0 ml-1">{String(parseFloat(i.pivot.quantity) || 0)}{i.pivot.unit || i.unit}/d</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                                <div className="w-2.5 h-2.5 bg-popover border-b border-r border-border rotate-45 mx-auto -mt-[5px]" />
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-3.5 text-right font-semibold text-amber-600 dark:text-amber-400">R$ {Number(rec.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="px-6 py-3.5 text-right">
+                          <div className="flex gap-1 justify-end">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenRecModal(rec)}><Edit2 className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteRec(rec.id)}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
