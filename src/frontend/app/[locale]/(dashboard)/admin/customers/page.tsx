@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { useCustomers, useCreateCustomer } from "@/hooks/useCustomers";
@@ -17,6 +17,9 @@ import {
   ShoppingBag,
   Plus,
   Loader2,
+  MapPin,
+  X,
+  FilterX,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -57,16 +60,6 @@ function nameToHsl(str: string): string {
   }
   const hue = Math.abs(hash) % 360;
   return `hsl(${hue}, 60%, 42%)`;
-}
-
-/** Generic debounce hook. */
-function useDebounce<T>(value: T, delay: number): T {
-  const [dv, setDv] = useState<T>(value);
-  useEffect(() => {
-    const h = setTimeout(() => setDv(value), delay);
-    return () => clearTimeout(h);
-  }, [value, delay]);
-  return dv;
 }
 
 type FormErrors = Partial<Record<string, string>>;
@@ -111,7 +104,14 @@ const emptyAddr = {
   state:        "",
 };
 
-type SortKey = "date" | "name" | "pets" | "orders";
+type SortKey = "name" | "date" | "pets" | "orders";
+
+const SORT_LABELS: Record<SortKey, string> = {
+  name:   "Nome (A-Z)",
+  date:   "Mais recentes",
+  pets:   "Mais pets",
+  orders: "Mais pedidos",
+};
 
 /**
  * Admin customers listing page with grid/list views, search, sort, and create modal.
@@ -122,10 +122,9 @@ export default function CustomersPage() {
   const t  = useTranslations("admin");
   const tC = useTranslations("Common");
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearch = useDebounce(searchTerm, 400);
-  const { customers, isLoading } = useCustomers(debouncedSearch);
+  const { customers, isLoading } = useCustomers();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
 
   // ── Create modal state ──────────────────────────────────────────────────────
   const [createOpen,  setCreateOpen]  = useState(false);
@@ -237,9 +236,28 @@ export default function CustomersPage() {
     }
   }
 
-  // ── Sort ───────────────────────────────────────────────────────────────────
+  // ── Search + sort ────────────────────────────────────────────────────────
+  const isFiltering = searchTerm !== "";
+
+  function clearFilters() {
+    setSearchTerm("");
+  }
+
   const sorted = useMemo(() => {
-    const copy = [...customers];
+    const q = searchTerm.trim().toLowerCase();
+    const qDigits = q.replace(/\D/g, "");
+
+    const filtered = customers.filter((c) => {
+      if (!q) return true;
+      return (
+        c.name.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        (c.city ?? "").toLowerCase().includes(q) ||
+        (qDigits.length >= 3 && (c.phone ?? "").replace(/\D/g, "").includes(qDigits))
+      );
+    });
+
+    const copy = [...filtered];
     if (sortKey === "name") copy.sort((a, b) => a.name.localeCompare(b.name));
     else if (sortKey === "pets")
       copy.sort((a, b) => (b.pets_count ?? 0) - (a.pets_count ?? 0));
@@ -251,7 +269,7 @@ export default function CustomersPage() {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     return copy;
-  }, [customers, sortKey]);
+  }, [customers, searchTerm, sortKey]);
 
   const totalPets   = customers.reduce((s, c) => s + (c.pets_count   ?? 0), 0);
   const totalOrders = customers.reduce((s, c) => s + (c.orders_count ?? 0), 0);
@@ -298,7 +316,7 @@ export default function CustomersPage() {
           </div>
           <div>
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-              Total de Pets
+              {t("total_pets")}
             </p>
             <p className="text-2xl font-bold text-foreground">
               {isLoading ? "—" : totalPets}
@@ -312,7 +330,7 @@ export default function CustomersPage() {
           </div>
           <div>
             <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-              Total de Pedidos
+              {t("total_orders")}
             </p>
             <p className="text-2xl font-bold text-foreground">
               {isLoading ? "—" : totalOrders}
@@ -329,8 +347,17 @@ export default function CustomersPage() {
             placeholder={t("search_customers")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 h-10 w-full"
+            className="pl-9 pr-9 h-10 w-full"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
@@ -339,13 +366,15 @@ export default function CustomersPage() {
             onValueChange={(v) => v && setSortKey(v as SortKey)}
           >
             <SelectTrigger className="w-full md:w-[200px] h-10">
-              <SelectValue placeholder="Ordenar por" />
+              <SelectValue placeholder="Ordenar por">
+                {(value: SortKey | null) => value ? SORT_LABELS[value] : "Ordenar por"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="date">Mais recentes</SelectItem>
-              <SelectItem value="name">Nome (A-Z)</SelectItem>
-              <SelectItem value="pets">Mais pets</SelectItem>
-              <SelectItem value="orders">Mais pedidos</SelectItem>
+              <SelectItem value="name">{SORT_LABELS.name}</SelectItem>
+              <SelectItem value="date">{SORT_LABELS.date}</SelectItem>
+              <SelectItem value="pets">{SORT_LABELS.pets}</SelectItem>
+              <SelectItem value="orders">{SORT_LABELS.orders}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -381,72 +410,95 @@ export default function CustomersPage() {
       ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4 bg-card border rounded-xl">
           <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
-            <Users className="w-8 h-8 text-muted-foreground/50" />
+            {isFiltering ? (
+              <FilterX className="w-8 h-8 text-muted-foreground/50" />
+            ) : (
+              <Users className="w-8 h-8 text-muted-foreground/50" />
+            )}
           </div>
           <div className="text-center">
-            <p className="font-medium text-foreground">{t("no_customers_found")}</p>
+            <p className="font-medium text-foreground">
+              {isFiltering ? tC("no_results") : t("no_customers_found")}
+            </p>
             <p className="text-sm text-muted-foreground mt-1">
-              {searchTerm ? t("no_customers_found") : t("no_customers_yet")}
+              {isFiltering ? tC("adjust_filters") : t("no_customers_yet")}
             </p>
           </div>
+          {isFiltering && (
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              {tC("clear_filters")}
+            </Button>
+          )}
         </div>
       ) : viewMode === "grid" ? (
         /* ── Grid view ──────────────────────────────────────────────────── */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {sorted.map((customer) => {
             const initials = getInitials(customer.name);
             const avatarBg = nameToHsl(customer.name);
+            const location = customer.city && customer.state ? `${customer.city}/${customer.state}` : null;
             return (
               <div
                 key={customer.id}
-                className="bg-card border rounded-xl shadow-sm overflow-hidden hover:border-primary/50 hover:shadow-md transition-all group flex flex-col"
+                className="group bg-card border rounded-xl shadow-sm overflow-hidden hover:border-primary/50 hover:shadow-md transition-all flex flex-col"
               >
-                <div className="p-5 pb-4 border-b border-border/50 bg-muted/20 flex items-center gap-4">
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm"
-                    style={{ backgroundColor: avatarBg }}
-                  >
-                    {initials}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground truncate leading-tight">
-                      {customer.name}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
-                      <Mail className="w-3 h-3 shrink-0" />
-                      <span className="truncate">{customer.email}</span>
+                <div className="p-4 flex-1 flex flex-col">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm"
+                        style={{ backgroundColor: avatarBg }}
+                      >
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-semibold text-sm leading-tight truncate" title={customer.name}>{customer.name}</h4>
+                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground min-w-0">
+                          <Mail className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{customer.email}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex divide-x divide-border/50 border-b border-border/50">
-                  <div className="flex-1 py-3 flex flex-col items-center gap-0.5">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Pets</span>
-                    <span className="font-bold text-lg text-foreground leading-none">{customer.pets_count ?? 0}</span>
+                  <div className="grid grid-cols-4 divide-x divide-border/50 bg-muted/30 rounded-lg">
+                    <div className="px-1.5 py-2 text-center min-w-0">
+                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("pets")}</span>
+                      <span className="font-medium text-xs truncate block">{customer.pets_count ?? 0}</span>
+                    </div>
+                    <div className="px-1.5 py-2 text-center min-w-0">
+                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("orders")}</span>
+                      <span className="font-medium text-xs truncate block">{customer.orders_count ?? 0}</span>
+                    </div>
+                    <div className="px-1.5 py-2 text-center min-w-0">
+                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("city_label")}</span>
+                      <span className="font-medium text-xs truncate block">{customer.state || "—"}</span>
+                    </div>
+                    <div className="px-1.5 py-2 text-center min-w-0">
+                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("since_label")}</span>
+                      <span className="font-medium text-xs truncate block">
+                        {new Date(customer.created_at).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex-1 py-3 flex flex-col items-center gap-0.5">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Pedidos</span>
-                    <span className="font-bold text-lg text-foreground leading-none">{customer.orders_count ?? 0}</span>
-                  </div>
-                  <div className="flex-1 py-3 flex flex-col items-center gap-0.5">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Desde</span>
-                    <span className="font-bold text-sm text-foreground leading-none">
-                      {new Date(customer.created_at).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="px-5 py-3 flex items-center justify-between mt-auto">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Phone className="w-3.5 h-3.5 shrink-0" />
-                    <span>{customer.phone || "—"}</span>
+                  <div className="flex flex-col gap-1 mt-2.5">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <Phone className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{customer.phone || "—"}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <MapPin className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{location ?? t("location_unknown")}</span>
+                    </div>
                   </div>
+
                   <Link
                     href={`/admin/customers/${customer.id}`}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                    className="flex items-center justify-center gap-1 text-xs font-medium text-primary hover:text-primary/80 pt-2.5 mt-auto border-t border-border/50"
                   >
-                    Ver detalhes
-                    <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                    {t("view_details")}
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               </div>
@@ -457,11 +509,12 @@ export default function CustomersPage() {
         /* ── List view ──────────────────────────────────────────────────── */
         <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[760px]">
               <thead>
                 <tr className="border-b bg-muted/40 text-xs">
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider">{t("name")}</th>
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">{t("contact")}</th>
+                  <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">{t("city_label")}</th>
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-center">{t("pets")}</th>
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-center hidden sm:table-cell">{t("orders")}</th>
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">{t("registered_at")}</th>
@@ -488,6 +541,12 @@ export default function CustomersPage() {
                       <td className="py-3.5 px-5 hidden md:table-cell">
                         <div className="text-foreground text-sm">{customer.email}</div>
                         <div className="text-xs text-muted-foreground mt-0.5">{customer.phone || "—"}</div>
+                      </td>
+                      <td className="py-3.5 px-5 hidden lg:table-cell">
+                        <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                          <MapPin className="w-3.5 h-3.5 shrink-0" />
+                          {customer.city && customer.state ? `${customer.city}/${customer.state}` : "—"}
+                        </div>
                       </td>
                       <td className="py-3.5 px-5 text-center">
                         <span className="inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 rounded-full text-xs font-semibold">
