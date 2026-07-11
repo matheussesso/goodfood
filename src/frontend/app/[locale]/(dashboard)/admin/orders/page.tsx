@@ -18,6 +18,7 @@ import {
   UtensilsCrossed,
   Users,
   ChevronDown,
+  ChevronUp,
   Filter,
   FilterX,
   MapPin,
@@ -80,28 +81,26 @@ function StatusBadge({ status, label }: { status: string; label: string }) {
  * @param compact - Compact single-line variant for list view.
  */
 function RecipeBlock({ item, compact = false }: { item: OrderItem; compact?: boolean }) {
-  const tCat = useTranslations("Catalog");
-  const tRec = useTranslations("Recipes");
   const PetIcon = item.pet?.type === "cat" ? Cat : Dog;
 
   const stats = item.recipe && (
-    <div className="flex items-center divide-x divide-border text-[11px] text-muted-foreground flex-wrap">
+    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
       {item.recipe.duration_days && (
-        <span className="flex items-center gap-1 pr-2">
+        <span className="flex items-center gap-0.5 shrink-0">
           <Clock className="w-3 h-3" />
-          {item.recipe.duration_days} {tCat("days")}
+          {item.recipe.duration_days}d
         </span>
       )}
       {item.recipe.daily_portions && (
-        <span className="flex items-center gap-1 px-2">
+        <span className="flex items-center gap-0.5 shrink-0">
           <Salad className="w-3 h-3" />
-          {item.recipe.daily_portions} {tCat("daily_portions").toLowerCase()}
+          {item.recipe.daily_portions}x/dia
         </span>
       )}
       {item.recipe.ingredients && item.recipe.ingredients.length > 0 && (
-        <span className="flex items-center gap-1 pl-2">
+        <span className="flex items-center gap-0.5 shrink-0">
           <Layers className="w-3 h-3" />
-          {item.recipe.ingredients.length} {tRec("ingredients").toLowerCase()}
+          {item.recipe.ingredients.length} ing.
         </span>
       )}
     </div>
@@ -182,25 +181,26 @@ function AdminOrderCard({
   const style = STATUS_STYLE[status] ?? STATUS_STYLE.pending;
   const step = progressStep(order.status);
   const isCancelled = order.status === "cancelled";
-  const hasItems = !!(order.items && order.items.length > 0);
+  const items = order.items ?? [];
+  const hasItems = items.length > 0;
+  const itemCount = hasItems ? items.length : order.recipe ? 1 : 0;
+  const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-card border rounded-xl shadow-sm overflow-hidden hover:border-primary/30 transition-colors flex flex-col">
-      {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b">
-        <div className="flex items-start justify-between gap-2">
+    <div className="group bg-card border rounded-xl shadow-sm overflow-hidden hover:shadow-md hover:border-primary/30 transition-all flex flex-col">
+      <div className="p-4 flex-1 flex flex-col">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
-              <ShoppingBag className="w-4 h-4" />
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <ShoppingBag className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="font-bold text-foreground text-sm leading-snug">
-                {t("order_number")}{order.id}
-              </p>
-              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                <Calendar className="w-3 h-3" />
+              <h4 className="font-semibold text-sm leading-tight truncate">{t("order_number")}{order.id}</h4>
+              <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                <Calendar className="w-3 h-3 shrink-0" />
                 {new Date(order.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
-              </p>
+              </span>
             </div>
           </div>
           <StatusBadge status={order.status} label={t(`status_${order.status}` as `status_${OrderStatus}`)} />
@@ -208,22 +208,44 @@ function AdminOrderCard({
 
         {/* Customer info */}
         {order.user && (
-          <p className="text-xs text-muted-foreground mt-2.5 flex items-center gap-1.5">
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mb-2.5 min-w-0">
             <Users className="w-3.5 h-3.5 shrink-0 text-primary/60" />
-            <span className="font-medium text-foreground">{order.user.name}</span>
-            <span className="text-muted-foreground/60">· {order.user.email}</span>
+            <span className="font-medium text-foreground truncate">{order.user.name}</span>
+            <span className="text-muted-foreground/60 truncate">· {order.user.email}</span>
           </p>
         )}
 
-        <p className="text-xl font-bold text-primary mt-2.5">
-          R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </p>
-      </div>
+        {/* Stat strip */}
+        <div className="grid grid-cols-4 divide-x divide-border/50 bg-muted/30 rounded-lg">
+          <div className="px-1.5 py-2 text-center min-w-0">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("total")}</span>
+            <span className="font-semibold text-xs text-amber-600 dark:text-amber-400 truncate block">
+              R$ {Number(order.total_price).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </span>
+          </div>
+          <div className="px-1.5 py-2 text-center min-w-0">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("items_count")}</span>
+            <span className="font-medium text-xs truncate block">{itemCount}</span>
+          </div>
+          <div className="px-1.5 py-2 text-center min-w-0">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("invoice_label")}</span>
+            <span className="font-medium text-xs truncate block">
+              {order.invoice ? t(`invoice_status_${order.invoice.status}` as `invoice_status_pending`) : "—"}
+            </span>
+          </div>
+          <div className="px-1.5 py-2 text-center min-w-0">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("delivery_label")}</span>
+            <span className="font-medium text-xs truncate block">
+              {order.invoice?.due_date
+                ? new Date(order.invoice.due_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+                : "—"}
+            </span>
+          </div>
+        </div>
 
-      {/* Progress bar */}
-      {!isCancelled && (
-        <div className="px-4 py-2.5 bg-muted/20 border-b">
-          <div className="flex items-center gap-1">
+        {/* Progress bar */}
+        {!isCancelled && (
+          <div className="flex items-center gap-1 mt-2.5">
             {STATUS_PIPELINE.map((s, idx) => (
               <div
                 key={s}
@@ -231,31 +253,43 @@ function AdminOrderCard({
               />
             ))}
           </div>
+        )}
+
+        {/* Items accordion */}
+        <div className="mt-2.5 pt-2 border-t border-border/50">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="w-full flex items-center justify-between text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
+          >
+            <span>{t("order_items_label")} ({itemCount})</span>
+            {expanded ? <ChevronUp className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
+          </button>
+          {expanded && (
+            <div className="mt-2 space-y-1.5 max-h-56 overflow-y-auto pr-1">
+              {hasItems ? (
+                items.map((item) => <RecipeBlock key={item.id} item={item} compact />)
+              ) : order.recipe ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+                  <UtensilsCrossed className="w-3.5 h-3.5 shrink-0" />
+                  {order.recipe.name}
+                </div>
+              ) : (
+                <span className="text-[11px] text-muted-foreground italic">—</span>
+              )}
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Recipe blocks */}
-      <div className="px-4 py-4 space-y-2 flex-1">
-        {hasItems
-          ? order.items!.map((item) => <RecipeBlock key={item.id} item={item} />)
-          : (
-            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-              <UtensilsCrossed className="w-4 h-4 shrink-0" />
-              {order.recipe?.name ?? "—"}
-            </p>
-          )
-        }
-      </div>
-
-      {/* Footer: address + actions */}
-      <div className="px-4 pb-4 mt-auto space-y-2">
+        {/* Footer: address + actions */}
         {order.delivery_address && (
-          <p className="text-xs text-muted-foreground flex items-start gap-1.5 pt-3 border-t">
+          <p className="text-[11px] text-muted-foreground flex items-start gap-1.5 mt-2.5 line-clamp-2">
             <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-primary/60" />
-            <span className="line-clamp-2">{order.delivery_address}</span>
+            {order.delivery_address}
           </p>
         )}
-        <div className={cn("flex gap-2", !order.delivery_address && "pt-3 border-t")}>
+
+        <div className="flex gap-2 pt-2.5 mt-auto border-t border-border/50">
           <Button
             variant="outline"
             size="sm"
@@ -285,7 +319,10 @@ function AdminOrderCard({
 function AdminOrderRow({
   order, t, onEdit,
 }: { order: Order; t: ReturnType<typeof useTranslations>; onEdit: (o: Order) => void }) {
-  const hasItems = !!(order.items && order.items.length > 0);
+  const items = order.items ?? [];
+  const hasItems = items.length > 0;
+  const itemCount = hasItems ? items.length : order.recipe ? 1 : 0;
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div className="bg-card border rounded-xl hover:border-primary/30 transition-colors overflow-hidden">
@@ -333,12 +370,28 @@ function AdminOrderRow({
         </div>
       </div>
 
-      {/* Recipe detail blocks */}
-      {hasItems && (
+      {/* Items accordion toggle */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 px-4 py-2 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors border-t"
+      >
+        <span className="uppercase tracking-wider">{t("order_items_label")} ({itemCount})</span>
+        {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+      </button>
+
+      {expanded && (
         <div className="border-t bg-muted/10 px-4 py-3 divide-y divide-border/50">
-          {order.items!.map((item) => (
-            <RecipeBlock key={item.id} item={item} compact />
-          ))}
+          {hasItems ? (
+            items.map((item) => <RecipeBlock key={item.id} item={item} compact />)
+          ) : order.recipe ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-1.5">
+              <UtensilsCrossed className="w-3.5 h-3.5 shrink-0" />
+              {order.recipe.name}
+            </div>
+          ) : (
+            <span className="text-[11px] text-muted-foreground italic py-1.5 block">—</span>
+          )}
         </div>
       )}
     </div>
@@ -502,7 +555,7 @@ export default function AdminOrdersPage() {
           </p>
 
           {viewMode === "card" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {filtered.map((order) => (
                 <AdminOrderCard key={order.id} order={order} t={t} onEdit={openEditModal} />
               ))}
