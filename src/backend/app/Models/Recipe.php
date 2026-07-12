@@ -68,11 +68,6 @@ class Recipe extends Model
         return $this->hasMany(Order::class);
     }
 
-    public function subscriptions(): HasMany
-    {
-        return $this->hasMany(Subscription::class);
-    }
-
     public function scopeTemplates($query)
     {
         return $query->where('is_template', true);

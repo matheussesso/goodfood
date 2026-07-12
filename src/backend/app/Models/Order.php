@@ -17,7 +17,6 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int $user_id
  * @property int|null $pet_id
  * @property int|null $recipe_id
- * @property int|null $subscription_id
  * @property float $total_price
  * @property string $status
  * @property string|null $delivery_address
@@ -32,7 +31,6 @@ class Order extends Model
         'user_id',
         'pet_id',
         'recipe_id',
-        'subscription_id',
         'total_price',
         'status',
         'delivery_address',
@@ -63,12 +61,6 @@ class Order extends Model
     public function recipe(): BelongsTo
     {
         return $this->belongsTo(Recipe::class);
-    }
-
-    /** @return BelongsTo<Subscription, $this> */
-    public function subscription(): BelongsTo
-    {
-        return $this->belongsTo(Subscription::class);
     }
 
     /** @return HasMany<OrderItem, $this> */

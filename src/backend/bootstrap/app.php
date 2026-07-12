@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
-use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -30,9 +29,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // ranges only (see docs/vps_deploy.md), so REMOTE_ADDR is always a
         // trusted Cloudflare edge, and X-Forwarded-* reflects the real client.
         $middleware->trustProxies(at: '*');
-    })
-    ->withSchedule(function (Schedule $schedule): void {
-        $schedule->command('subscriptions:generate-orders')->daily();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

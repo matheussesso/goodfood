@@ -13,7 +13,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Manages subscription resources. Ownership rules live in SubscriptionPolicy.
+ * Manages subscription resources (fixed-duration weekly meal plans).
+ * Ownership rules live in SubscriptionPolicy.
  */
 class SubscriptionController extends Controller
 {
@@ -24,16 +25,12 @@ class SubscriptionController extends Controller
     {
         if ($request->user()->isAdmin()) {
             $subscriptions = Subscription::with(['user', 'pet', 'recipes.ingredients'])
-                ->withCount('orders')
-                ->withMax('orders', 'created_at')
                 ->latest()
                 ->get();
         } else {
             $subscriptions = $request->user()
                 ->subscriptions()
                 ->with(['pet', 'recipes.ingredients'])
-                ->withCount('orders')
-                ->withMax('orders', 'created_at')
                 ->latest()
                 ->get();
         }
@@ -42,8 +39,8 @@ class SubscriptionController extends Controller
     }
 
     /**
-     * Create a subscription for the authenticated user's pet, cycling
-     * through the given recipes in order.
+     * Create a fixed-duration weekly meal plan for the authenticated user's
+     * pet, with one recipe per 7-day block.
      */
     public function store(StoreSubscriptionRequest $request): JsonResponse
     {
@@ -54,14 +51,11 @@ class SubscriptionController extends Controller
             return $this->respondError('Pet not found or unauthorized', 403);
         }
 
-        $startDate = Carbon::parse($validated['start_date']);
-
         $subscription = $request->user()->subscriptions()->create([
             'pet_id' => $validated['pet_id'],
-            'interval_days' => $validated['interval_days'],
+            'duration_days' => $validated['duration_days'],
             'status' => 'active',
-            'start_date' => $startDate,
-            'next_delivery_date' => $startDate->copy()->addDays($validated['interval_days']),
+            'start_date' => Carbon::parse($validated['start_date']),
         ]);
 
         $this->syncRecipeRotation($subscription, $validated['recipe_ids']);
@@ -74,37 +68,31 @@ class SubscriptionController extends Controller
     }
 
     /**
-     * Show a subscription with its pet, recipes and orders.
+     * Show a subscription with its pet and weekly recipes.
      */
     public function show(Request $request, Subscription $subscription): JsonResponse
     {
         $this->authorize('view', $subscription);
 
         return $this->respondSuccess(
-            SubscriptionResource::make($subscription->load(['pet', 'recipes', 'orders'])),
+            SubscriptionResource::make($subscription->load(['pet', 'recipes'])),
             'Subscription fetched successfully'
         );
     }
 
     /**
-     * Update a subscription: status, recipe rotation, or cycle interval
-     * (the latter two recompute `next_delivery_date`).
+     * Update a subscription's status, or replace its duration + recipe
+     * rotation together (both are always sent atomically — see
+     * UpdateSubscriptionRequest).
      */
     public function update(UpdateSubscriptionRequest $request, Subscription $subscription): JsonResponse
     {
         $validated = $request->validated();
 
-        $intervalChanged = array_key_exists('interval_days', $validated);
-
         $subscription->update([
             'status' => $validated['status'] ?? $subscription->status,
-            'interval_days' => $validated['interval_days'] ?? $subscription->interval_days,
+            'duration_days' => $validated['duration_days'] ?? $subscription->duration_days,
         ]);
-
-        if ($intervalChanged) {
-            $subscription->next_delivery_date = Carbon::today()->addDays($validated['interval_days']);
-            $subscription->save();
-        }
 
         if (array_key_exists('recipe_ids', $validated)) {
             $this->syncRecipeRotation($subscription, $validated['recipe_ids']);
@@ -132,7 +120,7 @@ class SubscriptionController extends Controller
     }
 
     /**
-     * Replace the subscription's recipe rotation with the given ordered recipe ids.
+     * Replace the subscription's weekly recipes with the given ordered recipe ids.
      *
      * @param  array<int, int>  $recipeIds
      */

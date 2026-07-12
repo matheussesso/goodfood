@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Order;
 use App\Models\Pet;
 use App\Models\Recipe;
-use App\Models\Subscription;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
@@ -28,8 +27,6 @@ class OrderSeeder extends Seeder
         $recipeFrango = Recipe::where('name', 'Mix Frango e Legumes')->first();
         $recipeCarne = Recipe::where('name', 'Mix Carne Premium')->first();
 
-        $subscription = Subscription::where('pet_id', $pet1?->id)->first();
-
         if ($pet2 && $recipeFrango) {
             Order::firstOrCreate([
                 'user_id' => $customer->id,
@@ -43,12 +40,11 @@ class OrderSeeder extends Seeder
             ]);
         }
 
-        if ($pet1 && $recipeCarne && $subscription) {
+        if ($pet1 && $recipeCarne) {
             Order::firstOrCreate([
                 'user_id' => $customer->id,
                 'pet_id' => $pet1->id,
                 'recipe_id' => $recipeCarne->id,
-                'subscription_id' => $subscription->id,
             ], [
                 'total_price' => 32.00,
                 'status' => 'in_production',

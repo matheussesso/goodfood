@@ -8,21 +8,21 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Represents an auto-replenishment subscription for a pet, cycling through an
- * ordered rotation of recipes every `interval_days` days.
+ * Represents a fixed-duration weekly meal plan for a pet: exactly one recipe
+ * per 7-day block (`duration_days / 7` blocks total). Has no runtime effect
+ * on Order — it is a standalone saved plan, not an auto-replenishment engine.
  *
  * @property int $id
  * @property int $user_id
  * @property int $pet_id
- * @property int $interval_days Days between cycles (multiple of 7, minimum 14)
+ * @property int $duration_days Total plan length in days (multiple of 7, minimum 14)
  * @property string $status active|paused|cancelled
  * @property string $start_date
- * @property string|null $next_delivery_date
- * @property int|null $orders_count Appended via withCount()
- * @property string|null $orders_max_created_at Appended via withMax()
+ * @property float $estimated_price Appended: total cost of every recipe in the plan
+ * @property int $total_cycles Appended: duration_days / 7
+ * @property int|null $current_cycle_index Appended: 0-indexed current week, or null if not started/already ended
  */
 class Subscription extends Model
 {
@@ -32,21 +32,19 @@ class Subscription extends Model
     protected $fillable = [
         'user_id',
         'pet_id',
-        'interval_days',
+        'duration_days',
         'status',
         'start_date',
-        'next_delivery_date',
     ];
 
     /** @var array<string, string> */
     protected $casts = [
         'start_date' => 'date',
-        'next_delivery_date' => 'date',
-        'interval_days' => 'integer',
+        'duration_days' => 'integer',
     ];
 
     /** @var array<int, string> */
-    protected $appends = ['estimated_price'];
+    protected $appends = ['estimated_price', 'total_cycles', 'current_cycle_index'];
 
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
@@ -61,7 +59,7 @@ class Subscription extends Model
     }
 
     /**
-     * The ordered rotation of recipes this subscription cycles through.
+     * The plan's weekly recipes, one per 7-day block, ordered by position (week index).
      *
      * @return BelongsToMany<Recipe, $this>
      */
@@ -73,30 +71,36 @@ class Subscription extends Model
             ->withTimestamps();
     }
 
-    /** @return HasMany<Order, $this> */
-    public function orders(): HasMany
+    /**
+     * Total number of 7-day blocks in this plan.
+     */
+    public function getTotalCyclesAttribute(): int
     {
-        return $this->hasMany(Order::class);
+        return intdiv($this->duration_days, 7);
     }
 
     /**
-     * Compute which cycle (0-indexed) the subscription is currently on, based on
-     * how many `interval_days` periods have elapsed since the first delivery.
+     * Display-only: which 0-indexed week the plan is currently on, based on
+     * elapsed days since `start_date`. Null if the plan hasn't started yet or
+     * has already run past its total duration.
      */
-    public function currentCycleIndex(): int
+    public function getCurrentCycleIndexAttribute(): ?int
     {
-        if (! $this->next_delivery_date || ! $this->start_date || $this->interval_days <= 0) {
-            return 0;
+        if (! $this->start_date || $this->duration_days <= 0) {
+            return null;
         }
 
-        $firstDelivery = $this->start_date->copy()->addDays($this->interval_days);
-        $elapsedDays = $firstDelivery->diffInDays($this->next_delivery_date, false);
+        $daysElapsed = $this->start_date->diffInDays(now(), false);
 
-        return max(0, (int) floor($elapsedDays / $this->interval_days));
+        if ($daysElapsed < 0 || $daysElapsed >= $this->duration_days) {
+            return null;
+        }
+
+        return min($this->total_cycles - 1, intdiv((int) $daysElapsed, 7));
     }
 
     /**
-     * Resolve the recipe assigned to a given cycle, wrapping around the rotation.
+     * Resolve the recipe assigned to a given week (0-indexed), if any.
      */
     public function recipeForCycle(int $cycleIndex): ?Recipe
     {
@@ -104,21 +108,19 @@ class Subscription extends Model
             return null;
         }
 
-        return $this->recipes->get($cycleIndex % $this->recipes->count());
+        return $this->recipes->get($cycleIndex);
     }
 
     /**
-     * Compute the live estimated price of the next scheduled recipe in the rotation.
-     * Returns 0 if recipes are not loaded or the rotation is empty.
+     * Total cost of the plan: the sum of every recipe's cost across all weeks.
+     * Returns 0 if recipes are not loaded or the plan has no recipes.
      */
     public function getEstimatedPriceAttribute(): float
     {
-        $recipe = $this->recipeForCycle($this->currentCycleIndex());
-
-        if (! $recipe) {
+        if (! $this->relationLoaded('recipes')) {
             return 0.0;
         }
 
-        return (float) $recipe->calculateTotalCost();
+        return (float) $this->recipes->sum(fn (Recipe $recipe) => $recipe->calculateTotalCost());
     }
 }

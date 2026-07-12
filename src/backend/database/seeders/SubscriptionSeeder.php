@@ -30,16 +30,15 @@ class SubscriptionSeeder extends Seeder
         }
 
         $startDate = Carbon::now()->addDays(2);
-        $intervalDays = 14;
+        $durationDays = 14;
 
         $subscription = Subscription::firstOrCreate([
             'user_id' => $customer->id,
             'pet_id' => $pet1->id,
         ], [
-            'interval_days' => $intervalDays,
+            'duration_days' => $durationDays,
             'status' => 'active',
             'start_date' => $startDate->toDateString(),
-            'next_delivery_date' => $startDate->copy()->addDays($intervalDays)->toDateString(),
         ]);
 
         if ($subscription->recipes()->exists()) {

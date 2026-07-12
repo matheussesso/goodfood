@@ -27,7 +27,6 @@ class OrderResource extends JsonResource
             'user_id' => $this->user_id,
             'pet_id' => $this->pet_id,
             'recipe_id' => $this->recipe_id,
-            'subscription_id' => $this->subscription_id,
             'total_price' => $this->total_price,
             'status' => $this->status,
             'delivery_address' => $this->delivery_address,
@@ -38,7 +37,6 @@ class OrderResource extends JsonResource
             'user' => UserResource::make($this->whenLoaded('user')),
             'pet' => PetResource::make($this->whenLoaded('pet')),
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
-            'subscription' => SubscriptionResource::make($this->whenLoaded('subscription')),
             'invoice' => InvoiceResource::make($this->whenLoaded('invoice')),
         ];
     }

@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * API representation of a Subscription with its recipe rotation and orders.
+ * API representation of a Subscription: a fixed-duration weekly meal plan.
  *
  * @mixin Subscription
  */
@@ -27,17 +27,16 @@ class SubscriptionResource extends JsonResource
             'user_id' => $this->user_id,
             'pet_id' => $this->pet_id,
             'status' => $this->status,
-            'interval_days' => $this->interval_days,
+            'duration_days' => $this->duration_days,
+            'total_cycles' => $this->total_cycles,
+            'current_cycle_index' => $this->current_cycle_index,
+            'estimated_price' => $this->estimated_price,
             'start_date' => $this->start_date,
-            'next_delivery_date' => $this->next_delivery_date,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'user' => UserResource::make($this->whenLoaded('user')),
             'pet' => PetResource::make($this->whenLoaded('pet')),
             'recipes' => RecipeResource::collection($this->whenLoaded('recipes')),
-            'orders' => OrderResource::collection($this->whenLoaded('orders')),
-            'orders_count' => $this->whenCounted('orders'),
-            'orders_max_created_at' => $this->whenAggregated('orders', 'created_at', 'max'),
         ];
     }
 }
