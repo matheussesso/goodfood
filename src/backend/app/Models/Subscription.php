@@ -28,6 +28,9 @@ class Subscription extends Model
 {
     use HasFactory;
 
+    /** Length in days of a single plan cycle/week — every recipe is priced for exactly this long. */
+    public const CYCLE_DAYS = 7;
+
     /** @var array<int, string> */
     protected $fillable = [
         'user_id',
@@ -76,7 +79,7 @@ class Subscription extends Model
      */
     public function getTotalCyclesAttribute(): int
     {
-        return intdiv($this->duration_days, 7);
+        return intdiv($this->duration_days, self::CYCLE_DAYS);
     }
 
     /**
@@ -96,7 +99,7 @@ class Subscription extends Model
             return null;
         }
 
-        return min($this->total_cycles - 1, intdiv((int) $daysElapsed, 7));
+        return min($this->total_cycles - 1, intdiv((int) $daysElapsed, self::CYCLE_DAYS));
     }
 
     /**
@@ -112,7 +115,11 @@ class Subscription extends Model
     }
 
     /**
-     * Total cost of the plan: the sum of every recipe's cost across all weeks.
+     * Total cost of the plan: the sum of every recipe's cost across all weeks,
+     * each priced for exactly one {@see CYCLE_DAYS}-day cycle regardless of the
+     * recipe's own native `duration_days` — a recipe attached to a plan always
+     * bills for the 7 days it actually covers here, not its catalog duration.
+     * Also always live-priced against today's ingredient costs (never a cache).
      * Returns 0 if recipes are not loaded or the plan has no recipes.
      */
     public function getEstimatedPriceAttribute(): float
@@ -121,6 +128,6 @@ class Subscription extends Model
             return 0.0;
         }
 
-        return (float) $this->recipes->sum(fn (Recipe $recipe) => $recipe->calculateTotalCost());
+        return (float) $this->recipes->sum(fn (Recipe $recipe) => $recipe->calculateTotalCost(self::CYCLE_DAYS));
     }
 }

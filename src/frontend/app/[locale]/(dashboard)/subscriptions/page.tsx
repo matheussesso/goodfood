@@ -17,11 +17,11 @@ import {
   XCircle,
   Search,
   Filter,
-  FilterX,
   CalendarDays,
   Plus,
   Edit2,
   Layers,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
@@ -99,8 +99,18 @@ export default function SubscriptionsPage() {
     return matchStatus && matchSearch;
   });
 
+  const countByStatus = (subscriptions ?? []).reduce<Record<string, number>>((counts, s) => {
+    counts[s.status] = (counts[s.status] ?? 0) + 1;
+    return counts;
+  }, {});
+
   const hasSubscriptions = !!(subscriptions && subscriptions.length > 0);
   const hasFilters = search !== "" || statusFilter !== "all";
+
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("all");
+  }
 
   /**
    * Updates a subscription's status and shows a feedback banner.
@@ -163,39 +173,36 @@ export default function SubscriptionsPage() {
             placeholder={t("search_placeholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-9 pr-9"
           />
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-          <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
-          {(["all", "active", "paused", "cancelled"] as const).map((v) => (
+          {search && (
             <button
-              key={v}
               type="button"
-              onClick={() => setStatusFilter(v)}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors",
-                statusFilter === v
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-background text-muted-foreground border-border hover:bg-muted"
-              )}
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
-              {v === "all" ? t("all_statuses") : t(`status_${v}` as `status_${SubStatus}`)}
+              <X className="h-4 w-4" />
             </button>
-          ))}
-          {hasFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => { setSearch(""); setStatusFilter("all"); }}
-              className="gap-1.5 text-muted-foreground h-8"
-            >
-              <FilterX className="w-3.5 h-3.5" />
-              {tCommon("clear_filters")}
-            </Button>
           )}
         </div>
-        <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} labels={viewToggleLabels} />
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2 flex-1 sm:flex-none">
+            <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as SubStatus | "all")}
+              className="h-10 flex-1 sm:w-48 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="all">{t("all_statuses")} ({subscriptions?.length ?? 0})</option>
+              {(["active", "paused", "cancelled"] as const).map((v) => (
+                <option key={v} value={v}>
+                  {t(`status_${v}` as `status_${SubStatus}`)} ({countByStatus[v] ?? 0})
+                </option>
+              ))}
+            </select>
+          </div>
+          <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} labels={viewToggleLabels} />
+        </div>
       </div>
 
       {/* ── Mobile view toggle ─────────────────────────────────────── */}
@@ -235,6 +242,11 @@ export default function SubscriptionsPage() {
         <div className="flex flex-col items-center justify-center py-12 bg-card border rounded-xl gap-3 text-center px-6">
           <p className="font-semibold text-foreground">{tCommon("no_results")}</p>
           {hasFilters && <p className="text-sm text-muted-foreground">{tCommon("adjust_filters")}</p>}
+          {hasFilters && (
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              {tCommon("clear_filters")}
+            </Button>
+          )}
         </div>
       ) : viewMode === "card" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { Link } from "@/i18n/routing";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { usePets } from "@/hooks/usePets";
+import { useRecipeCycleCostTotal } from "@/hooks/useRecipeCycleCost";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,13 +55,8 @@ export default function NewSubscriptionPage() {
   const selectedPet = pets?.find((p) => p.id === selectedPetId);
   const petRecipeOptions = (selectedPet?.recipes ?? []).filter((r) => !r.is_template);
 
-  const totalCost = useMemo(() => {
-    return recipeIds.reduce<number>((sum, id) => {
-      if (!id) return sum;
-      const recipe = petRecipeOptions.find((r) => r.id === id);
-      return sum + Number(recipe?.base_cost ?? 0);
-    }, 0);
-  }, [recipeIds, petRecipeOptions]);
+  const selectedRecipes = recipeIds.map((id) => petRecipeOptions.find((r) => r.id === id));
+  const { total: totalCost, isLoading: isCostLoading } = useRecipeCycleCostTotal(selectedRecipes);
 
   /** Auto-redirect to /subscriptions 3s after successful creation. */
   useEffect(() => {
@@ -263,7 +259,8 @@ export default function NewSubscriptionPage() {
             </div>
             <div className="px-5 py-4 border-t bg-muted/10 flex items-center justify-between">
               <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("estimated_price")}</span>
-              <span className="text-2xl font-bold text-primary">
+              <span className="text-2xl font-bold text-primary flex items-center gap-2">
+                {isCostLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                 R$ {totalCost.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>

@@ -191,7 +191,7 @@ test('updating duration_days without recipe_ids is rejected', function () {
     $response->assertStatus(422);
 });
 
-test('estimated_price sums the cost of every recipe in the plan', function () {
+test('estimated_price sums the cost of every recipe in the plan, priced for a 7-day cycle regardless of the recipe\'s own duration_days', function () {
     // GeneralSetting::getInstance() lazily creates row id=1 on first-ever call,
     // but the returned in-memory instance doesn't reflect the migration's DB-level
     // column defaults until re-fetched. Prime it here so every calculateTotalCost()
@@ -227,7 +227,14 @@ test('estimated_price sums the cost of every recipe in the plan', function () {
     $subscription->recipes()->attach($recipeA->id, ['position' => 0]);
     $subscription->recipes()->attach($recipeB->id, ['position' => 1]);
 
+    // Recipe A/B are created with duration_days=14 (see makeRecipe()) — the plan
+    // must price each at Subscription::CYCLE_DAYS (7), not the recipe's own 14.
     $expected = round(
+        $recipeA->fresh()->load('ingredients')->calculateTotalCost(Subscription::CYCLE_DAYS)
+        + $recipeB->fresh()->load('ingredients')->calculateTotalCost(Subscription::CYCLE_DAYS),
+        2
+    );
+    $nativeDurationTotal = round(
         $recipeA->fresh()->load('ingredients')->calculateTotalCost()
         + $recipeB->fresh()->load('ingredients')->calculateTotalCost(),
         2
@@ -236,6 +243,9 @@ test('estimated_price sums the cost of every recipe in the plan', function () {
     $fresh = $subscription->fresh()->load('recipes.ingredients');
     expect(round($fresh->estimated_price, 2))->toBe($expected);
     expect($expected)->toBeGreaterThan(0);
+    // Prove the override actually changes the number — otherwise this test
+    // would pass even if the 7-day conversion were silently dropped.
+    expect($expected)->not->toBe($nativeDurationTotal);
     expect($fresh->total_cycles)->toBe(2);
 });
 

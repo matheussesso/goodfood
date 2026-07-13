@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { Link } from "@/i18n/routing";
 import { useSubscription, useSubscriptions } from "@/hooks/useSubscriptions";
 import { usePets } from "@/hooks/usePets";
+import { useRecipeCycleCostTotal } from "@/hooks/useRecipeCycleCost";
 import { Button } from "@/components/ui/button";
 import { DurationStepper } from "@/features/subscriptions/components/DurationStepper";
 import { WeeklyRecipePicker } from "@/features/subscriptions/components/WeeklyRecipePicker";
@@ -65,13 +66,8 @@ export default function EditSubscriptionPage() {
   const petRecipeOptions = (pet?.recipes ?? []).filter((r) => !r.is_template);
   const totalWeeks = durationDays ? durationDays / 7 : 0;
 
-  const totalCost = useMemo(() => {
-    return recipeIds.reduce<number>((sum, recipeId) => {
-      if (!recipeId) return sum;
-      const recipe = petRecipeOptions.find((r) => r.id === recipeId);
-      return sum + Number(recipe?.base_cost ?? 0);
-    }, 0);
-  }, [recipeIds, petRecipeOptions]);
+  const selectedRecipes = recipeIds.map((recipeId) => petRecipeOptions.find((r) => r.id === recipeId));
+  const { total: totalCost, isLoading: isCostLoading } = useRecipeCycleCostTotal(selectedRecipes);
 
   function handleDurationChange(days: number) {
     setDurationDays(days);
@@ -213,7 +209,8 @@ export default function EditSubscriptionPage() {
             </div>
             <div className="px-5 py-4 border-t bg-muted/10 flex items-center justify-between">
               <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t("estimated_price")}</span>
-              <span className="text-2xl font-bold text-primary">
+              <span className="text-2xl font-bold text-primary flex items-center gap-2">
+                {isCostLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                 R$ {totalCost.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>

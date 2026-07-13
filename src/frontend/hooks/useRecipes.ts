@@ -100,11 +100,27 @@ export function useRecipe(id: string) {
   };
 }
 
+/** One line of the cost breakdown returned by /recipes/calculate-cost. */
+export interface RecipeCostBreakdownLine {
+  name: string;
+  total_cost: number | string;
+  is_supplement?: boolean;
+}
+
+/** Result of a live recipe cost calculation, priced from today's ingredient costs. */
+export interface RecipeCostResult {
+  estimatedCost: number;
+  ingredientCost: number;
+  costPerKg: number;
+  totalWeight: number;
+  costBreakdown: RecipeCostBreakdownLine[];
+}
+
 export async function calculateRecipeCost(data: {
   ingredients: { ingredient_id: number; quantity: number; unit?: string }[];
   duration_days?: number;
   daily_portions?: number;
-}) {
+}): Promise<RecipeCostResult> {
   const response = await apiClient.post("/recipes/calculate-cost", data);
   return response.data.data;
 }

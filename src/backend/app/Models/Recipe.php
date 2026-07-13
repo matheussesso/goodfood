@@ -83,11 +83,17 @@ class Recipe extends Model
     }
 
     /**
-     * Run the cost calculator and return the full result array.
+     * Run the cost calculator and return the full result array, always
+     * pricing against the recipe's currently loaded ingredients (and thus
+     * today's ingredient prices) — never a cached value.
      *
+     * @param  int|null  $durationOverride  Duration in days to price for, instead of the
+     *                                      recipe's own `duration_days` (e.g. 7 for a single
+     *                                      subscription cycle, regardless of the recipe's
+     *                                      native duration).
      * @return array{estimatedCost: float, ingredientCost: float, costPerKg: float, costBreakdown: array}
      */
-    public function calculateCostResult(): array
+    public function calculateCostResult(?int $durationOverride = null): array
     {
         if ($this->ingredients->isEmpty()) {
             return ['estimatedCost' => 0.0, 'ingredientCost' => 0.0, 'costPerKg' => 0.0, 'costBreakdown' => []];
@@ -103,14 +109,17 @@ class Recipe extends Model
 
         return $costCalculator->calculateCost(
             $selectedIngredients,
-            intval($this->duration_days ?: 1),
+            $durationOverride ?? intval($this->duration_days ?: 1),
             intval($this->daily_portions ?: 1)
         );
     }
 
-    public function calculateTotalCost(): float
+    /**
+     * @param  int|null  $durationOverride  See {@see calculateCostResult()}.
+     */
+    public function calculateTotalCost(?int $durationOverride = null): float
     {
-        return (float) $this->calculateCostResult()['estimatedCost'];
+        return (float) $this->calculateCostResult($durationOverride)['estimatedCost'];
     }
 
     public function updateBaseCost(): void

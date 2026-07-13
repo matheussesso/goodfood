@@ -61,7 +61,7 @@ class SubscriptionController extends Controller
         $this->syncRecipeRotation($subscription, $validated['recipe_ids']);
 
         return $this->respondSuccess(
-            SubscriptionResource::make($subscription->load(['pet', 'recipes'])),
+            SubscriptionResource::make($subscription->load(['pet', 'recipes.ingredients'])),
             'Subscription created successfully',
             201
         );
@@ -75,7 +75,7 @@ class SubscriptionController extends Controller
         $this->authorize('view', $subscription);
 
         return $this->respondSuccess(
-            SubscriptionResource::make($subscription->load(['pet', 'recipes'])),
+            SubscriptionResource::make($subscription->load(['pet', 'recipes.ingredients'])),
             'Subscription fetched successfully'
         );
     }
@@ -99,7 +99,7 @@ class SubscriptionController extends Controller
         }
 
         return $this->respondSuccess(
-            SubscriptionResource::make($subscription->load(['pet', 'recipes'])),
+            SubscriptionResource::make($subscription->load(['pet', 'recipes.ingredients'])),
             'Subscription updated successfully'
         );
     }
@@ -114,7 +114,7 @@ class SubscriptionController extends Controller
         $subscription->update(['status' => 'cancelled']);
 
         return $this->respondSuccess(
-            SubscriptionResource::make($subscription->load(['pet', 'recipes'])),
+            SubscriptionResource::make($subscription->load(['pet', 'recipes.ingredients'])),
             'Subscription cancelled successfully'
         );
     }
