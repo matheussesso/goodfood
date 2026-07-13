@@ -3,30 +3,29 @@ import { apiClient } from "@/lib/api-client";
 import { Pet } from "./usePets";
 import { Recipe } from "./useRecipes";
 
-/** A recipe within a subscription's rotation, with its cycle position. */
+/** A recipe within a subscription's weekly plan, with its week (cycle) position. */
 export type SubscriptionRecipe = Recipe & { pivot?: { position: number } };
 
 export interface Subscription {
   id: number;
   user_id: number;
   pet_id: number;
-  /** Days between cycles (multiple of 7, minimum 14). */
-  interval_days: number;
+  /** Total plan length in days (multiple of 7, minimum 14). */
+  duration_days: number;
   status: string;
   start_date: string;
-  next_delivery_date?: string;
   created_at: string;
   updated_at: string;
 
-  /** Computed by backend via withCount('orders'). */
-  orders_count?: number;
-  /** Computed by backend via withMax('orders', 'created_at'). */
-  orders_max_created_at?: string;
-  /** Computed by Subscription::getEstimatedPriceAttribute() using the next cycle's recipe cost. */
+  /** Computed by backend: duration_days / 7. */
+  total_cycles?: number;
+  /** Computed by backend: 0-indexed current week, or null if not started/already ended. */
+  current_cycle_index?: number | null;
+  /** Computed by Subscription::getEstimatedPriceAttribute() — total cost of every recipe in the plan. */
   estimated_price?: number;
 
   pet?: Pet;
-  /** Ordered recipe rotation — cycles alternate through these by pivot.position. */
+  /** One recipe per 7-day block, ordered by pivot.position (the week index). */
   recipes?: SubscriptionRecipe[];
   user?: { id: number; name: string; email: string };
 }
@@ -36,7 +35,7 @@ export interface CreateSubscriptionPayload {
   pet_id: number;
   recipe_ids: number[];
   start_date: string;
-  interval_days: number;
+  duration_days: number;
 }
 
 /** Payload for updating a subscription. */
@@ -44,7 +43,26 @@ export interface UpdateSubscriptionPayload {
   id: number;
   status?: string;
   recipe_ids?: number[];
-  interval_days?: number;
+  duration_days?: number;
+}
+
+/**
+ * Fetches a single subscription by ID.
+ *
+ * @param id - The subscription ID to fetch.
+ * @returns The subscription and its loading state.
+ */
+export function useSubscription(id: string | number) {
+  const { data: subscription, isLoading, error } = useQuery({
+    queryKey: ["subscription", String(id)],
+    queryFn: async () => {
+      const response = await apiClient.get(`/subscriptions/${id}`);
+      return response.data.data as Subscription;
+    },
+    enabled: !!id,
+  });
+
+  return { subscription, isLoading, error };
 }
 
 export function useSubscriptions() {
@@ -73,8 +91,9 @@ export function useSubscriptions() {
       const response = await apiClient.put(`/subscriptions/${id}`, data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["subscription", String(variables.id)] });
     },
   });
 

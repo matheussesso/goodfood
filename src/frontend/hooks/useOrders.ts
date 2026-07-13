@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { Pet } from "./usePets";
 import { Recipe } from "./useRecipes";
-import { Subscription } from "./useSubscriptions";
 
 /** Payment invoice attached to an order. */
 export interface Invoice {
@@ -38,7 +37,6 @@ export interface Order {
   user_id: number;
   pet_id?: number;
   recipe_id?: number;
-  subscription_id?: number;
   total_price: number;
   status: string;
   delivery_address?: string;
@@ -49,7 +47,6 @@ export interface Order {
 
   pet?: Pet;
   recipe?: Recipe;
-  subscription?: Subscription;
   invoice?: Invoice;
   items?: OrderItem[];
   user?: { id: number; name: string; email: string };

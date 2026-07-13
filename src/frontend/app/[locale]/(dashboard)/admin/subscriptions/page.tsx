@@ -12,7 +12,6 @@ import {
   Cat,
   UtensilsCrossed,
   Loader2,
-  Clock,
   Search,
   Users,
   PauseCircle,
@@ -20,10 +19,9 @@ import {
   XCircle,
   Filter,
   FilterX,
-  Repeat2,
-  Package,
   DollarSign,
   CalendarDays,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
@@ -31,11 +29,11 @@ import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
 type SubStatus = "active" | "paused" | "cancelled";
 
 /**
- * Renders the ordered recipe rotation as a compact chip list.
+ * Renders the plan's weekly recipes as a compact chip list, ordered by week.
  *
- * @param recipes - The subscription's recipe rotation, ordered by pivot.position.
+ * @param recipes - The subscription's weekly recipes, ordered by pivot.position.
  * @param t - Subscriptions namespace translator.
- * @returns The rotation chip list element.
+ * @returns The weekly recipe chip list element.
  */
 function RotationChips({ recipes, t }: { recipes: Subscription["recipes"]; t: ReturnType<typeof useTranslations> }) {
   const ordered = [...(recipes ?? [])].sort((a, b) => (a.pivot?.position ?? 0) - (b.pivot?.position ?? 0));
@@ -58,6 +56,13 @@ function RotationChips({ recipes, t }: { recipes: Subscription["recipes"]; t: Re
   );
 }
 
+/** Formats a plan's week progress, e.g. "Semana 2 de 4", or null if not applicable. */
+function weekProgressLabel(sub: Subscription, t: ReturnType<typeof useTranslations>): string | null {
+  if (sub.current_cycle_index === null || sub.current_cycle_index === undefined) return null;
+  if (!sub.total_cycles) return null;
+  return t("current_week_progress", { current: String(sub.current_cycle_index + 1), total: String(sub.total_cycles) });
+}
+
 const STATUS_STYLE: Record<SubStatus, { badge: string; dot: string }> = {
   active:    { badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800", dot: "bg-emerald-500" },
   paused:    { badge: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",           dot: "bg-amber-400" },
@@ -66,7 +71,7 @@ const STATUS_STYLE: Record<SubStatus, { badge: string; dot: string }> = {
 
 /**
  * Admin subscriptions management page.
- * Lists all customer subscriptions with filtering by status and search.
+ * Lists all customer subscriptions (weekly meal plans) with filtering by status and search.
  * Supports card and list view modes.
  * Allows admins to pause, resume, or cancel any subscription.
  *
@@ -220,7 +225,7 @@ export default function AdminSubscriptionsPage() {
           {hasFilters && <p className="text-sm text-muted-foreground">{tCommon("adjust_filters")}</p>}
         </div>
       ) : viewMode === "card" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((sub) => (
             <AdminSubscriptionCard
               key={sub.id}
@@ -235,13 +240,13 @@ export default function AdminSubscriptionsPage() {
       ) : (
         <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
           {/* Table header — desktop only */}
-          <div className="hidden md:grid grid-cols-[1fr_1fr_1fr_120px_110px_160px_160px] gap-4 px-5 py-3 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <div className="hidden md:grid grid-cols-[1fr_1fr_1fr_100px_90px_140px_160px] gap-4 px-5 py-3 border-b bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />{t("customer")}</span>
             <span className="flex items-center gap-1.5"><Dog className="w-3.5 h-3.5" />{t("pet")}</span>
             <span className="flex items-center gap-1.5"><UtensilsCrossed className="w-3.5 h-3.5" />{t("recipe")}</span>
+            <span className="flex items-center gap-1.5"><CalendarDays className="w-3.5 h-3.5" />{t("duration_days")}</span>
             <span className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5" />{t("estimated_price")}</span>
-            <span className="flex items-center gap-1.5"><Package className="w-3.5 h-3.5" />{t("total_orders")}</span>
-            <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{t("next_delivery")}</span>
+            <span className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" />{t("total_cycles_label")}</span>
             <span>{tCommon("status")}</span>
           </div>
 
@@ -273,11 +278,10 @@ interface AdminSubRowProps {
 
 /**
  * Card displaying a single subscription in the admin card view.
- * Shows customer, pet, recipe, next delivery date, status badge and action buttons.
+ * Shows customer, pet, weekly recipes, duration, total cost, week progress and action buttons.
  *
  * @param sub - The subscription data.
  * @param t - Subscriptions namespace translator.
- * @param tCommon - Common namespace translator (unused directly, passed for interface compatibility).
  * @param isUpdating - Whether an update is in progress for this card.
  * @param onStatusChange - Callback to update subscription status.
  * @returns An admin subscription card element.
@@ -288,18 +292,11 @@ function AdminSubscriptionCard({ sub, t, isUpdating, onStatusChange }: AdminSubR
   const PetIcon = sub.pet?.type === "cat" ? Cat : Dog;
   const customerName = sub.user?.name ?? "—";
   const estimatedPrice = sub.estimated_price ?? 0;
-
-  const nextDate = sub.next_delivery_date
-    ? new Date(sub.next_delivery_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
-    : "—";
+  const progress = weekProgressLabel(sub, t);
 
   const startDate = sub.start_date
     ? new Date(sub.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
     : "—";
-
-  const lastOrderDate = sub.orders_max_created_at
-    ? new Date(sub.orders_max_created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
-    : null;
 
   return (
     <div className={cn(
@@ -325,7 +322,7 @@ function AdminSubscriptionCard({ sub, t, isUpdating, onStatusChange }: AdminSubR
           </span>
         </div>
 
-        {/* Pet + recipe */}
+        {/* Pet + recipes */}
         <div className="flex items-center gap-2 mb-1">
           <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
             <PetIcon className="w-3 h-3" />
@@ -337,19 +334,15 @@ function AdminSubscriptionCard({ sub, t, isUpdating, onStatusChange }: AdminSubR
           <RotationChips recipes={sub.recipes} t={t} />
         </div>
 
-        {/* Price + cadence */}
+        {/* Price + duration */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <DollarSign className="w-3.5 h-3.5 text-amber-500" />
             <span className="text-base font-bold text-amber-600 dark:text-amber-400">
               R$ {estimatedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className="text-[10px] text-muted-foreground">{t("per_cycle")}</span>
           </div>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Repeat2 className="w-3 h-3" />
-            <span className="font-medium">{t("cadence_label", { days: String(sub.interval_days) })}</span>
-          </div>
+          <span className="text-xs text-muted-foreground">{sub.duration_days}d · {sub.total_cycles ?? "—"} {t("weeks_count_plural")}</span>
         </div>
       </div>
 
@@ -357,28 +350,16 @@ function AdminSubscriptionCard({ sub, t, isUpdating, onStatusChange }: AdminSubR
       <div className="grid grid-cols-2 gap-2 p-4 flex-1">
         <div className="space-y-0.5">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-            <Clock className="w-3 h-3" />{t("next_delivery")}
-          </p>
-          <p className="text-xs font-medium text-foreground">{nextDate}</p>
-        </div>
-
-        <div className="space-y-0.5">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-            <Package className="w-3 h-3" />{t("total_orders")}
-          </p>
-          <p className="text-xs font-medium text-foreground">
-            {sub.orders_count ?? 0} {t("orders_delivered")}
-          </p>
-          {lastOrderDate && (
-            <p className="text-[10px] text-muted-foreground">{t("last_order")}: {lastOrderDate}</p>
-          )}
-        </div>
-
-        <div className="space-y-0.5">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
             <CalendarDays className="w-3 h-3" />{t("start_date")}
           </p>
           <p className="text-xs font-medium text-foreground">{startDate}</p>
+        </div>
+
+        <div className="space-y-0.5">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+            <Layers className="w-3 h-3" />{t("total_cycles_label")}
+          </p>
+          <p className="text-xs font-medium text-foreground">{progress ?? "—"}</p>
         </div>
       </div>
 
@@ -443,18 +424,11 @@ function AdminSubscriptionRow({ sub, t, isUpdating, onStatusChange }: AdminSubRo
   const PetIcon = sub.pet?.type === "cat" ? Cat : Dog;
   const customerName = sub.user?.name ?? "—";
   const estimatedPrice = sub.estimated_price ?? 0;
-
-  const nextDate = sub.next_delivery_date
-    ? new Date(sub.next_delivery_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
-    : "—";
-
-  const lastOrderDate = sub.orders_max_created_at
-    ? new Date(sub.orders_max_created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
-    : null;
+  const progress = weekProgressLabel(sub, t);
 
   return (
     <div className={cn(
-      "flex flex-col md:grid md:grid-cols-[1fr_1fr_1fr_120px_110px_160px_160px] gap-3 md:gap-4 px-5 py-4 items-start md:items-center hover:bg-muted/20 transition-colors",
+      "flex flex-col md:grid md:grid-cols-[1fr_1fr_1fr_100px_90px_140px_160px] gap-3 md:gap-4 px-5 py-4 items-start md:items-center hover:bg-muted/20 transition-colors",
       status === "cancelled" && "opacity-60"
     )}>
       {/* Customer */}
@@ -473,29 +447,24 @@ function AdminSubscriptionRow({ sub, t, isUpdating, onStatusChange }: AdminSubRo
         <span className="text-sm text-foreground line-clamp-1">{sub.pet?.name ?? "—"}</span>
       </div>
 
-      {/* Recipe rotation */}
+      {/* Weekly recipes */}
       <div className="flex items-center gap-2 min-w-0">
         <UtensilsCrossed className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         <RotationChips recipes={sub.recipes} t={t} />
       </div>
+
+      {/* Duration */}
+      <div className="text-sm text-foreground">{sub.duration_days}d</div>
 
       {/* Estimated price */}
       <div className="text-sm font-semibold text-amber-600 dark:text-amber-400">
         R$ {estimatedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </div>
 
-      {/* Orders count */}
-      <div className="text-sm text-foreground">
-        <span className="font-medium">{sub.orders_count ?? 0}</span>
-        {lastOrderDate && (
-          <p className="text-[11px] text-muted-foreground">{lastOrderDate}</p>
-        )}
-      </div>
-
-      {/* Next delivery */}
+      {/* Week progress */}
       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-        <Clock className="w-3.5 h-3.5 shrink-0" />
-        <span>{nextDate}</span>
+        <Layers className="w-3.5 h-3.5 shrink-0" />
+        <span>{progress ?? "—"}</span>
       </div>
 
       {/* Status + actions */}
