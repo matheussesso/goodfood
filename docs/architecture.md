@@ -20,7 +20,7 @@ Local: `src/backend`. **Laravel 13** sobre **PHP 8.4** (imagem `dunglas/frankenp
 | **FormRequests** | `app/Http/Requests/<Feature>/` | Validação de entrada e autorização de requisição (delegando às Policies). Campos sensíveis (`user_id`, `is_template`) são descartados para não-admins no `validated()` |
 | **Controllers** | `app/Http/Controllers/` | Finos: recebem o FormRequest validado, orquestram Models/Services e respondem via trait `ApiResponses` |
 | **Policies** | `app/Policies/` | Autorização por recurso (dono ou admin; admin tem bypass via `before()`). Auto-descobertas por convenção `Models\X → Policies\XPolicy` |
-| **Services** | `app/Services/` | Regras de negócio: `RecipeCostCalculatorService` (precificação) e `SubscriptionOrderGenerationService` (pedidos recorrentes) |
+| **Services** | `app/Services/` | Regras de negócio: `RecipeCostCalculatorService` (precificação de receitas, sempre calculada ao vivo — nunca cacheada) |
 | **Resources** | `app/Http/Resources/` | Serialização das respostas (JsonResource por model, com `whenLoaded`/`whenCounted` para relações) |
 | **Models** | `app/Models/` | Relacionamentos, casts e accessors. Mass assignment restrito (ex.: `role` de `User` fora do fillable) |
 | **Middleware** | `app/Http/Middleware/AdminMiddleware.php` | Gate adicional das rotas administrativas |
@@ -36,7 +36,7 @@ Detalhes de endpoints em [api.md](api.md); entidades e regras em [domain.md](dom
 
 ### Agendamento
 
-`bootstrap/app.php` registra `subscriptions:generate-orders` com frequência diária. O serviço `scheduler` do Docker Compose executa o Laravel Scheduler; o comando gera pedidos de reposição para assinaturas vencidas.
+Nenhum comando agendado está registrado em `bootstrap/app.php` no momento — assinaturas não geram pedidos automaticamente (ver [domain.md](domain.md#subscription)). O serviço `scheduler` do Docker Compose continua de pé (roda `php artisan schedule:work`), pronto para o dia em que algum job recorrente for necessário; hoje é um no-op inofensivo.
 
 ### Evoluções planejadas
 

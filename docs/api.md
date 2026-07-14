@@ -97,7 +97,7 @@ Erros:
 | Método | Rota | Descrição |
 | --- | --- | --- |
 | GET | `/orders` | Admin: todos; cliente: os seus (com itens, receitas, invoice) |
-| POST | `/orders` | Cria pedido com `items[]` (`{recipe_id, pet_id?}`) e `delivery_address?`. Valida posse dos pets; gera `Invoice` automática |
+| POST | `/orders` | Cria pedido com `items[]` (`{recipe_id, pet_id?}`) e `delivery_address?`. Valida posse dos pets; `unit_price`/`total_price` são sempre calculados ao vivo a partir do custo atual dos ingredientes (nunca de uma coluna cacheada); gera `Invoice` automática |
 | GET | `/orders/{id}` | Detalhe (dono/admin) |
 | PUT | `/orders/{id}` | Cliente: `delivery_address`, `delivery_date`. Admin: também `status` e `scheduled_reposicao_date` |
 
@@ -105,13 +105,17 @@ Status de pedido: `pending_payment` → `pending` → `in_production` → `ready
 
 ### Subscriptions (autenticado)
 
+Plano alimentar semanal fixo — **sem relação com `Order`**, nunca gera pedido sozinho. Ver [domain.md](domain.md#subscription).
+
 | Método | Rota | Descrição |
 | --- | --- | --- |
-| GET | `/subscriptions` | Admin: todas; cliente: as suas (com rotação e contagem de pedidos) |
-| POST | `/subscriptions` | Cria assinatura: `pet_id` (próprio), `recipe_ids[]` (rotação ordenada), `start_date` (≥ hoje), `interval_days` (≥ 14, múltiplo de 7) |
+| GET | `/subscriptions` | Admin: todas; cliente: as suas (com pet e receitas do plano) |
+| POST | `/subscriptions` | Cria o plano: `pet_id` (próprio), `recipe_ids[]` (uma por semana, na ordem), `start_date` (≥ hoje), `duration_days` (≥ 14, múltiplo de 7). `recipe_ids` deve ter exatamente `duration_days / 7` itens, ou `422` |
 | GET | `/subscriptions/{id}` | Detalhe (dono/admin) |
-| PUT | `/subscriptions/{id}` | Altera `status` (`active`/`paused`/`cancelled`), rotação ou intervalo (recalcula `next_delivery_date`) |
+| PUT | `/subscriptions/{id}` | `status` sozinho (`active`/`paused`/`cancelled`) altera só o status. `duration_days` e `recipe_ids` são **atômicos**: só um dos dois é rejeitado com `422` — mudar a duração sempre exige reenviar a rotação completa (mesma regra de contagem exata do `POST`) |
 | DELETE | `/subscriptions/{id}` | Cancela (soft — muda status, preserva histórico) |
+
+Campos calculados na resposta (sempre ao vivo, nunca cacheados): `total_cycles` (`duration_days / 7`), `current_cycle_index` (semana atual 0-indexed, ou `null` fora do período do plano), `estimated_price` (soma do custo de cada receita **fixado em 7 dias**, a partir do preço atual dos ingredientes — não a `duration_days` nativa da receita).
 
 ### Admin (autenticado + `AdminMiddleware`)
 
@@ -127,14 +131,19 @@ Status de pedido: `pending_payment` → `pending` → `in_production` → `ready
 ## Exemplo
 
 ```bash
-# Login
-curl -s -X POST http://localhost:8000/api/login \
+# 1. Cookie CSRF (necessário antes de qualquer login/mutação)
+curl -s -c cookies.txt http://localhost:8000/sanctum/csrf-cookie
+
+# 2. Login — grava o cookie de sessão no mesmo jar
+XSRF=$(grep XSRF-TOKEN cookies.txt | awk '{print $7}')
+curl -s -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/login \
+  -H "X-XSRF-TOKEN: $XSRF" \
   -H 'Content-Type: application/json' -H 'Accept: application/json' \
   -d '{"email": "admin@example.com", "password": "Password123"}'
 
-# Criar pedido
-curl -s -X POST http://localhost:8000/api/orders \
-  -H "Authorization: Bearer $TOKEN" \
+# 3. Criar pedido — reusa o cookie de sessão (sem Bearer token, não existe)
+curl -s -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/orders \
+  -H "X-XSRF-TOKEN: $XSRF" \
   -H 'Content-Type: application/json' -H 'Accept: application/json' \
   -d '{"items": [{"recipe_id": 1, "pet_id": 2}], "delivery_address": "Rua X, 100"}'
 ```

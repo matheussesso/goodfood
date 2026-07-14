@@ -31,7 +31,9 @@ docker exec -it goodfood_backend php artisan test
 | --- | --- |
 | `tests/Feature/AuthTest.php` | Registro (incl. tentativa de injetar `role=admin`), política de senha, login/logout, revogação de tokens, contrato de erro 401/422, bloqueio de rotas admin para clientes |
 | `tests/Feature/OwnershipTest.php` | IDOR/ownership: pets, receitas, pedidos e ingredientes de outros usuários; regressões de transferência de propriedade via `user_id`; regras de template |
-| `tests/Feature/SubscriptionTest.php` | Criação de assinatura com rotação, validação de `interval_days`, pausa/cancelamento, recálculo de `next_delivery_date`, geração de pedidos pelo serviço |
+| `tests/Feature/SubscriptionTest.php` | Criação do plano (1 receita por semana), validação de `duration_days` e da contagem exata de `recipe_ids`, pausa/cancelamento, atualização atômica de duração+receitas, `estimated_price` (custo ao vivo, ciclo de 7 dias) e `current_cycle_index` |
+| `tests/Feature/OrderTest.php` | Criação, listagem e detalhe de pedido; preço do item sempre calculado ao vivo a partir do custo atual dos ingredientes |
+| `tests/Feature/RecipePricingTest.php` | Custo de receita retornado pela API reflete o preço atual dos ingredientes, mesmo sem resalvar a receita |
 
 ### Convenções
 
