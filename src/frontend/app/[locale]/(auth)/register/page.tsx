@@ -177,7 +177,7 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-lg space-y-8 rounded-xl bg-card p-8 shadow-lg border border-border">
         <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
             {t("register_title")}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">{t("register_subtitle")}</p>

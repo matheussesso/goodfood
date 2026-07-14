@@ -462,7 +462,7 @@ export default function AdminOrdersPage() {
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
-          <ShoppingBag className="w-7 h-7 text-primary" />
+          <ShoppingBag className="w-7 h-7 text-primary mb-1" />
           {t("management_title")}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">{t("management_desc")}</p>

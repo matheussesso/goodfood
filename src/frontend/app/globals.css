@@ -138,6 +138,13 @@
   html {
     @apply font-sans;
   }
+
+  button,
+    [type='button'],
+    [type='reset'],
+    [type='submit'] {
+      cursor: pointer;
+  }
 }
 
 @theme inline {

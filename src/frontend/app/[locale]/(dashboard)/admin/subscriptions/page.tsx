@@ -145,7 +145,7 @@ export default function AdminSubscriptionsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <CalendarCheck className="w-7 h-7 text-primary" />
+            <CalendarCheck className="w-7 h-7 text-primary mb-1" />
             {t("admin_title")}
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">{t("admin_description")}</p>

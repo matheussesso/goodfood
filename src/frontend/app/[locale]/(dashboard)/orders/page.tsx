@@ -496,7 +496,7 @@ export default function OrdersPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <ShoppingBag className="w-7 h-7 text-primary" />
+            <ShoppingBag className="w-7 h-7 text-primary mb-1" />
             {t("my_orders")}
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">{t("my_orders_desc")}</p>
@@ -552,7 +552,7 @@ export default function OrdersPage() {
       ) : !hasOrders ? (
         <div className="flex flex-col items-center justify-center py-20 gap-5 text-center bg-card border rounded-xl">
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <Package className="w-8 h-8 text-primary/60" />
+            <Package className="w-7 h-7 text-primary mb-1/60" />
           </div>
           <div>
             <h3 className="font-semibold text-foreground">{t("no_orders_yet")}</h3>

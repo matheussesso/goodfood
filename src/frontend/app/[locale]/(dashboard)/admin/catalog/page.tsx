@@ -11,7 +11,7 @@ import { TemplateRecipeModal } from "@/features/admin-catalog/components/Templat
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit2, Trash2, Loader2, BookOpen, Apple, Settings2, AlertCircle, Search, LayoutGrid, List, CheckCircle2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, BookOpen, Apple, Settings2, AlertCircle, Search, LayoutGrid, List, PackageSearch, CheckCircle2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Feedback = { type: "success" | "error"; message: string } | null;
@@ -136,8 +136,10 @@ export default function CatalogPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{tNav("catalog")}</h1>
-          <p className="text-muted-foreground mt-1">{t("description")}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
+            <PackageSearch className="w-7 h-7 text-primary mb-1" />
+            {tNav("catalog")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("description")}</p>
         </div>
         <div className="flex bg-muted p-1 rounded-lg">
           <button

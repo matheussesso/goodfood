@@ -590,7 +590,7 @@ export default function EditPetPage() {
               <div className="relative group">
                 <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-border/50 bg-muted/30 flex items-center justify-center relative">
                   {isUploadingPhoto ? (
-                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    <Loader2 className="w-7 h-7 text-primary mb-1 animate-spin" />
                   ) : (photoUrl || pet.photo_url) ? (
                     <Image src={photoUrl || pet.photo_url!} alt={pet.name} fill sizes="96px" className="object-cover" />
                   ) : (

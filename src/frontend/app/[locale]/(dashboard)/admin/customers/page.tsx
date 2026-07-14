@@ -282,11 +282,11 @@ export default function CustomersPage() {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <Users className="w-8 h-8 text-primary" />
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3 flex items-center gap-3">
+            <Users className="w-7 h-7 text-primary mb-1" />
             {t("customers")}
           </h1>
-          <p className="text-muted-foreground mt-1">{t("customers_desc")}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("customers_desc")}</p>
         </div>
         <Button onClick={openCreate} className="shrink-0 gap-2">
           <Plus className="w-4 h-4" />
