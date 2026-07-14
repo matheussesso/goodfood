@@ -22,6 +22,7 @@ import {
   Edit2,
   Layers,
   X,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
@@ -377,7 +378,7 @@ function SubscriptionCard({ sub, t, isUpdating, onStatusChange }: SubscriptionCa
 
         {/* ── Actions ────────────────────────────────────────── */}
         {status !== "cancelled" && (
-          <div className="flex items-center gap-2 pt-2.5 mt-auto border-t border-border/50">
+          <div className="flex items-center gap-2 mt-2.5">
             {isUpdating ? (
               <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-auto" />
             ) : status === "active" ? (
@@ -425,6 +426,14 @@ function SubscriptionCard({ sub, t, isUpdating, onStatusChange }: SubscriptionCa
             )}
           </div>
         )}
+
+        <Link
+          href={`/subscriptions/${sub.id}`}
+          className="flex items-center justify-center gap-1 text-xs font-medium text-primary hover:text-primary/80 pt-2.5 mt-auto border-t border-border/50"
+        >
+          {t("view_detail")}
+          <ChevronRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
     </div>
   );
@@ -487,6 +496,13 @@ function SubscriptionRow({ sub, t, isUpdating, onStatusChange }: SubscriptionCar
 
       {/* Action buttons */}
       <div className="flex items-center gap-1 shrink-0">
+        <Link
+          href={`/subscriptions/${sub.id}`}
+          title={t("view_detail")}
+          className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Link>
         {status !== "cancelled" && (
           <Link
             href={`/subscriptions/${sub.id}/edit`}

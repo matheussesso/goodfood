@@ -512,7 +512,10 @@
     "current_week_progress": "Week {current} of {total}",
     "error_pet_required": "Select a pet.",
     "error_recipe_required": "Select a recipe for every week of the plan.",
-    "error_start_date_required": "Enter a start date."
+    "error_start_date_required": "Enter a start date.",
+    "subscription_not_found": "Subscription not found",
+    "subscription_not_found_desc": "This subscription does not exist or you do not have permission to view it.",
+    "view_detail": "View Details"
   },
   "Profile": {
     "title": "My Account",

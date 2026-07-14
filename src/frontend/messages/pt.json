@@ -512,7 +512,10 @@
     "current_week_progress": "Semana {current} de {total}",
     "error_pet_required": "Selecione um pet.",
     "error_recipe_required": "Selecione uma receita para cada semana do plano.",
-    "error_start_date_required": "Informe a data de início."
+    "error_start_date_required": "Informe a data de início.",
+    "subscription_not_found": "Assinatura não encontrada",
+    "subscription_not_found_desc": "Esta assinatura não existe ou você não tem permissão para visualizá-la.",
+    "view_detail": "Ver Detalhes"
   },
   "Profile": {
     "title": "Minha Conta",
