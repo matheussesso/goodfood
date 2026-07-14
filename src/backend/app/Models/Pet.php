@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -87,13 +88,13 @@ class Pet extends Model
         return $this->belongsToMany(Recipe::class)->withTimestamps();
     }
 
-    /** @return \Illuminate\Database\Eloquent\Relations\HasMany<PetVaccine, $this> */
+    /** @return HasMany<PetVaccine, $this> */
     public function vaccines()
     {
         return $this->hasMany(PetVaccine::class)->orderByDesc('application_date');
     }
 
-    /** @return \Illuminate\Database\Eloquent\Relations\HasMany<PetDocument, $this> */
+    /** @return HasMany<PetDocument, $this> */
     public function documents()
     {
         return $this->hasMany(PetDocument::class)->latest();
