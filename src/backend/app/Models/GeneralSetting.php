@@ -50,9 +50,15 @@ class GeneralSetting extends Model
     /**
      * Get the singleton instance of general settings.
      * Always fetches fresh data from database.
+     *
+     * On first-ever call there's no row yet: `create()` only returns the
+     * attributes it was given (`id`), not the columns' DB-level defaults
+     * (production/logistics/margin multipliers etc.), so it must be
+     * `refresh()`ed to load the real persisted values — otherwise every
+     * multiplier reads as null (coerced to 0) for the rest of that request.
      */
     public static function getInstance(): self
     {
-        return self::find(1) ?? self::create(['id' => 1]);
+        return self::find(1) ?? self::create(['id' => 1])->refresh();
     }
 }

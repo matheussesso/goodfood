@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\GeneralSetting;
 use App\Models\Ingredient;
 use App\Models\Pet;
 use App\Models\Recipe;
@@ -192,12 +191,6 @@ test('updating duration_days without recipe_ids is rejected', function () {
 });
 
 test('estimated_price sums the cost of every recipe in the plan, priced for a 7-day cycle regardless of the recipe\'s own duration_days', function () {
-    // GeneralSetting::getInstance() lazily creates row id=1 on first-ever call,
-    // but the returned in-memory instance doesn't reflect the migration's DB-level
-    // column defaults until re-fetched. Prime it here so every calculateTotalCost()
-    // call below sees the real (non-null) settings, matching production behavior.
-    GeneralSetting::getInstance();
-
     $user = User::factory()->create();
     $pet = makePet($user);
     $recipeA = makeRecipe('Recipe A');

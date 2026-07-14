@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\GeneralSetting;
 use App\Models\Ingredient;
 use App\Models\Pet;
 use App\Models\Recipe;
@@ -10,8 +9,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 test('customer can create an order and then list and view it', function () {
-    GeneralSetting::getInstance();
-
     $user = User::factory()->create();
     $pet = Pet::create(['user_id' => $user->id, 'name' => 'Rex', 'type' => 'dog']);
     $recipe = Recipe::create([
@@ -49,8 +46,6 @@ test('customer can create an order and then list and view it', function () {
 });
 
 test('order pricing reflects the ingredient price at the moment of creation, live', function () {
-    GeneralSetting::getInstance();
-
     $user = User::factory()->create();
     $pet = Pet::create(['user_id' => $user->id, 'name' => 'Rex', 'type' => 'dog']);
     $recipe = Recipe::create([

@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\GeneralSetting;
 use App\Models\Ingredient;
 use App\Models\Recipe;
 use App\Models\User;
@@ -9,9 +8,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 test('recipe cost reflects the current ingredient price without needing to resave the recipe', function () {
-    // See SubscriptionTest.php for why this priming call is needed.
-    GeneralSetting::getInstance();
-
     $user = User::factory()->create(['role' => 'admin']);
     $ingredient = Ingredient::create([
         'name' => 'Frango',
