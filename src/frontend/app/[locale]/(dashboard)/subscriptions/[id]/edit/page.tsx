@@ -32,6 +32,7 @@ export default function EditSubscriptionPage() {
   const id = params.id as string;
 
   const t = useTranslations("Subscriptions");
+  const tPets = useTranslations("Pets");
   const tCommon = useTranslations("Common");
 
   const router = useRouter();
@@ -163,7 +164,14 @@ export default function EditSubscriptionPage() {
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
                 <PetIcon className="w-5 h-5" />
               </div>
-              <span className="font-medium text-foreground">{pet?.name ?? "—"}</span>
+              <div className="min-w-0">
+                <p className="font-medium text-foreground truncate">{pet?.name ?? "—"}</p>
+                {pet && (
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {pet.breed || tPets("no_breed")}{pet.weight ? ` · ${pet.weight}kg` : ""}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 

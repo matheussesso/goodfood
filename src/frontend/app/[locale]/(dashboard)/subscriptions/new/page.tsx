@@ -182,17 +182,18 @@ export default function NewSubscriptionPage() {
                   <p className="text-sm">{tPets("no_pets")}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   {pets.map((pet) => {
                     const PetIcon = pet.type === "cat" ? Cat : Dog;
                     const sel = selectedPetId === pet.id;
+                    const breed = pet.breed || tPets("no_breed");
                     return (
                       <button
                         key={pet.id}
                         type="button"
                         onClick={() => handlePetChange(pet.id)}
                         className={cn(
-                          "flex flex-col items-center gap-2 p-3 rounded-lg border-1 transition-colors",
+                          "flex items-center gap-3 p-3 rounded-lg border-1 transition-colors text-left",
                           sel ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
                         )}
                       >
@@ -202,9 +203,14 @@ export default function NewSubscriptionPage() {
                         )}>
                           <PetIcon className="w-5 h-5" />
                         </div>
-                        <span className={cn("text-sm font-medium truncate max-w-full", sel ? "text-primary" : "text-foreground")}>
-                          {pet.name}
-                        </span>
+                        <div className="min-w-0">
+                          <p className={cn("text-sm font-medium truncate", sel ? "text-primary" : "text-foreground")}>
+                            {pet.name}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {breed}{pet.weight ? ` · ${pet.weight}kg` : ""}
+                          </p>
+                        </div>
                       </button>
                     );
                   })}
