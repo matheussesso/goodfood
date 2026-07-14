@@ -20,8 +20,10 @@ import {
   PlayCircle,
   XCircle,
   CheckCircle,
+  Salad,
 } from "lucide-react";
-import { useSubscription, useSubscriptions } from "@/hooks/useSubscriptions";
+import { useSubscription, useSubscriptions, SubscriptionRecipe } from "@/hooks/useSubscriptions";
+import { useRecipeCycleCost, CYCLE_DAYS } from "@/hooks/useRecipeCycleCost";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +36,110 @@ const STATUS_STYLE: Record<SubStatus, { badge: string; dot: string; bar: string 
 };
 
 /**
+ * Detail card for a single week's recipe: description, species, portions,
+ * live 7-day cycle cost, and full ingredient composition (quantity + unit).
+ *
+ * @param recipe - The recipe assigned to this week.
+ * @param weekIndex - 0-indexed week number, for the "Semana N" label.
+ * @param t - Subscriptions namespace translator.
+ * @param tRec - Recipes namespace translator.
+ * @param tCat - Catalog namespace translator.
+ */
+function WeeklyRecipeDetailCard({
+  recipe,
+  weekIndex,
+  t,
+  tRec,
+  tCat,
+}: {
+  recipe: SubscriptionRecipe;
+  weekIndex: number;
+  t: ReturnType<typeof useTranslations>;
+  tRec: ReturnType<typeof useTranslations>;
+  tCat: ReturnType<typeof useTranslations>;
+}) {
+  const { data: cost, isLoading: isCostLoading } = useRecipeCycleCost(recipe);
+  const ingredients = recipe.ingredients ?? [];
+  const speciesLabel = recipe.pet_type === "cat" ? tCat("cat") : recipe.pet_type === "dog" ? tCat("dog") : tCat("general");
+
+  return (
+    <div className="border rounded-xl bg-card overflow-hidden">
+      <Link
+        href={`/recipes/${recipe.id}`}
+        className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors group border-b"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <UtensilsCrossed className="w-4 h-4 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold text-primary uppercase tracking-wider">
+              {t("rotation_order", { n: String(weekIndex + 1) })}
+            </p>
+            <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+              {recipe.name}
+            </p>
+          </div>
+        </div>
+      </Link>
+
+      <div className="px-4 py-3 space-y-3">
+        {recipe.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2">{recipe.description}</p>
+        )}
+
+        {/* Stats */}
+        <div className="grid grid-cols-4 divide-x divide-border/50 bg-muted/30 rounded-lg">
+          <div className="px-1.5 py-2 text-center min-w-0">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{tRec("pet_type")}</span>
+            <span className="font-medium text-xs truncate block">{speciesLabel}</span>
+          </div>
+          <div className="px-1.5 py-2 text-center min-w-0">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("duration_days")}</span>
+            <span className="font-medium text-xs truncate block">{CYCLE_DAYS}d</span>
+          </div>
+          <div className="px-1.5 py-2 text-center min-w-0">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{tRec("portions_per_day_caps").split("/")[0]}</span>
+            <span className="font-medium text-xs truncate flex items-center justify-center gap-1">
+              <Salad className="w-3 h-3 shrink-0" />{recipe.daily_portions ?? 1}x
+            </span>
+          </div>
+          <div className="px-1.5 py-2 text-center min-w-0">
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("estimated_price")}</span>
+            <span className="font-semibold text-xs text-amber-600 dark:text-amber-400 truncate flex items-center justify-center gap-1">
+              {isCostLoading ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                `R$ ${(cost?.estimatedCost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              )}
+            </span>
+          </div>
+        </div>
+
+        {/* Composition */}
+        {ingredients.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+              {tRec("recipe_composition")} ({ingredients.length})
+            </p>
+            <ul className="space-y-1 max-h-32 overflow-y-auto pr-1">
+              {ingredients.map((ing) => (
+                <li key={ing.id} className="flex items-center justify-between text-[11px] gap-2">
+                  <span className="text-muted-foreground truncate flex-1">{ing.name}</span>
+                  <span className="font-medium shrink-0 text-[10px] bg-muted px-1.5 py-0.5 rounded">
+                    {ing.pivot.quantity} {ing.pivot.unit}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Customer-facing subscription detail page.
  * Shows the week-by-week progress of the plan, each week's recipe with its
  * composition, plan summary, linked pet, and pause/resume/cancel actions.
@@ -43,6 +149,7 @@ const STATUS_STYLE: Record<SubStatus, { badge: string; dot: string; bar: string 
 export default function SubscriptionDetailPage() {
   const t = useTranslations("Subscriptions");
   const tRec = useTranslations("Recipes");
+  const tCat = useTranslations("Catalog");
   const tCommon = useTranslations("Common");
   const router = useRouter();
   const params = useParams();
@@ -266,40 +373,14 @@ export default function SubscriptionDetailPage() {
             <div className="p-4 space-y-3">
               {orderedRecipes.length > 0 ? (
                 orderedRecipes.map((recipe, idx) => (
-                  <div key={`${recipe.id}-${idx}`} className="border rounded-xl bg-card overflow-hidden">
-                    <Link
-                      href={`/recipes/${recipe.id}`}
-                      className="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-muted/30 transition-colors group border-b"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <UtensilsCrossed className="w-4 h-4 text-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-semibold text-primary uppercase tracking-wider">
-                            {t("rotation_order", { n: String(idx + 1) })}
-                          </p>
-                          <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                            {recipe.name}
-                          </p>
-                        </div>
-                      </div>
-                    </Link>
-                    {recipe.ingredients && recipe.ingredients.length > 0 && (
-                      <div className="px-4 py-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-                          {tRec("recipe_composition")}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {recipe.ingredients.map((ing) => (
-                            <span key={ing.id} className="text-xs px-2 py-0.5 bg-muted rounded-full text-muted-foreground">
-                              {ing.name}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <WeeklyRecipeDetailCard
+                    key={`${recipe.id}-${idx}`}
+                    recipe={recipe}
+                    weekIndex={idx}
+                    t={t}
+                    tRec={tRec}
+                    tCat={tCat}
+                  />
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">—</p>

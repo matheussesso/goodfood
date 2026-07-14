@@ -23,6 +23,8 @@ import {
   Layers,
   X,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
@@ -36,29 +38,42 @@ const STATUS_STYLE: Record<SubStatus, { badge: string; dot: string }> = {
 };
 
 /**
- * Renders the plan's weekly recipes as a compact chip list, ordered by week.
+ * Collapsed-by-default accordion listing the plan's weekly recipes, ordered
+ * by week — keeps the card/row compact regardless of how many weeks the
+ * plan has.
  *
  * @param recipes - The subscription's weekly recipes, ordered by pivot.position.
  * @param t - Subscriptions namespace translator.
- * @returns The weekly recipe chip list element.
+ * @returns The weekly recipes accordion element.
  */
-function RotationChips({ recipes, t }: { recipes: Subscription["recipes"]; t: ReturnType<typeof useTranslations> }) {
+function RecipesAccordion({ recipes, t }: { recipes: Subscription["recipes"]; t: ReturnType<typeof useTranslations> }) {
+  const [expanded, setExpanded] = useState(false);
   const ordered = [...(recipes ?? [])].sort((a, b) => (a.pivot?.position ?? 0) - (b.pivot?.position ?? 0));
 
   if (ordered.length === 0) {
-    return <span className="text-xs text-muted-foreground">—</span>;
+    return <span className="text-xs text-muted-foreground italic">—</span>;
   }
 
   return (
-    <div className="flex flex-wrap gap-1">
-      {ordered.map((recipe, index) => (
-        <span
-          key={`${recipe.id}-${index}`}
-          className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground"
-        >
-          {t("rotation_order", { n: String(index + 1) })}: {recipe.name}
-        </span>
-      ))}
+    <div className="mt-2.5 pt-2 border-t border-border/50">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
+      >
+        <span>{t("select_recipes")} ({ordered.length})</span>
+        {expanded ? <ChevronUp className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
+      </button>
+      {expanded && (
+        <ul className="mt-2 space-y-1 max-h-40 overflow-y-auto pr-1">
+          {ordered.map((recipe, index) => (
+            <li key={`${recipe.id}-${index}`} className="flex items-center justify-between text-[11px] gap-2">
+              <span className="text-muted-foreground shrink-0">{t("rotation_order", { n: String(index + 1) })}</span>
+              <span className="text-foreground truncate flex-1 text-right">{recipe.name}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -372,9 +387,7 @@ function SubscriptionCard({ sub, t, isUpdating, onStatusChange }: SubscriptionCa
           </p>
         )}
 
-        <div className="mt-2.5">
-          <RotationChips recipes={sub.recipes} t={t} />
-        </div>
+        <RecipesAccordion recipes={sub.recipes} t={t} />
 
         {/* ── Actions ────────────────────────────────────────── */}
         {status !== "cancelled" && (
@@ -455,106 +468,133 @@ function SubscriptionRow({ sub, t, isUpdating, onStatusChange }: SubscriptionCar
   const PetIcon = sub.pet?.type === "cat" ? Cat : Dog;
   const estimatedPrice = sub.estimated_price ?? 0;
   const progress = weekProgressLabel(sub, t);
+  const orderedRecipes = [...(sub.recipes ?? [])].sort((a, b) => (a.pivot?.position ?? 0) - (b.pivot?.position ?? 0));
+  const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className={cn(
-      "flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors",
-      status === "cancelled" && "opacity-60"
-    )}>
-      {/* Pet avatar */}
-      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-        <PetIcon className="w-4 h-4" />
-      </div>
-
-      {/* Pet + weekly recipes + meta */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-foreground line-clamp-1">{sub.pet?.name ?? "—"}</span>
-          <span className={cn(
-            "inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border",
-            style.badge
-          )}>
-            <span className={cn("w-1 h-1 rounded-full", style.dot)} />
-            {t(`status_${status}` as `status_${SubStatus}`)}
-          </span>
+    <div className={cn(status === "cancelled" && "opacity-60")}>
+      <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors">
+        {/* Pet avatar */}
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+          <PetIcon className="w-4 h-4" />
         </div>
-        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
-          <RotationChips recipes={sub.recipes} t={t} />
-          <span className="flex items-center gap-1 shrink-0 text-amber-600 dark:text-amber-400 font-semibold">
-            R$ {estimatedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
-          <span className="flex items-center gap-1 shrink-0">
-            {sub.duration_days}d · {sub.total_cycles ?? "—"} {t("weeks_count_plural")}
-          </span>
-          {progress && (
-            <span className="flex items-center gap-1 shrink-0">
-              <Layers className="w-3 h-3" />{progress}
+
+        {/* Pet + meta */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-foreground line-clamp-1">{sub.pet?.name ?? "—"}</span>
+            <span className={cn(
+              "inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border",
+              style.badge
+            )}>
+              <span className={cn("w-1 h-1 rounded-full", style.dot)} />
+              {t(`status_${status}` as `status_${SubStatus}`)}
             </span>
+          </div>
+          <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
+            <span className="flex items-center gap-1 shrink-0 text-amber-600 dark:text-amber-400 font-semibold">
+              R$ {estimatedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className="flex items-center gap-1 shrink-0">
+              {sub.duration_days}d · {sub.total_cycles ?? "—"} {t("weeks_count_plural")}
+            </span>
+            {progress && (
+              <span className="flex items-center gap-1 shrink-0">
+                <Layers className="w-3 h-3" />{progress}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-1 shrink-0">
+          <Link
+            href={`/subscriptions/${sub.id}`}
+            title={t("view_detail")}
+            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+          {status !== "cancelled" && (
+            <Link
+              href={`/subscriptions/${sub.id}/edit`}
+              className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <Edit2 className="w-4 h-4" />
+            </Link>
+          )}
+          {status !== "cancelled" && (
+            isUpdating ? (
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            ) : status === "active" ? (
+              <>
+                <button
+                  type="button"
+                  title={t("pause_subscription")}
+                  onClick={() => onStatusChange(sub, "paused")}
+                  className="p-1.5 rounded text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/20 transition-colors"
+                >
+                  <PauseCircle className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  title={t("cancel_subscription")}
+                  onClick={() => onStatusChange(sub, "cancelled")}
+                  className="p-1.5 rounded text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <XCircle className="w-4 h-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  title={t("resume_subscription")}
+                  onClick={() => onStatusChange(sub, "active")}
+                  className="p-1.5 rounded text-emerald-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 transition-colors"
+                >
+                  <PlayCircle className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  title={t("cancel_subscription")}
+                  onClick={() => onStatusChange(sub, "cancelled")}
+                  className="p-1.5 rounded text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <XCircle className="w-4 h-4" />
+                </button>
+              </>
+            )
           )}
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="flex items-center gap-1 shrink-0">
-        <Link
-          href={`/subscriptions/${sub.id}`}
-          title={t("view_detail")}
-          className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </Link>
-        {status !== "cancelled" && (
-          <Link
-            href={`/subscriptions/${sub.id}/edit`}
-            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          >
-            <Edit2 className="w-4 h-4" />
-          </Link>
-        )}
-        {status !== "cancelled" && (
-          isUpdating ? (
-            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-          ) : status === "active" ? (
-            <>
-              <button
-                type="button"
-                title={t("pause_subscription")}
-                onClick={() => onStatusChange(sub, "paused")}
-                className="p-1.5 rounded text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/20 transition-colors"
-              >
-                <PauseCircle className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                title={t("cancel_subscription")}
-                onClick={() => onStatusChange(sub, "cancelled")}
-                className="p-1.5 rounded text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
-              >
-                <XCircle className="w-4 h-4" />
-              </button>
-            </>
+      {/* Recipes accordion toggle */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 px-4 py-2 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors border-t border-border/50"
+      >
+        <span className="uppercase tracking-wider">{t("select_recipes")} ({orderedRecipes.length})</span>
+        {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+      </button>
+
+      {expanded && (
+        <div className="border-t border-border/50 bg-muted/10 px-4 py-3">
+          {orderedRecipes.length > 0 ? (
+            <ul className="space-y-1.5">
+              {orderedRecipes.map((recipe, index) => (
+                <li key={`${recipe.id}-${index}`} className="flex items-center justify-between text-xs gap-2">
+                  <span className="text-muted-foreground shrink-0">{t("rotation_order", { n: String(index + 1) })}</span>
+                  <span className="text-foreground truncate flex-1 text-right font-medium">{recipe.name}</span>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <>
-              <button
-                type="button"
-                title={t("resume_subscription")}
-                onClick={() => onStatusChange(sub, "active")}
-                className="p-1.5 rounded text-emerald-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 transition-colors"
-              >
-                <PlayCircle className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                title={t("cancel_subscription")}
-                onClick={() => onStatusChange(sub, "cancelled")}
-                className="p-1.5 rounded text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
-              >
-                <XCircle className="w-4 h-4" />
-              </button>
-            </>
-          )
-        )}
-      </div>
+            <p className="text-xs text-muted-foreground italic">—</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

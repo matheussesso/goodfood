@@ -192,7 +192,7 @@ export default function NewSubscriptionPage() {
                         type="button"
                         onClick={() => handlePetChange(pet.id)}
                         className={cn(
-                          "flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-colors",
+                          "flex flex-col items-center gap-2 p-3 rounded-lg border-1 transition-colors",
                           sel ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
                         )}
                       >
