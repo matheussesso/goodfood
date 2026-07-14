@@ -48,6 +48,7 @@ Toda a documentação técnica vive em [`docs/`](docs/README.md):
 | [Internacionalização](docs/i18n.md) | Fluxo obrigatório pt/en/es do frontend |
 | [Boas Práticas](docs/best_practices.md) | Padrões de código e qualidade |
 | [Git Flow](docs/git_flow.md) | Branches, commits e pull requests |
+| [Agents](/AGENTS.md) | Regras e definições para programar com seu agente de IA |
 
 ## Funcionalidades
 
