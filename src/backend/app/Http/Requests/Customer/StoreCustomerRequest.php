@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Customer;
 
+use App\Http\Controllers\CustomerController;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 /**
- * Validates the payload for creating a customer (admin action; route is
+ * Validates the payload for creating a user account (admin action; route is
  * already protected by AdminMiddleware).
  */
 class StoreCustomerRequest extends FormRequest
@@ -33,6 +35,7 @@ class StoreCustomerRequest extends FormRequest
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'confirmed', Password::defaults()],
             'phone' => ['nullable', 'string', 'max:30'],
+            'role' => ['nullable', Rule::in(CustomerController::ROLES)],
             'street' => ['nullable', 'string', 'max:255'],
             'number' => ['nullable', 'string', 'max:20'],
             'complement' => ['nullable', 'string', 'max:100'],

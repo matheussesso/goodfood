@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Customer;
 
+use App\Http\Controllers\CustomerController;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Validates the payload for updating a customer (admin action; route is
+ * Validates the payload for updating a user account (admin action; route is
  * already protected by AdminMiddleware).
  */
 class UpdateCustomerRequest extends FormRequest
@@ -32,6 +33,7 @@ class UpdateCustomerRequest extends FormRequest
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->route('id'))],
             'phone' => ['nullable', 'string', 'max:30'],
+            'role' => ['sometimes', 'required', Rule::in(CustomerController::ROLES)],
             'street' => ['nullable', 'string', 'max:255'],
             'number' => ['nullable', 'string', 'max:20'],
             'complement' => ['nullable', 'string', 'max:100'],

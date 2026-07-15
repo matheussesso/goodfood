@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { Customer, useUpdateCustomer } from "@/hooks/useCustomers";
+import { Customer, UserRole, useUpdateCustomer } from "@/hooks/useCustomers";
+import { USER_ROLES } from "@/lib/user-roles";
 import { fetchAddressByCep } from "@/lib/viacep";
 import { BRAZIL_STATES } from "@/lib/brazil-states";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -53,6 +54,7 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
   const [form, setForm] = useState(() => ({
     name:         customer.name,
     email:        customer.email,
+    role:         customer.role         as UserRole,
     phone:        customer.phone        || "",
     street:       customer.street       || "",
     number:       customer.number       || "",
@@ -189,6 +191,19 @@ export function EditCustomerModal({ customer, isOpen, onClose }: EditCustomerMod
                 className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
               />
               {errors.phone && <p className="text-xs text-destructive mt-0.5">{errors.phone}</p>}
+            </div>
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label htmlFor="c-role">{t("user_type")}</Label>
+              <select
+                id="c-role"
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
+                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                {USER_ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>{t(r.labelKey)}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

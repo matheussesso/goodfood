@@ -3,7 +3,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { useCustomers, useCreateCustomer } from "@/hooks/useCustomers";
+import { useCustomers, useCreateCustomer, UserRole } from "@/hooks/useCustomers";
+import { USER_ROLES, getRoleMeta } from "@/lib/user-roles";
 import {
   Users,
   Search,
@@ -92,6 +93,7 @@ const emptyCreateForm = {
   phone:                 "",
   password:              "",
   password_confirmation: "",
+  role:                  "customer" as UserRole,
 };
 
 const emptyAddr = {
@@ -122,6 +124,7 @@ export default function CustomersPage() {
   const t  = useTranslations("admin");
   const tC = useTranslations("Common");
   const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const { customers, isLoading } = useCustomers();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -179,12 +182,15 @@ export default function CustomersPage() {
     else if (createForm.password.length < 8) errs.password = tC("validation_password_min");
     if (createForm.password !== createForm.password_confirmation)
       errs.password_confirmation = tC("validation_password_match");
-    if (!addr.zipcode.replace(/\D/g, "")) errs.zipcode      = tC("validation_required");
-    if (!addr.street.trim())               errs.street       = tC("validation_required");
-    if (!addr.number.trim())               errs.number       = tC("validation_required");
-    if (!addr.neighborhood.trim())         errs.neighborhood = tC("validation_required");
-    if (!addr.city.trim())                 errs.city         = tC("validation_required");
-    if (!addr.state)                       errs.state        = tC("validation_required");
+    // Only customer accounts need a delivery address — staff roles don't.
+    if (createForm.role === "customer") {
+      if (!addr.zipcode.replace(/\D/g, "")) errs.zipcode      = tC("validation_required");
+      if (!addr.street.trim())               errs.street       = tC("validation_required");
+      if (!addr.number.trim())               errs.number       = tC("validation_required");
+      if (!addr.neighborhood.trim())         errs.neighborhood = tC("validation_required");
+      if (!addr.city.trim())                 errs.city         = tC("validation_required");
+      if (!addr.state)                       errs.state        = tC("validation_required");
+    }
     return errs;
   }
 
@@ -221,6 +227,7 @@ export default function CustomersPage() {
         password:              createForm.password,
         password_confirmation: createForm.password_confirmation,
         phone:                 createForm.phone         || undefined,
+        role:                  createForm.role,
         street:                addr.street              || undefined,
         number:                addr.number              || undefined,
         complement:            addr.complement          || undefined,
@@ -236,11 +243,12 @@ export default function CustomersPage() {
     }
   }
 
-  // ── Search + sort ────────────────────────────────────────────────────────
-  const isFiltering = searchTerm !== "";
+  // ── Search + role filter + sort ─────────────────────────────────────────
+  const isFiltering = searchTerm !== "" || roleFilter !== "all";
 
   function clearFilters() {
     setSearchTerm("");
+    setRoleFilter("all");
   }
 
   const sorted = useMemo(() => {
@@ -248,6 +256,7 @@ export default function CustomersPage() {
     const qDigits = q.replace(/\D/g, "");
 
     const filtered = customers.filter((c) => {
+      if (roleFilter !== "all" && c.role !== roleFilter) return false;
       if (!q) return true;
       return (
         c.name.toLowerCase().includes(q) ||
@@ -269,7 +278,7 @@ export default function CustomersPage() {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     return copy;
-  }, [customers, searchTerm, sortKey]);
+  }, [customers, searchTerm, roleFilter, sortKey]);
 
   const totalPets   = customers.reduce((s, c) => s + (c.pets_count   ?? 0), 0);
   const totalOrders = customers.reduce((s, c) => s + (c.orders_count ?? 0), 0);
@@ -361,6 +370,19 @@ export default function CustomersPage() {
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value as UserRole | "all")}
+            className="h-10 w-full md:w-[160px] rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="all">{t("all_roles")} ({customers.length})</option>
+            {USER_ROLES.map((r) => (
+              <option key={r.value} value={r.value}>
+                {t(r.labelKey)} ({customers.filter((c) => c.role === r.value).length})
+              </option>
+            ))}
+          </select>
+
           <Select
             value={sortKey}
             onValueChange={(v) => v && setSortKey(v as SortKey)}
@@ -459,6 +481,13 @@ export default function CustomersPage() {
                         </div>
                       </div>
                     </div>
+                    <span className={cn(
+                      "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0",
+                      getRoleMeta(customer.role).badge
+                    )}>
+                      <span className={cn("w-1.5 h-1.5 rounded-full", getRoleMeta(customer.role).dot)} />
+                      {t(getRoleMeta(customer.role).labelKey)}
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-4 divide-x divide-border/50 bg-muted/30 rounded-lg">
@@ -513,6 +542,7 @@ export default function CustomersPage() {
               <thead>
                 <tr className="border-b bg-muted/40 text-xs">
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider">{t("name")}</th>
+                  <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider">{t("user_type")}</th>
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">{t("contact")}</th>
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">{t("city_label")}</th>
                   <th className="py-3 px-5 font-semibold text-muted-foreground uppercase tracking-wider text-center">{t("pets")}</th>
@@ -537,6 +567,15 @@ export default function CustomersPage() {
                           </div>
                           <span className="font-medium text-foreground">{customer.name}</span>
                         </div>
+                      </td>
+                      <td className="py-3.5 px-5">
+                        <span className={cn(
+                          "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap",
+                          getRoleMeta(customer.role).badge
+                        )}>
+                          <span className={cn("w-1.5 h-1.5 rounded-full", getRoleMeta(customer.role).dot)} />
+                          {t(getRoleMeta(customer.role).labelKey)}
+                        </span>
                       </td>
                       <td className="py-3.5 px-5 hidden md:table-cell">
                         <div className="text-foreground text-sm">{customer.email}</div>
@@ -628,16 +667,31 @@ export default function CustomersPage() {
             </div>
           </div>
 
-          {/* Phone */}
-          <div className="space-y-2">
-            <Label htmlFor="c-phone">{t("phone")}</Label>
-            <PhoneInput
-              id="c-phone"
-              value={createForm.phone}
-              onChange={(v) => { setCreateForm((f) => ({ ...f, phone: v })); clearCreateError("phone"); }}
-              className={createErrors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
-            />
-            {createErrors.phone && <FieldError msg={createErrors.phone} />}
+          {/* Phone + Role */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="c-phone">{t("phone")}</Label>
+              <PhoneInput
+                id="c-phone"
+                value={createForm.phone}
+                onChange={(v) => { setCreateForm((f) => ({ ...f, phone: v })); clearCreateError("phone"); }}
+                className={createErrors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+              {createErrors.phone && <FieldError msg={createErrors.phone} />}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="c-role">{t("user_type")}</Label>
+              <select
+                id="c-role"
+                value={createForm.role}
+                onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value as UserRole }))}
+                className={selectClass}
+              >
+                {USER_ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>{t(r.labelKey)}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Password */}

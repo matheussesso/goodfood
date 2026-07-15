@@ -6,12 +6,15 @@ import { Subscription } from "./useSubscriptions";
 
 import { Recipe } from "./useRecipes";
 
+/** Every role manageable from the admin "Users" area — mirrors `CustomerController::ROLES` on the backend. */
+export type UserRole = "customer" | "admin" | "producer" | "delivery" | "vet" | "petshop";
+
 export interface Customer {
   id: number;
   name: string;
   email: string;
   phone: string;
-  role: string;
+  role: UserRole;
   street?: string;
   number?: string;
   complement?: string;
@@ -28,11 +31,15 @@ export interface Customer {
   recipes?: Recipe[];
 }
 
-export function useCustomers(search?: string) {
+export function useCustomers(search?: string, role?: UserRole | "all") {
+  const roleParam = role && role !== "all" ? role : undefined;
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ["customers", search],
+    queryKey: ["customers", search, roleParam],
     queryFn: async () => {
-      const params = search ? { search } : {};
+      const params: Record<string, string> = {};
+      if (search) params.search = search;
+      if (roleParam) params.role = roleParam;
       const response = await apiClient.get<{ success: boolean; data: Customer[] }>("/customers", { params });
       return response.data.data;
     },
@@ -77,13 +84,14 @@ export function useUpdateCustomer() {
   });
 }
 
-/** Payload for creating a new customer via admin. */
+/** Payload for creating a new user via admin. */
 export interface CreateCustomerPayload {
   name: string;
   email: string;
   password: string;
   password_confirmation: string;
   phone?: string;
+  role?: UserRole;
   street?: string;
   number?: string;
   complement?: string;
@@ -94,9 +102,9 @@ export interface CreateCustomerPayload {
 }
 
 /**
- * Mutation hook for creating a new customer (admin only).
+ * Mutation hook for creating a new user account (admin only).
  *
- * @returns Mutation object with `mutateAsync` for submitting the new customer form.
+ * @returns Mutation object with `mutateAsync` for submitting the new user form.
  */
 export function useCreateCustomer() {
   const queryClient = useQueryClient();

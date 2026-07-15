@@ -13,18 +13,25 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Admin management of customer accounts. Routes are protected by
+ * Admin management of user accounts (customers, vets, pet shops, production
+ * and delivery staff, and other admins). Routes are protected by
  * AdminMiddleware.
  */
 class CustomerController extends Controller
 {
+    /** @var array<int, string> Every role manageable from this admin area. */
+    public const ROLES = ['customer', 'admin', 'producer', 'delivery', 'vet', 'petshop'];
+
     /**
-     * List customers, optionally filtered by a name/email search term.
+     * List users, optionally filtered by role and/or a name/email search term.
      */
     public function index(Request $request): JsonResponse
     {
-        $query = User::where('role', 'customer')
-            ->withCount(['pets', 'orders']);
+        $query = User::withCount(['pets', 'orders']);
+
+        if ($request->filled('role') && in_array($request->string('role')->toString(), self::ROLES, true)) {
+            $query->where('role', $request->string('role')->toString());
+        }
 
         if ($request->filled('search')) {
             $search = $request->string('search')->toString();
@@ -34,53 +41,70 @@ class CustomerController extends Controller
             });
         }
 
-        $customers = $query->orderBy('created_at', 'desc')->get();
+        $users = $query->orderBy('created_at', 'desc')->get();
 
-        return $this->respondSuccess(UserResource::collection($customers), 'Customers fetched successfully');
+        return $this->respondSuccess(UserResource::collection($users), 'Users fetched successfully');
     }
 
     /**
-     * Create a new customer (admin action).
+     * Create a new user account (admin action), for any manageable role.
      */
     public function store(StoreCustomerRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $validated['password'] = Hash::make($validated['password']);
+        $role = $validated['role'] ?? 'customer';
+        unset($validated['role']);
 
-        $customer = new User($validated);
-        // Role is intentionally not mass assignable; this endpoint only
-        // creates customer accounts.
-        $customer->role = 'customer';
-        $customer->save();
+        $user = new User($validated);
+        // Role is intentionally not mass assignable; set explicitly from the
+        // validated (whitelisted) value instead.
+        $user->role = $role;
+        $user->save();
 
-        return $this->respondSuccess(UserResource::make($customer), 'Customer created successfully', 201);
+        return $this->respondSuccess(UserResource::make($user), 'User created successfully', 201);
     }
 
     /**
-     * Display the specified customer with full details.
+     * Display the specified user with full details (pets, orders,
+     * subscriptions, recipes).
      *
      * @param  int|string  $id
      */
     public function show($id): JsonResponse
     {
-        $customer = User::where('role', 'customer')
-            ->with(['pets', 'orders', 'subscriptions', 'recipes.ingredients', 'recipes.pets'])
-            ->findOrFail($id);
+        $user = User::with([
+            'pets',
+            'orders.items.recipe.ingredients',
+            'orders.invoice',
+            'subscriptions.recipes.ingredients',
+            'recipes.ingredients',
+            'recipes.pets',
+        ])->findOrFail($id);
 
-        return $this->respondSuccess(UserResource::make($customer), 'Customer fetched successfully');
+        return $this->respondSuccess(UserResource::make($user), 'User fetched successfully');
     }
 
     /**
-     * Update the specified customer's information.
+     * Update the specified user's information, including role.
      *
      * @param  int|string  $id
      */
     public function update(UpdateCustomerRequest $request, $id): JsonResponse
     {
-        $customer = User::where('role', 'customer')->findOrFail($id);
+        $user = User::findOrFail($id);
 
-        $customer->update($request->validated());
+        $validated = $request->validated();
+        $role = $validated['role'] ?? null;
+        unset($validated['role']);
 
-        return $this->respondSuccess(UserResource::make($customer), 'Customer updated successfully');
+        $user->update($validated);
+
+        if ($role !== null) {
+            $user->role = $role;
+            $user->save();
+        }
+
+        return $this->respondSuccess(UserResource::make($user), 'User updated successfully');
     }
 }
