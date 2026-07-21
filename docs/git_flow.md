@@ -19,6 +19,29 @@ Todo trabalho (sem exceção) deve nascer a partir de uma branch dedicada. Nunca
 3. **`hotfix/descricao-do-incidente`**: Trata-se do único momento que uma branch é ramificada da `main` visando corrigir uma falha urgente que está impactando a Produção. É retornada e mesclada tanto para a `main` quanto para a `develop`.
 4. **`release/vX.Y.Z`**: Ramificações preparatórias criadas à partir da `develop` que antecedem uma entrega oficial. Servem para testes estabilizadores ou incrementos de build/versões sem interferir com os novos desenvolvimentos na `develop`.
 
+```mermaid
+flowchart LR
+    main(("main<br/>produção"))
+    develop(("develop<br/>staging/QA"))
+    feature["feature/*"]
+    bugfix["bugfix/*"]
+    hotfix["hotfix/*"]
+    release["release/vX.Y.Z"]
+
+    develop -->|branch| feature -->|merge PR| develop
+    develop -->|branch| bugfix -->|merge PR| develop
+    develop -->|branch| release -->|merge| main
+    release -->|merge| develop
+    main -->|branch, incidente urgente| hotfix
+    hotfix -->|merge| main
+    hotfix -->|merge| develop
+
+    style main fill:#dc2626,color:#fff
+    style develop fill:#2563eb,color:#fff
+```
+
+> `hotfix/*` é o único tipo de branch que nasce da `main` — e o único merge que vai simultaneamente para `main` e `develop`, pra corrigir produção sem perder a correção nos próximos releases.
+
 ---
 
 ## Fluxo de Trabalho (Step-by-step)

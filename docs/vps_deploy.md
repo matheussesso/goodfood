@@ -22,6 +22,50 @@ As imagens de produção (`docker/prod/backend/Dockerfile` e
 VPS **não builda nada** — só baixa as imagens prontas e sobe o
 `docker-compose.yml` da raiz.
 
+```mermaid
+sequenceDiagram
+    participant Dev as Desenvolvedor
+    participant GH as GitHub Actions
+    participant GHCR as GHCR
+    participant VPS as VPS (SSH)
+
+    Dev->>GH: push na main
+    GH->>GH: Prepare → Quality → Test
+    GH->>GH: Build (docker build)
+    GH->>GHCR: push goodfood-backend:sha / :latest
+    GH->>GHCR: push goodfood-frontend:sha / :latest
+    GH->>VPS: appleboy/ssh-action (Deploy)
+    VPS->>VPS: git fetch origin main && git reset --hard
+    VPS->>GHCR: docker compose pull (IMAGE_TAG=sha)
+    GHCR-->>VPS: imagens atualizadas
+    VPS->>VPS: docker compose up -d --remove-orphans
+    VPS->>VPS: docker image prune -f
+    Note over VPS: migrate --force roda no entrypoint do backend na subida
+```
+
+### Topologia de rede
+
+```mermaid
+flowchart LR
+    User(["Visitante"]) -->|"HTTPS"| CF["Cloudflare<br/>proxy laranja · Full (strict)"]
+    CF -->|"443 · api.dominio.com"| BE
+    CF -->|"443 · app.dominio.com"| BE
+
+    subgraph vps["VPS (portas 80/443 firewalladas p/ IPs Cloudflare)"]
+        BE["backend container<br/>FrankenPHP + Caddy<br/>Origin CA cert"]
+        FE["frontend container<br/>Next.js standalone"]
+        DB[("db<br/>postgres:16-alpine<br/>127.0.0.1:5432")]
+    end
+
+    BE -->|"API direta"| BE
+    BE -->|"reverse_proxy :3000"| FE
+    BE --> DB
+
+    Dev(["DBeaver (local)"]) -.->|"túnel SSH<br/>127.0.0.1:5432"| DB
+```
+
+> Certificado usado entre Cloudflare e a origem é o **Origin CA** da própria Cloudflare — confiável só nesse trecho, nunca visto pelo navegador do visitante (quem serve HTTPS pro público é sempre a borda Cloudflare). Ver passo 1.4 abaixo.
+
 ---
 
 ## 1. Preparar o VPS

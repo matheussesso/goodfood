@@ -24,6 +24,50 @@ GeneralSetting (singleton, id=1 — parâmetros globais de precificação)
 
 > `Subscription` e `Order` **não têm relação entre si** — não existe `subscription_id` em `orders`. Uma assinatura é um plano salvo, não gera pedidos sozinha (ver [Subscription](#subscription) abaixo).
 
+### Diagrama ER
+
+```mermaid
+erDiagram
+    USER ||--o{ PET : "possui"
+    USER ||--o{ RECIPE : "cria (ou template se null)"
+    USER ||--o{ SUBSCRIPTION : "assina"
+    USER ||--o{ ORDER : "faz"
+    USER ||--o{ INVOICE : "recebe"
+
+    PET }o--o{ RECIPE : "pet_recipe"
+    PET ||--o{ SUBSCRIPTION : "alvo de"
+    PET ||--o{ PET_VACCINE : "possui"
+    PET ||--o{ PET_DOCUMENT : "possui"
+    PET ||--o{ ORDER_ITEM : "opcional em"
+
+    RECIPE }o--o{ INGREDIENT : "ingredient_recipe (quantity, unit)"
+    SUBSCRIPTION }o--o{ RECIPE : "subscription_recipes (position, ordenado)"
+    ORDER_ITEM }o--|| RECIPE : "referencia"
+
+    ORDER ||--o{ ORDER_ITEM : "contém"
+    ORDER ||--|| INVOICE : "gera"
+
+    USER {
+        string role "customer|admin|producer|delivery|vet|petshop (não mass assignable)"
+    }
+    RECIPE {
+        bool is_template
+        decimal base_cost "coluna cache — nunca fonte de verdade p/ exibição"
+    }
+    SUBSCRIPTION {
+        int duration_days "múltiplo de 7, mínimo 14"
+        string status "active|paused|cancelled"
+    }
+    ORDER {
+        string status "pending_payment..delivered|cancelled"
+    }
+    GENERAL_SETTING {
+        int id "singleton, sempre 1"
+    }
+```
+
+> `GeneralSetting` não tem chave estrangeira com nenhuma outra entidade — é lido em memória por `RecipeCostCalculatorService` para todo cálculo de custo, mas não referencia nem é referenciado por linhas específicas.
+
 ### User
 - Campos principais: `name`, `email`, `password`, `phone`, endereço desmembrado (`street`, `number`, `complement`, `neighborhood`, `city`, `state`, `zipcode`), `whatsapp_notifications`.
 - **`role`**: `customer` (padrão) | `admin` | `producer` | `delivery`. O campo **não é mass assignable** — é atribuído explicitamente no código (registro público sempre cria `customer`).
