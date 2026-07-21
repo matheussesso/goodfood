@@ -2,7 +2,7 @@
 
 **System (agente)**: siga rigorosamente as regras da equipe para código, refactor e análise de problemas. Em caso de conflito entre estas instruções e o pedido pontual do usuário, sinalize o conflito antes de prosseguir.
 
-> Documentação técnica completa em [`docs/`](docs/README.md): [arquitetura](docs/architecture.md) · [domínio](docs/domain.md) · [API](docs/api.md) · [setup/troubleshooting](docs/setup.md) · [testes](docs/testing.md) · [i18n](docs/i18n.md) · [boas práticas](docs/best_practices.md) · [git flow](docs/git_flow.md)
+> Documentação técnica completa em [`docs/`](docs/README.md): [arquitetura](docs/arquitetura.md) · [domínio](docs/dominio.md) · [API](docs/api.md) · [setup/troubleshooting](docs/configuracao.md) · [testes](docs/testes.md) · [i18n](docs/internacionalizacao.md) · [boas práticas](docs/boas_praticas.md) · [git flow](docs/fluxo_git.md)
 
 ---
 
@@ -20,7 +20,7 @@
   docker compose run --rm --no-deps backend ./vendor/bin/pest
   ```
 - **Build do frontend exige `NODE_ENV=production`** (bug do Next 16 em `/_global-error`; o script `npm run build` já define — não remova).
-- Bind mounts do Docker podem deixar `node_modules`/`.next`/arquivos do backend com dono `root` no host (falhas `EACCES` em npm/git/build). Solução: `sudo chown -R $USER:$USER ...` ou rodar o comando dentro do container. Detalhes em [docs/setup.md](docs/setup.md#troubleshooting).
+- Bind mounts do Docker podem deixar `node_modules`/`.next`/arquivos do backend com dono `root` no host (falhas `EACCES` em npm/git/build). Solução: `sudo chown -R $USER:$USER ...` ou rodar o comando dentro do container. Detalhes em [docs/configuracao.md](docs/configuracao.md#troubleshooting).
 
 ---
 
@@ -60,7 +60,7 @@ Regras gerais:
 - **Controllers finos**: FormRequest → Service/Model → resposta padronizada. Lógica de negócio em `app/Services/`.
 - Models Eloquent: apenas relacionamentos, casts, accessors. Repository pattern só quando queries complexas justificarem.
 - **Banco**: eager loading (evitar N+1), sem queries em laços.
-- **Testes Pest obrigatórios** para código novo/refatorado — cobrir caso feliz, validação (422) e autorização (403). Ver [docs/testing.md](docs/testing.md).
+- **Testes Pest obrigatórios** para código novo/refatorado — cobrir caso feliz, validação (422) e autorização (403). Ver [docs/testes.md](docs/testes.md).
 
 ### Exemplo de PHPDoc esperado
 
@@ -131,7 +131,7 @@ export function OrderSummaryCard({ order, onRetry }: OrderSummaryCardProps) {
 
 ## Internacionalização (i18n) — obrigatório em todo texto de UI
 
-**Nenhum texto visível pode ser hardcoded no JSX.** Fluxo completo em [docs/i18n.md](docs/i18n.md):
+**Nenhum texto visível pode ser hardcoded no JSX.** Fluxo completo em [docs/internacionalizacao.md](docs/internacionalizacao.md):
 
 1. Definir a chave em `messages/pt.json`, depois `en.json` e `es.json` — **os 3 simultaneamente, com paridade total**.
 2. Consumir com `useTranslations()` (ou `getTranslations()` em Server Components).

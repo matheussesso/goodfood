@@ -33,13 +33,13 @@ A equipe do GoodFood System adota regras rigorosas para o desenvolvimento. A con
   public function create(CreateOrderDTO $data): Order
   ```
 - **Performance de banco**: Eager Loading contra `N+1`; nada de queries dentro de laços.
-- **Testes com Pest**: nenhuma feature/refactor/correção sobe sem testes ([testing.md](testing.md)). Cobrir caso feliz, validação e autorização.
+- **Testes com Pest**: nenhuma feature/refactor/correção sobe sem testes ([testes.md](testes.md)). Cobrir caso feliz, validação e autorização.
 
 ---
 
 ## Frontend (Next.js / TypeScript)
 
-- **App Router e RSC**: preferir Server Components; `"use client"` apenas quando houver interatividade, hooks ou APIs do browser. (Estado atual: maioria das telas ainda é client-side — ver [architecture.md](architecture.md); novas telas devem puxar na direção de RSC quando possível.)
+- **App Router e RSC**: preferir Server Components; `"use client"` apenas quando houver interatividade, hooks ou APIs do browser. (Estado atual: maioria das telas ainda é client-side — ver [arquitetura.md](arquitetura.md); novas telas devem puxar na direção de RSC quando possível.)
 - **TSDoc obrigatório** em componentes, hooks, services e utils:
   ```tsx
   /**
@@ -52,7 +52,7 @@ A equipe do GoodFood System adota regras rigorosas para o desenvolvimento. A con
 - **Estado de servidor**: sempre **TanStack Query** — nada de `fetch`/`useEffect` soltos para dados da API. HTTP exclusivamente via `apiClient` (`lib/api-client.ts`); APIs externas ganham wrapper em `lib/` (ex.: `lib/viacep.ts`).
 - **Formulários**: React Hook Form; a validação com **Zod + @hookform/resolvers** está no roadmap — novos formulários complexos devem adotá-la.
 - **Tratamento de erros/carregamento**: `error.tsx` e `loading.tsx` por route group + Suspense.
-- **i18n obrigatório**: nenhuma string de UI hardcoded — fluxo completo em [i18n.md](i18n.md).
+- **i18n obrigatório**: nenhuma string de UI hardcoded — fluxo completo em [internacionalizacao.md](internacionalizacao.md).
 - **Imagens**: sempre `next/image` (nunca `<img>`), com `remotePatterns` configurado.
 
 ### Critério absoluto de responsividade

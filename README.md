@@ -31,7 +31,7 @@ docker exec -it goodfood_frontend npm install
 - 🌐 Frontend: http://localhost:3000
 - 🚀 API: http://localhost:8000/api
 
-Guia completo (incluindo **troubleshooting** de permissões do Docker, testes e build): [docs/setup.md](docs/setup.md).
+Guia completo (incluindo **troubleshooting** de permissões do Docker, testes e build): [docs/configuracao.md](docs/configuracao.md).
 
 ## Documentação
 
@@ -39,15 +39,15 @@ Toda a documentação técnica vive em [`docs/`](docs/README.md):
 
 | Documento | Conteúdo |
 | --- | --- |
-| [Setup e Troubleshooting](docs/setup.md) | Ambiente local, comandos do dia a dia, problemas comuns |
-| [Deploy no VPS](docs/vps_deploy.md) | Docker de produção, pipeline CI/CD, SSH/Secrets, Cloudflare |
-| [Arquitetura](docs/architecture.md) | Camadas do backend, padrões do frontend, infraestrutura |
-| [Modelo de Domínio](docs/domain.md) | Entidades, relacionamentos e regras de negócio |
+| [Setup e Troubleshooting](docs/configuracao.md) | Ambiente local, comandos do dia a dia, problemas comuns |
+| [Deploy no VPS](docs/implantacao_vps.md) | Docker de produção, pipeline CI/CD, SSH/Secrets, Cloudflare |
+| [Arquitetura](docs/arquitetura.md) | Camadas do backend, padrões do frontend, infraestrutura |
+| [Modelo de Domínio](docs/dominio.md) | Entidades, relacionamentos e regras de negócio |
 | [API REST](docs/api.md) | Autenticação, contrato de resposta e todos os endpoints |
-| [Testes](docs/testing.md) | Como rodar e escrever testes (Pest) |
-| [Internacionalização](docs/i18n.md) | Fluxo obrigatório pt/en/es do frontend |
-| [Boas Práticas](docs/best_practices.md) | Padrões de código e qualidade |
-| [Git Flow](docs/git_flow.md) | Branches, commits e pull requests |
+| [Testes](docs/testes.md) | Como rodar e escrever testes (Pest) |
+| [Internacionalização](docs/internacionalizacao.md) | Fluxo obrigatório pt/en/es do frontend |
+| [Boas Práticas](docs/boas_praticas.md) | Padrões de código e qualidade |
+| [Git Flow](docs/fluxo_git.md) | Branches, commits e pull requests |
 | [Agents](/AGENTS.md) | Regras e definições para programar com seu agente de IA |
 
 ## Funcionalidades
@@ -114,11 +114,11 @@ docker compose -f docker-compose.dev.yml stop        # parar
 docker compose -f docker-compose.dev.yml down -v     # zerar tudo (inclui banco)
 ```
 
-Mais comandos e soluções de problemas em [docs/setup.md](docs/setup.md).
+Mais comandos e soluções de problemas em [docs/configuracao.md](docs/configuracao.md).
 
 ## Contribuindo
 
-1. Leia [docs/best_practices.md](docs/best_practices.md) e [docs/git_flow.md](docs/git_flow.md).
+1. Leia [docs/boas_praticas.md](docs/boas_praticas.md) e [docs/fluxo_git.md](docs/fluxo_git.md).
 2. Crie sua branch a partir da `develop` (`feature/...`, `bugfix/...`).
-3. Toda entrega exige testes ([docs/testing.md](docs/testing.md)), i18n completo ([docs/i18n.md](docs/i18n.md)) e validação de responsividade.
-4. Abra o PR para `develop` com descrição em português — o pipeline de CI/CD ([docs/git_flow.md#cicd](docs/git_flow.md#cicd)) roda Quality + Test automaticamente.
+3. Toda entrega exige testes ([docs/testes.md](docs/testes.md)), i18n completo ([docs/internacionalizacao.md](docs/internacionalizacao.md)) e validação de responsividade.
+4. Abra o PR para `develop` com descrição em português — o pipeline de CI/CD ([docs/fluxo_git.md#cicd](docs/fluxo_git.md#cicd)) roda Quality + Test automaticamente.

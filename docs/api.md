@@ -105,7 +105,7 @@ Status de pedido: `pending_payment` → `pending` → `in_production` → `ready
 
 ### Subscriptions (autenticado)
 
-Plano alimentar semanal fixo — **sem relação com `Order`**, nunca gera pedido sozinho. Ver [domain.md](domain.md#subscription).
+Plano alimentar semanal fixo — **sem relação com `Order`**, nunca gera pedido sozinho. Ver [dominio.md](dominio.md#subscription).
 
 | Método | Rota | Descrição |
 | --- | --- | --- |

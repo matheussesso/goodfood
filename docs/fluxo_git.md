@@ -115,4 +115,4 @@ Implicações práticas:
   esse merge com o mesmo cuidado de um deploy manual. Normalmente isso
   acontece ao fechar uma `release/vX.Y.Z` ou um `hotfix/*`.
 - Deploy de produção, Docker (dev vs. prod) e configuração do VPS/GHCR/Cloudflare
-  estão documentados em [vps_deploy.md](vps_deploy.md).
+  estão documentados em [implantacao_vps.md](implantacao_vps.md).

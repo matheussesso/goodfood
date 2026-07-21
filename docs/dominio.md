@@ -94,7 +94,7 @@ erDiagram
 - `Invoice`: criada junto com o pedido (`amount`, `status` inicial `pending`, `due_date` = hoje + 3 dias).
 
 ### Subscription
-Plano alimentar semanal de duração fixa para um pet — **não gera pedidos automaticamente** (sem job/scheduler associado; ver [architecture.md](architecture.md#agendamento)).
+Plano alimentar semanal de duração fixa para um pet — **não gera pedidos automaticamente** (sem job/scheduler associado; ver [arquitetura.md](arquitetura.md#agendamento)).
 
 - `user_id`, `pet_id`, `duration_days` (duração total do plano em dias; mínimo 14, múltiplo de 7), `status` (`active`|`paused`|`cancelled`), `start_date`.
 - **Uma receita por semana**: `total_cycles = duration_days / 7` blocos de 7 dias, cada um com exatamente uma receita (pivot `subscription_recipes`, ordenado por `position` = índice da semana). O backend valida que `recipe_ids` tem exatamente esse tanto de itens ao criar/editar.

@@ -2,7 +2,7 @@
 
 Guia passo a passo para preparar um VPS Ubuntu e ligá-lo ao pipeline de
 CI/CD em [`.github/workflows/ci-cd.yml`](../.github/workflows/ci-cd.yml).
-Para o dia a dia local, veja [setup.md](setup.md); este guia cobre apenas
+Para o dia a dia local, veja [configuracao.md](configuracao.md); este guia cobre apenas
 homologação/produção.
 
 ## Visão geral do pipeline

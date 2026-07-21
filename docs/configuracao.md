@@ -10,7 +10,7 @@ Guia para subir o ambiente de desenvolvimento com **Docker Compose** e resolver 
 *Opcional (tooling de IDE no host): PHP 8.4 com extensões PDO, Composer e Node.js 20+.*
 
 > **`docker-compose.yml` (raiz) é o compose de PRODUÇÃO** (usado no VPS, ver
-> [vps_deploy.md](vps_deploy.md)) — ele referencia imagens do GHCR, não builda
+> [implantacao_vps.md](implantacao_vps.md)) — ele referencia imagens do GHCR, não builda
 > a partir do código local. Localmente use sempre `docker-compose.dev.yml`.
 > Para não repetir `-f` a cada comando: `export COMPOSE_FILE=docker-compose.dev.yml`.
 
@@ -85,7 +85,7 @@ docker compose -f docker-compose.dev.yml down -v        # remover TUDO, inclusiv
 # Backend
 docker exec -it goodfood_backend php artisan optimize:clear
 docker exec -it goodfood_backend php artisan make:migration nome_da_migration
-docker compose -f docker-compose.dev.yml run --rm --no-deps backend ./vendor/bin/pest    # testes (ver docs/testing.md)
+docker compose -f docker-compose.dev.yml run --rm --no-deps backend ./vendor/bin/pest    # testes (ver docs/testes.md)
 
 # Frontend
 docker exec -it goodfood_frontend npm run lint

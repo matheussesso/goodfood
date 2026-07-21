@@ -46,11 +46,11 @@ Toda resposta segue `{ success, message, data, errors? }`:
 - Sucessos: trait `ApiResponses` (`respondSuccess`/`respondError`) usado pelo `Controller` base.
 - Erros: renderers registrados em `bootstrap/app.php` convertem `ValidationException` (422), `AuthenticationException` (401), `AuthorizationException`/`AccessDeniedHttpException` (403) e `NotFoundHttpException`/`ModelNotFoundException` (404) para o mesmo envelope em rotas `api/*`.
 
-Detalhes de endpoints em [api.md](api.md); entidades e regras em [domain.md](domain.md).
+Detalhes de endpoints em [api.md](api.md); entidades e regras em [dominio.md](dominio.md).
 
 ### Agendamento
 
-Nenhum comando agendado está registrado em `bootstrap/app.php` no momento — assinaturas não geram pedidos automaticamente (ver [domain.md](domain.md#subscription)). O serviço `scheduler` do Docker Compose continua de pé (roda `php artisan schedule:work`), pronto para o dia em que algum job recorrente for necessário; hoje é um no-op inofensivo.
+Nenhum comando agendado está registrado em `bootstrap/app.php` no momento — assinaturas não geram pedidos automaticamente (ver [dominio.md](dominio.md#subscription)). O serviço `scheduler` do Docker Compose continua de pé (roda `php artisan schedule:work`), pronto para o dia em que algum job recorrente for necessário; hoje é um no-op inofensivo.
 
 ### Evoluções planejadas
 
@@ -64,7 +64,7 @@ Local: `src/frontend`. **Next.js 16 (App Router)** com **React 19** e **TypeScri
 
 ### Padrões em uso
 
-- **Roteamento internacionalizado**: todo o app vive sob `app/[locale]/` (route groups `(auth)` e `(dashboard)`), com **next-intl** e middleware de locale. O root layout fica em `app/[locale]/layout.tsx`; por isso o 404 global usa `experimental.globalNotFound` + `app/global-not-found.tsx`, e `app/global-error.tsx` cobre erros que escapam do root layout (ambos fora da árvore de locale — texto estático). Ver [i18n.md](i18n.md).
+- **Roteamento internacionalizado**: todo o app vive sob `app/[locale]/` (route groups `(auth)` e `(dashboard)`), com **next-intl** e middleware de locale. O root layout fica em `app/[locale]/layout.tsx`; por isso o 404 global usa `experimental.globalNotFound` + `app/global-not-found.tsx`, e `app/global-error.tsx` cobre erros que escapam do root layout (ambos fora da árvore de locale — texto estático). Ver [internacionalizacao.md](internacionalizacao.md).
 - **Estado de servidor**: **TanStack Query** (provider em `components/providers/QueryProvider.tsx`) para fetch, cache e invalidação.
 - **Estado de cliente**: **Zustand** apenas para a sessão de autenticação (`hooks/useAuth.ts`). A credencial em si é um cookie httpOnly; `AuthSessionProvider` restaura o usuário via `GET /me` no carregamento.
 - **HTTP**: instância única do Axios em `lib/api-client.ts` (`API_BASE_URL`, `withCredentials`, CSRF automático via `ensureCsrfCookie()` antes de mutações). Única exceção de `fetch` direto: API externa ViaCEP, encapsulada em `lib/viacep.ts`.
@@ -85,7 +85,7 @@ Local: `src/frontend`. **Next.js 16 (App Router)** com **React 19** e **TypeScri
 
 **PostgreSQL 16** (imagem `postgres:16-alpine`), volume persistente, exposto em `localhost:5432` apenas para desenvolvimento. Schema gerenciado por migrations do Laravel (`src/backend/database/migrations`); dados de exemplo via seeders.
 
-Nos testes, o banco é **SQLite em memória** (`phpunit.xml`) — ver [testing.md](testing.md).
+Nos testes, o banco é **SQLite em memória** (`phpunit.xml`) — ver [testes.md](testes.md).
 
 ---
 
@@ -138,13 +138,13 @@ flowchart TB
     BM2(["./src/backend"]) -.->|bind mount| BE
 ```
 
-> ⚠️ Processos dos containers rodam como root e podem deixar arquivos com dono `root` no host (`node_modules`, `.next`). Ver a seção de troubleshooting em [setup.md](setup.md#troubleshooting).
+> ⚠️ Processos dos containers rodam como root e podem deixar arquivos com dono `root` no host (`node_modules`, `.next`). Ver a seção de troubleshooting em [configuracao.md](configuracao.md#troubleshooting).
 
 ### Produção (`docker-compose.yml`, VPS)
 
 Não builda nada localmente — sobe imagens **já publicadas no GHCR** pelo pipeline de CI/CD (`ghcr.io/<owner>/goodfood-backend` e `-frontend`, tag = SHA curto do commit).
 
-- **`backend`**: imagem multi-stage (`composer install --no-dev`, autoload otimizado). `docker/prod/backend/entrypoint.sh` roda `config:cache`/`route:cache`/`view:cache` e `migrate --force` no start (não no build — dependem de env runtime). Caddy do FrankenPHP é o **ingress único do VPS**: serve a API direto e faz `reverse_proxy` pro serviço `frontend` (dois domínios, um container, ver [vps_deploy.md](vps_deploy.md)). TLS via certificado **Cloudflare Origin CA** (Cloudflare em modo Full strict na frente), não Let's Encrypt.
+- **`backend`**: imagem multi-stage (`composer install --no-dev`, autoload otimizado). `docker/prod/backend/entrypoint.sh` roda `config:cache`/`route:cache`/`view:cache` e `migrate --force` no start (não no build — dependem de env runtime). Caddy do FrankenPHP é o **ingress único do VPS**: serve a API direto e faz `reverse_proxy` pro serviço `frontend` (dois domínios, um container, ver [implantacao_vps.md](implantacao_vps.md)). TLS via certificado **Cloudflare Origin CA** (Cloudflare em modo Full strict na frente), não Let's Encrypt.
 - **`frontend`**: imagem multi-stage Next.js com `output: "standalone"` — runtime final só copia `.next/standalone` + `.next/static`, sem `node_modules` completo.
 - **`scheduler`**: mesma imagem do backend, roda só `php artisan schedule:work` (entrypoint pula o `migrate` pra não disputar com o `backend` na subida).
 
@@ -174,11 +174,11 @@ flowchart TB
     GHCR -.-> FEC
 ```
 
-> O container `backend` é o único ingress do VPS: termina TLS com o certificado Origin CA da Cloudflare, serve a API Laravel diretamente e faz `reverse_proxy` para o `frontend` — dois domínios, um único container expondo 80/443. Detalhes de rede/DNS/certificado em [vps_deploy.md](vps_deploy.md).
+> O container `backend` é o único ingress do VPS: termina TLS com o certificado Origin CA da Cloudflare, serve a API Laravel diretamente e faz `reverse_proxy` para o `frontend` — dois domínios, um único container expondo 80/443. Detalhes de rede/DNS/certificado em [implantacao_vps.md](implantacao_vps.md).
 
 ### CI/CD
 
-Pipeline completo em [`.github/workflows/ci-cd.yml`](../.github/workflows/ci-cd.yml): `Prepare → Quality → Test → Build → Deploy`. Build/Deploy só rodam em push na `main` (publica imagens no GHCR + SSH no VPS). Detalhes de gatilhos por branch em [git_flow.md](git_flow.md#cicd); setup completo do VPS (SSH, GHCR, Cloudflare) em [vps_deploy.md](vps_deploy.md).
+Pipeline completo em [`.github/workflows/ci-cd.yml`](../.github/workflows/ci-cd.yml): `Prepare → Quality → Test → Build → Deploy`. Build/Deploy só rodam em push na `main` (publica imagens no GHCR + SSH no VPS). Detalhes de gatilhos por branch em [fluxo_git.md](fluxo_git.md#cicd); setup completo do VPS (SSH, GHCR, Cloudflare) em [implantacao_vps.md](implantacao_vps.md).
 
 ```mermaid
 flowchart LR

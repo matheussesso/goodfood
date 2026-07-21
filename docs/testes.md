@@ -74,4 +74,4 @@ npx eslint app hooks lib features
 npm run build         # build de produção (requer NODE_ENV=production, já no script)
 ```
 
-> Se o host tiver `node_modules`/`.next` com dono root (efeito do bind mount do Docker), rode o build dentro do container: `docker compose run --rm --no-deps frontend npm run build`. Ver [setup.md](setup.md#troubleshooting).
+> Se o host tiver `node_modules`/`.next` com dono root (efeito do bind mount do Docker), rode o build dentro do container: `docker compose run --rm --no-deps frontend npm run build`. Ver [configuracao.md](configuracao.md#troubleshooting).

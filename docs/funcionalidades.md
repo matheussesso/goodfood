@@ -1,6 +1,6 @@
 # Funcionalidades do Sistema
 
-Documentação funcional das telas e fluxos do GoodFood System — o que cada funcionalidade faz, quem pode usar, e as regras de negócio por trás dela. Para o modelo de dados por trás de cada entidade, ver [domain.md](domain.md); para o contrato REST, ver [api.md](api.md).
+Documentação funcional das telas e fluxos do GoodFood System — o que cada funcionalidade faz, quem pode usar, e as regras de negócio por trás dela. Para o modelo de dados por trás de cada entidade, ver [dominio.md](dominio.md); para o contrato REST, ver [api.md](api.md).
 
 Dois perfis de usuário: **cliente** (tutor do pet) e **admin** (equipe GoodFood). A maioria das funcionalidades tem uma versão para cada um.
 
@@ -64,7 +64,7 @@ Plano alimentar semanal de duração fixa para um pet — pensado para quem já 
 - **Custo do plano**: soma o custo de cada receita escolhida, mas **sempre cobrando 7 dias por semana** — mesmo que a receita esteja cadastrada no catálogo com outra duração nativa (ex. uma receita de "14 dias" entra no plano custando o equivalente a 1 semana, não 2). Combinado com o preço sempre atual dos ingredientes, o valor mostrado é sempre o real.
 - **Progresso**: a tela mostra "Semana X de Y" com base na data de início — só para acompanhamento, não afeta nada.
 - **Ações**: pausar, retomar, cancelar (cancelamento é lógico — o histórico fica preservado).
-- **Sem relação com Pedidos**: uma assinatura **nunca gera um pedido sozinha**. Não existe job/scheduler rodando em segundo plano criando pedidos a partir de assinaturas — é puramente um plano salvo que o cliente usa como referência. (Isso já foi diferente no passado; ver [domain.md](domain.md#subscription) se encontrar menção a "rotação"/"próxima entrega" em código ou anotações antigas — está desatualizado.)
+- **Sem relação com Pedidos**: uma assinatura **nunca gera um pedido sozinha**. Não existe job/scheduler rodando em segundo plano criando pedidos a partir de assinaturas — é puramente um plano salvo que o cliente usa como referência. (Isso já foi diferente no passado; ver [dominio.md](dominio.md#subscription) se encontrar menção a "rotação"/"próxima entrega" em código ou anotações antigas — está desatualizado.)
 - **Admin**: `/admin/subscriptions` — só leitura + ações de pausar/retomar/cancelar de qualquer cliente. Sem criação/edição pelo admin.
 
 ## Administração
@@ -78,4 +78,4 @@ Plano alimentar semanal de duração fixa para um pet — pensado para quem já 
 
 ## Internacionalização e responsividade
 
-Toda tela é traduzida (pt/en/es, chaves em `messages/`) e responsiva (mobile/tablet/desktop) — ver [i18n.md](i18n.md) para o fluxo de tradução e o `AGENTS.md` na raiz do projeto para os critérios de responsividade.
+Toda tela é traduzida (pt/en/es, chaves em `messages/`) e responsiva (mobile/tablet/desktop) — ver [internacionalizacao.md](internacionalizacao.md) para o fluxo de tradução e o `AGENTS.md` na raiz do projeto para os critérios de responsividade.
