@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export default function DashboardPage() {
   const t = useTranslations("Navigation");
   const tDash = useTranslations("Dashboard");
+  const tSub = useTranslations("Subscriptions");
   const { user } = useAuth();
 
   return (
@@ -33,7 +34,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t("subscriptions")}</CardTitle>
+            <CardTitle>{tSub("title")}</CardTitle>
             <CardDescription>{tDash("view_subscriptions_desc")}</CardDescription>
           </CardHeader>
           <CardContent>

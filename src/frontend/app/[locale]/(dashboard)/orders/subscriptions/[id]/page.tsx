@@ -22,6 +22,7 @@ import {
   CheckCircle,
   Salad,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { useSubscription, useSubscriptions, SubscriptionRecipe } from "@/hooks/useSubscriptions";
 import { useRecipeCycleCost, CYCLE_DAYS } from "@/hooks/useRecipeCycleCost";
 import { Button } from "@/components/ui/button";
@@ -140,9 +141,12 @@ function WeeklyRecipeDetailCard({
 }
 
 /**
- * Customer-facing subscription detail page.
- * Shows the week-by-week progress of the plan, each week's recipe with its
+ * Subscription detail page, shared by customer and admin (admin may open any
+ * subscription via the unified orders list — SubscriptionPolicy allows the
+ * read). Shows week-by-week progress, each week's recipe with its
  * composition, plan summary, linked pet, and pause/resume/cancel actions.
+ * Editing (duration/recipe rotation) is only offered to the plan's owner —
+ * admins may change status but do not edit the plan itself.
  *
  * @returns The subscription detail page element.
  */
@@ -155,6 +159,7 @@ export default function SubscriptionDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
+  const { user } = useAuth();
   const { subscription, isLoading, error } = useSubscription(id);
   const { updateSubscription, isUpdating } = useSubscriptions();
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -206,6 +211,7 @@ export default function SubscriptionDetailPage() {
   const status = subscription.status as SubStatus;
   const style = STATUS_STYLE[status] ?? STATUS_STYLE.active;
   const isCancelled = status === "cancelled";
+  const isOwner = user?.id === subscription.user_id;
   const PetIcon = subscription.pet?.type === "cat" ? Cat : Dog;
   const totalWeeks = subscription.total_cycles ?? 0;
   const currentWeek = subscription.current_cycle_index;
@@ -246,8 +252,8 @@ export default function SubscriptionDetailPage() {
           </div>
         </div>
 
-        {!isCancelled && (
-          <Link href={`/subscriptions/${subscription.id}/edit`}>
+        {!isCancelled && isOwner && (
+          <Link href={`/orders/subscriptions/${subscription.id}/edit`}>
             <Button variant="secondary" className="gap-2">
               <Edit className="w-4 h-4" /> {tCommon("edit")}
             </Button>
@@ -486,8 +492,8 @@ export default function SubscriptionDetailPage() {
           )}
 
           {/* Edit CTA */}
-          {!isCancelled && (
-            <Link href={`/subscriptions/${subscription.id}/edit`} className="block">
+          {!isCancelled && isOwner && (
+            <Link href={`/orders/subscriptions/${subscription.id}/edit`} className="block">
               <Button className="w-full gap-2" variant="secondary">
                 <Edit className="w-4 h-4" /> {tCommon("edit")}
               </Button>

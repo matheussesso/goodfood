@@ -24,6 +24,8 @@ import {
 /**
  * Dedicated page for editing an existing subscription's plan duration and
  * weekly recipes. The pet cannot be changed here — only the plan itself.
+ * Only reachable by the plan's owner (SubscriptionDetailPage hides the entry
+ * point for anyone else, including admins).
  *
  * @returns The subscription edit page element.
  */
@@ -110,7 +112,7 @@ export default function EditSubscriptionPage() {
         recipe_ids: recipeIds as number[],
       });
       setSubmitSuccess(true);
-      setTimeout(() => router.push("/subscriptions"), 1200);
+      setTimeout(() => router.push("/orders"), 1200);
     } catch {
       setSubmitError(t("error_update"));
     }
@@ -132,7 +134,7 @@ export default function EditSubscriptionPage() {
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4">
         <Link
-          href="/subscriptions"
+          href="/orders"
           className="p-2 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -231,7 +233,7 @@ export default function EditSubscriptionPage() {
           )}
 
           <div className="flex gap-3">
-            <Link href="/subscriptions" className="flex-1">
+            <Link href="/orders" className="flex-1">
               <Button type="button" variant="outline" className="w-full">
                 {tCommon("cancel")}
               </Button>

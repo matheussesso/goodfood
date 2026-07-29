@@ -7,7 +7,6 @@ import Image from "next/image";
 import {
   LayoutDashboard,
   Dog,
-  CalendarCheck,
   ShoppingBag,
   PackageSearch,
   Factory,
@@ -45,14 +44,12 @@ export function Sidebar({ isOpen, setIsOpen, layoutMode = "vertical" }: SidebarP
       links.push({ href: "/admin/customers", label: t("customers"), icon: Users });
       links.push({ href: "/admin/catalog", label: t("catalog"), icon: PackageSearch });
       links.push({ href: "/admin/orders", label: t("orders"), icon: ShoppingBag });
-      links.push({ href: "/admin/subscriptions", label: t("subscriptions"), icon: CalendarCheck });
     }
 
     if (role === "customer") {
       links.push({ href: "/pets", label: t("pets"), icon: Dog });
       links.push({ href: "/recipes", label: t("recipes"), icon: UtensilsCrossed });
       links.push({ href: "/orders", label: t("orders"), icon: ShoppingBag });
-      links.push({ href: "/subscriptions", label: t("subscriptions"), icon: CalendarCheck });
     }
 
     if (role === "producer" || role === "admin") {

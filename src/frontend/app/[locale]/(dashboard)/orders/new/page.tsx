@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import {
   ArrowLeft,
   ShoppingBag,
+  CalendarCheck,
   Dog,
   Cat,
   UtensilsCrossed,
@@ -41,9 +42,12 @@ interface SelectedItem {
 }
 
 /**
- * Dedicated page for creating a new order.
- * Lets the customer pick recipes from one or more pets independently —
- * the same recipe can be selected for different pets, generating separate order items.
+ * Dedicated page for creating a new order. Opens on a type-choice step —
+ * one-off order vs. recurring subscription — then, for the one-off path,
+ * lets the customer pick recipes from one or more pets independently (the
+ * same recipe can be selected for different pets, generating separate order
+ * items). The subscription path hands off to `/orders/subscriptions/new`,
+ * which owns the weekly-plan builder.
  *
  * @returns The new order creation page element.
  */
@@ -57,6 +61,9 @@ export default function NewOrderPage() {
   const { pets, isLoading: petsLoading } = usePets();
   const { createOrder, isCreating } = useOrders();
   const user = useAuth((s) => s.user);
+
+  /** "choose" shows the order-type picker; "single" shows the one-off order builder below. */
+  const [step, setStep] = useState<"choose" | "single">("choose");
 
   const [expandedPets, setExpandedPets] = useState<number[]>([]);
 
@@ -285,16 +292,69 @@ export default function NewOrderPage() {
     );
   }
 
+  /* ── Type-choice step ────────────────────────────────────────────── */
+  if (step === "choose") {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/orders"
+            className="p-2 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
+              <ShoppingBag className="w-6 h-6 text-primary" />
+              {t("choose_order_type_title")}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{t("choose_order_type_desc")}</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 mt-2">
+          <button
+            type="button"
+            onClick={() => setStep("single")}
+            className="border-2 border-dashed border-primary/30 hover:border-primary/60 bg-card hover:bg-primary/5 rounded-2xl p-8 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-4 h-64"
+          >
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+              <ShoppingBag className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-foreground">{t("order_type_single_title")}</h3>
+              <p className="text-muted-foreground mt-2">{t("order_type_single_desc")}</p>
+            </div>
+          </button>
+
+          <Link
+            href="/orders/subscriptions/new"
+            className="border border-border bg-card hover:border-primary/60 hover:bg-primary/5 rounded-2xl p-8 transition-all flex flex-col items-center justify-center text-center gap-4 h-64"
+          >
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+              <CalendarCheck className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-foreground">{t("order_type_subscription_title")}</h3>
+              <p className="text-muted-foreground mt-2">{t("order_type_subscription_desc")}</p>
+            </div>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4">
-        <Link
-          href="/orders"
+        <button
+          type="button"
+          onClick={() => setStep("choose")}
           className="p-2 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
-        </Link>
+        </button>
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
             <ShoppingBag className="w-6 h-6 text-primary" />

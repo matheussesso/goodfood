@@ -12,7 +12,6 @@ import {
   Users,
   PackageSearch,
   ShoppingBag,
-  CalendarCheck,
   Dog,
   Factory,
   Truck,
@@ -78,11 +77,6 @@ export function Navbar({
         label: t("orders"),
         icon: ShoppingBag,
       });
-      links.push({
-        href: "/admin/subscriptions",
-        label: t("subscriptions"),
-        icon: CalendarCheck,
-      });
     }
 
     if (role === "customer") {
@@ -96,11 +90,6 @@ export function Navbar({
         href: "/orders",
         label: t("orders"),
         icon: ShoppingBag,
-      });
-      links.push({
-        href: "/subscriptions",
-        label: t("subscriptions"),
-        icon: CalendarCheck,
       });
     }
 

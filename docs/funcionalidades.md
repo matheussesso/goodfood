@@ -45,35 +45,44 @@ O sistema **nunca confia em um preço de receita guardado no banco para exibir o
 
 ## Pedidos
 
+Seção única que reúne os dois jeitos de comprar receitas para os pets: **pedido avulso** (compra única) e **assinatura recorrente** (plano semanal). Cliente e admin enxergam ambos os tipos juntos na mesma listagem — não existe mais uma área separada de "Assinaturas".
+
+- **Cliente**: `/orders` — listagem unificada (cards ou lista), com seções "Em andamento"/"Histórico" e filtro por tipo (Todos/Avulsos/Assinaturas). Cada item mostra um selo indicando o tipo.
+- **Novo pedido**: `/orders/new` abre uma tela de escolha — **Pedido avulso** ou **Assinatura recorrente** — antes de entrar no formulário correspondente.
+- **Admin**: `/admin/orders` — mesma listagem unificada (todos os clientes), com filtro por tipo e, quando um tipo é selecionado, filtro pelo status daquele tipo.
+
+### Pedido avulso
+
 Compra avulsa de uma ou mais receitas para um ou mais pets.
 
-- **Cliente**: `/orders` (cards com progresso do status, accordion de itens), `/orders/new` (escolhe pet(s) → receita(s) → endereço de entrega opcional).
+- Formulário em `/orders/new` (após escolher "Pedido avulso"): pet(s) → receita(s) → endereço de entrega opcional.
 - Cada pedido pode ter **vários itens**, cada item é uma receita + pet (a mesma receita pode aparecer em itens diferentes, para pets diferentes).
 - **Preço**: calculado ao vivo no momento da criação — ver "Preço sempre atual" acima. Nunca lido de um valor cacheado.
 - **Fatura**: criada automaticamente junto com o pedido (vencimento em 3 dias).
 - **Status** (só admin altera): `pending_payment` → `pending` → `in_production` → `ready` → `out_for_delivery` → `delivered` (ou `cancelled` a qualquer momento).
-- **Admin**: `/admin/orders` (listagem com filtro por status, busca), `/admin/orders/[id]` (detalhe + troca de status).
+- **Detalhe**: `/orders/[id]` (cliente) e `/admin/orders/[id]` (admin, com troca de status).
 
-## Assinaturas
+### Assinatura recorrente
 
 Plano alimentar semanal de duração fixa para um pet — pensado para quem já sabe o que vai alimentar nas próximas semanas e quer deixar isso salvo, sem repetir a escolha toda vez.
 
-- **Cliente**: `/subscriptions` (listagem com busca e filtro de status), `/subscriptions/new` (criação), `/subscriptions/[id]/edit` (edição).
+- Criação em `/orders/subscriptions/new` (após escolher "Assinatura recorrente" em `/orders/new`); detalhe em `/orders/subscriptions/[id]`; edição (só do dono) em `/orders/subscriptions/[id]/edit`.
 - **Duração do plano**: começa em 14 dias e sobe de 7 em 7 (14, 21, 28, 35...) — sempre um múltiplo de 7, escolhido por um stepper (+/−).
 - **Uma receita por semana**: a duração é dividida em blocos de 7 dias (`total_cycles = duration_days / 7`); o cliente escolhe **exatamente uma receita para cada semana** — não dá pra deixar semana em branco nem sobrar receita sem semana. O backend rejeita (`422`) se a contagem não bater.
 - **Custo do plano**: soma o custo de cada receita escolhida, mas **sempre cobrando 7 dias por semana** — mesmo que a receita esteja cadastrada no catálogo com outra duração nativa (ex. uma receita de "14 dias" entra no plano custando o equivalente a 1 semana, não 2). Combinado com o preço sempre atual dos ingredientes, o valor mostrado é sempre o real.
 - **Progresso**: a tela mostra "Semana X de Y" com base na data de início — só para acompanhamento, não afeta nada.
-- **Ações**: pausar, retomar, cancelar (cancelamento é lógico — o histórico fica preservado).
-- **Sem relação com Pedidos**: uma assinatura **nunca gera um pedido sozinha**. Não existe job/scheduler rodando em segundo plano criando pedidos a partir de assinaturas — é puramente um plano salvo que o cliente usa como referência. (Isso já foi diferente no passado; ver [dominio.md](dominio.md#subscription) se encontrar menção a "rotação"/"próxima entrega" em código ou anotações antigas — está desatualizado.)
-- **Admin**: `/admin/subscriptions` — só leitura + ações de pausar/retomar/cancelar de qualquer cliente. Sem criação/edição pelo admin.
+- **Ações**: pausar, retomar, cancelar (cancelamento é lógico — o histórico fica preservado). Disponíveis tanto na listagem quanto no detalhe, para o dono e para o admin.
+- **Edição** (duração + receitas): só o dono do plano vê o botão de editar — a página de detalhe (`/orders/subscriptions/[id]`) esconde essa ação quando quem está vendo não é o dono, mesmo que seja admin (admin altera status, mas não o conteúdo do plano de outro cliente).
+- **Sem relação com Pedidos avulsos**: uma assinatura **nunca gera um pedido sozinha**. Não existe job/scheduler rodando em segundo plano criando pedidos a partir de assinaturas — é puramente um plano salvo que o cliente usa como referência, agora listado lado a lado com os avulsos por conveniência de navegação. (Isso já foi diferente no passado; ver [dominio.md](dominio.md#subscription) se encontrar menção a "rotação"/"próxima entrega" em código ou anotações antigas — está desatualizado.)
+
+> A unificação é só de navegação/listagem no frontend — no backend, `Order` e `Subscription` continuam sendo entidades e endpoints independentes (ver [dominio.md](dominio.md) e [api.md](api.md)); não há FK entre eles.
 
 ## Administração
 
 Área exclusiva para `role = admin` (`AdminMiddleware` nas rotas de backend, guard de rota no frontend):
 
 - **Clientes** (`/admin/customers`): listagem com busca, ordenação, criação de cliente; detalhe (`/admin/customers/[id]`) mostra pets, pedidos, receitas — e permite gerenciar pets do cliente via modal.
-- **Pedidos** (`/admin/orders`): listagem de todos os pedidos da plataforma, troca de status.
-- **Assinaturas** (`/admin/subscriptions`): listagem de todos os planos, ações de status.
+- **Pedidos** (`/admin/orders`): listagem unificada de pedidos avulsos e assinaturas de todos os clientes, com filtro por tipo e status, troca de status de pedido e pausar/retomar/cancelar assinatura.
 - **Catálogo** (`/admin/catalog`): ingredientes, receitas modelo, configurações de precificação (ver acima).
 
 ## Internacionalização e responsividade

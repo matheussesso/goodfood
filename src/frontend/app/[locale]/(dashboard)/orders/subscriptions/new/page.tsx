@@ -28,6 +28,7 @@ const MIN_DURATION_DAYS = 14;
 /**
  * Dedicated page for creating a new subscription: a fixed-duration weekly
  * meal plan for a single pet, with one recipe chosen per 7-day block.
+ * Reached from the order-type choice screen at `/orders/new`.
  *
  * @returns The new subscription creation page element.
  */
@@ -58,10 +59,10 @@ export default function NewSubscriptionPage() {
   const selectedRecipes = recipeIds.map((id) => petRecipeOptions.find((r) => r.id === id));
   const { total: totalCost, isLoading: isCostLoading } = useRecipeCycleCostTotal(selectedRecipes);
 
-  /** Auto-redirect to /subscriptions 3s after successful creation. */
+  /** Auto-redirect to /orders 3s after successful creation. */
   useEffect(() => {
     if (confirmedId === null) return;
-    const timer = setTimeout(() => router.push("/subscriptions"), 3000);
+    const timer = setTimeout(() => router.push("/orders"), 3000);
     return () => clearTimeout(timer);
   }, [confirmedId, router]);
 
@@ -129,7 +130,7 @@ export default function NewSubscriptionPage() {
           <p className="text-muted-foreground max-w-sm mx-auto">{t("subscription_created_success")}</p>
         </div>
         <div className="flex flex-col items-center gap-3">
-          <Link href="/subscriptions">
+          <Link href="/orders">
             <Button size="lg" className="gap-2">
               <CalendarCheck className="w-5 h-5" />
               {t("title")}
@@ -149,7 +150,7 @@ export default function NewSubscriptionPage() {
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4">
         <Link
-          href="/subscriptions"
+          href="/orders"
           className="p-2 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
