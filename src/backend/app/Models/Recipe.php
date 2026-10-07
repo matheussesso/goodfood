@@ -110,7 +110,8 @@ class Recipe extends Model
         return $costCalculator->calculateCost(
             $selectedIngredients,
             $durationOverride ?? intval($this->duration_days ?: 1),
-            intval($this->daily_portions ?: 1)
+            intval($this->daily_portions ?: 1),
+            $this->ingredients->keyBy('id')
         );
     }
 

@@ -12,6 +12,8 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class StoreRecipeRequest extends FormRequest
 {
+    use ValidatesMinimumRecipeWeight;
+
     /**
      * Determine if the user is authorized to make this request.
      */

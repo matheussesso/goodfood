@@ -15,6 +15,8 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class UpdateRecipeRequest extends FormRequest
 {
+    use ValidatesMinimumRecipeWeight;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -52,6 +54,17 @@ class UpdateRecipeRequest extends FormRequest
             'ingredients.*.unit' => ['nullable', 'string'],
             'user_id' => ['nullable', 'exists:users,id'],
         ];
+    }
+
+    /**
+     * Fall back to the stored recipe's duration when the payload omits it.
+     */
+    protected function currentDurationDays(): int
+    {
+        /** @var Recipe $recipe */
+        $recipe = $this->route('recipe');
+
+        return (int) ($recipe->duration_days ?: 15);
     }
 
     /**

@@ -9,8 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * API representation of a PetDocument. Exposes a public `file_url` built from
- * the stored `file_path`, matching the pet photo upload convention.
+ * API representation of a PetDocument. `file_url` points to the authorized
+ * download endpoint; the stored `file_path` is never exposed.
  *
  * @mixin PetDocument
  */
@@ -28,7 +28,7 @@ class PetDocumentResource extends JsonResource
             'pet_id' => $this->pet_id,
             'category' => $this->category,
             'name' => $this->name,
-            'file_url' => url('storage/'.$this->file_path),
+            'file_url' => url("api/pets/{$this->pet_id}/documents/{$this->id}/download"),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

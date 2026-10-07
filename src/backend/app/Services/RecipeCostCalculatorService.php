@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\GeneralSetting;
 use App\Models\Ingredient;
+use Illuminate\Support\Collection;
 
 class RecipeCostCalculatorService
 {
@@ -17,9 +18,11 @@ class RecipeCostCalculatorService
      * @param  array  $selectedIngredients  Array com ingredient_id, quantity, unit
      * @param  int  $durationDays  Duração em dias
      * @param  int  $dailyPortions  Porções por dia
+     * @param  Collection<int, Ingredient>|null  $loadedIngredients  Ingredientes já carregados, indexados por id
+     *                                                               (evita consultas extras); se omitido, são buscados em uma única query.
      * @return array ['estimatedCost' => float, 'costBreakdown' => array, 'debugFormula' => string]
      */
-    public function calculateCost(array $selectedIngredients, int $durationDays, int $dailyPortions): array
+    public function calculateCost(array $selectedIngredients, int $durationDays, int $dailyPortions, ?Collection $loadedIngredients = null): array
     {
         $durationDays = max(1, $durationDays);
         $dailyPortions = max(1, $dailyPortions);
@@ -29,33 +32,38 @@ class RecipeCostCalculatorService
         $totalWeight = 0;
         $totalDifficulty = 0;
 
+        $ingredientsById = $loadedIngredients ?? Ingredient::whereIn(
+            'id',
+            collect($selectedIngredients)->pluck('ingredient_id')->filter()->unique()
+        )->get()->keyBy('id');
+
         // Calcular custo dos ingredientes + peso total + dificuldade total
         foreach ($selectedIngredients as $item) {
             if (empty($item['ingredient_id'])) {
                 continue;
             }
 
-            try {
-                $ingredient = Ingredient::findOrFail($item['ingredient_id']);
-                $quantity = floatval($item['quantity'] ?? 0);
-                $quantityInKg = $this->convertToKg($quantity, $ingredient->unit);
-                $costPerDay = ($ingredient->cost_per_unit ?? 0) * $quantityInKg * ($ingredient->loss_rate ?? 1.0);
-                $totalCost = $costPerDay * $durationDays;
-
-                $costBreakdown[] = [
-                    'name' => $ingredient->name,
-                    'quantity' => $quantity,
-                    'unit' => $ingredient->unit,
-                    'cost_per_day' => $costPerDay,
-                    'total_cost' => $totalCost,
-                ];
-
-                $ingredientsCost += $totalCost;
-                $totalWeight += $this->convertToKg($quantity * $durationDays, $ingredient->unit);
-                $totalDifficulty += ($ingredient->difficulty_multiplier ?? 1.0);
-            } catch (\Exception $e) {
+            $ingredient = $ingredientsById->get($item['ingredient_id']);
+            if ($ingredient === null) {
                 continue;
             }
+
+            $quantity = floatval($item['quantity'] ?? 0);
+            $quantityInKg = $this->convertToKg($quantity, $ingredient->unit);
+            $costPerDay = ($ingredient->cost_per_unit ?? 0) * $quantityInKg * ($ingredient->loss_rate ?? 1.0);
+            $totalCost = $costPerDay * $durationDays;
+
+            $costBreakdown[] = [
+                'name' => $ingredient->name,
+                'quantity' => $quantity,
+                'unit' => $ingredient->unit,
+                'cost_per_day' => $costPerDay,
+                'total_cost' => $totalCost,
+            ];
+
+            $ingredientsCost += $totalCost;
+            $totalWeight += $this->convertToKg($quantity * $durationDays, $ingredient->unit);
+            $totalDifficulty += ($ingredient->difficulty_multiplier ?? 1.0);
         }
 
         // Configurações gerais

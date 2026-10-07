@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class GeneralSetting extends Model
 {
+    /** Container key under which the per-request settings singleton is resolved. */
+    public const CONTAINER_KEY = 'goodfood.general_settings';
+
     protected $fillable = [
         'production_fixed_value',
         'production_days_division',
@@ -25,6 +28,18 @@ class GeneralSetting extends Model
         'schedule_fixed_multiplier',
         'difficulty_fixed_value',
     ];
+
+    /**
+     * Drop the memoized instance whenever the row changes, so a settings
+     * update is visible to every later calculation in the same request.
+     */
+    protected static function booted(): void
+    {
+        $forget = static fn () => app()->forgetInstance(self::CONTAINER_KEY);
+
+        static::saved($forget);
+        static::deleted($forget);
+    }
 
     protected function casts(): array
     {
@@ -48,8 +63,17 @@ class GeneralSetting extends Model
     }
 
     /**
-     * Get the singleton instance of general settings.
-     * Always fetches fresh data from database.
+     * Get the singleton instance of general settings, memoized per request
+     * (see {@see AppServiceProvider}) because every recipe cost calculation
+     * reads it.
+     */
+    public static function getInstance(): self
+    {
+        return app()->make(self::CONTAINER_KEY);
+    }
+
+    /**
+     * Load the settings row, creating it on first use.
      *
      * On first-ever call there's no row yet: `create()` only returns the
      * attributes it was given (`id`), not the columns' DB-level defaults
@@ -57,7 +81,7 @@ class GeneralSetting extends Model
      * `refresh()`ed to load the real persisted values — otherwise every
      * multiplier reads as null (coerced to 0) for the rest of that request.
      */
-    public static function getInstance(): self
+    public static function loadOrCreate(): self
     {
         return self::find(1) ?? self::create(['id' => 1])->refresh();
     }

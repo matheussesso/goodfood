@@ -42,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('pets/{pet}/vaccines/{vaccine}', [PetVaccineController::class, 'update']);
     Route::delete('pets/{pet}/vaccines/{vaccine}', [PetVaccineController::class, 'destroy']);
     Route::post('pets/{pet}/documents', [PetDocumentController::class, 'store']);
+    Route::get('pets/{pet}/documents/{document}/download', [PetDocumentController::class, 'download']);
     Route::delete('pets/{pet}/documents/{document}', [PetDocumentController::class, 'destroy']);
     Route::apiResource('ingredients', IngredientController::class);
     Route::apiResource('recipes', RecipeController::class);
