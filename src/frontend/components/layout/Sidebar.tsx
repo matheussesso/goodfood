@@ -4,18 +4,10 @@ import { Link, usePathname } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/useAuth";
 import Image from "next/image";
-import {
-  LayoutDashboard,
-  Dog,
-  ShoppingBag,
-  PackageSearch,
-  Factory,
-  X,
-  Users,
-  UtensilsCrossed,
-} from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { getNavLinks, isNavLinkActive } from "@/components/layout/nav-links";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -28,37 +20,7 @@ export function Sidebar({ isOpen, setIsOpen, layoutMode = "vertical" }: SidebarP
   const pathname = usePathname();
   const { user } = useAuth();
 
-  const getLinksForRole = () => {
-    const role = user?.role || "customer";
-    
-    const links = [];
-    
-    // Common links
-    if (role !== "admin") {
-      links.push({ href: "/dashboard", label: t("dashboard"), icon: LayoutDashboard });
-    }
-
-    if (role === "admin") {
-      links.push({ href: "/admin", label: t("dashboard_admin"), icon: LayoutDashboard });
-      links.push({ href: "/admin/customers", label: t("customers"), icon: Users });
-      links.push({ href: "/admin/catalog", label: t("catalog"), icon: PackageSearch });
-      links.push({ href: "/admin/orders", label: t("orders"), icon: ShoppingBag });
-    }
-
-    if (role === "customer") {
-      links.push({ href: "/pets", label: t("pets"), icon: Dog });
-      links.push({ href: "/recipes", label: t("recipes"), icon: UtensilsCrossed });
-      links.push({ href: "/orders", label: t("orders"), icon: ShoppingBag });
-    }
-
-    if (role === "producer" || role === "admin") {
-      links.push({ href: "/production", label: t("production"), icon: Factory });
-    }
-
-    return links;
-  };
-
-  const navLinks = getLinksForRole();
+  const navLinks = getNavLinks(user?.role);
 
   return (
     <>
@@ -93,11 +55,7 @@ export function Sidebar({ isOpen, setIsOpen, layoutMode = "vertical" }: SidebarP
           <div className="space-y-1">
             {navLinks.map((link) => {
               const Icon = link.icon;
-              const isActive =
-                (link.href === "/admin" || link.href === "/dashboard")
-                  ? pathname === link.href
-                  : pathname === link.href || pathname.startsWith(`${link.href}/`);
-              
+              const isActive = isNavLinkActive(link.href, pathname);
               return (
                 <Link
                   key={link.href}
@@ -111,7 +69,7 @@ export function Sidebar({ isOpen, setIsOpen, layoutMode = "vertical" }: SidebarP
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  {link.label}
+                  {t(link.labelKey)}
                 </Link>
               );
             })}

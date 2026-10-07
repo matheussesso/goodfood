@@ -1,12 +1,12 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 /** Country code definition with phone number formatting. */
 interface CountryDef {
   code: string;
   flag: string;
-  label: string;
   maxDigits: number;
   format: (digits: string) => string;
 }
@@ -88,41 +88,41 @@ const fmt10_in = (d: string) => {
 /** All supported countries with their dial codes and masks. */
 const COUNTRIES: CountryDef[] = [
   // ─ Brasil ─
-  { code: "+55",  flag: "🇧🇷", label: "Brasil",              maxDigits: 11, format: fmt11      },
+  { code: "+55",  flag: "🇧🇷", maxDigits: 11, format: fmt11      },
   // ─ América Latina ─
-  { code: "+54",  flag: "🇦🇷", label: "Argentina",           maxDigits: 10, format: fmt10_2   },
-  { code: "+591", flag: "🇧🇴", label: "Bolívia",             maxDigits: 8,  format: fmt8       },
-  { code: "+56",  flag: "🇨🇱", label: "Chile",               maxDigits: 9,  format: fmt9       },
-  { code: "+57",  flag: "🇨🇴", label: "Colômbia",            maxDigits: 10, format: fmt10_2   },
-  { code: "+506", flag: "🇨🇷", label: "Costa Rica",          maxDigits: 8,  format: fmt8       },
-  { code: "+53",  flag: "🇨🇺", label: "Cuba",                maxDigits: 8,  format: fmt8       },
-  { code: "+593", flag: "🇪🇨", label: "Equador",             maxDigits: 9,  format: fmt9       },
-  { code: "+503", flag: "🇸🇻", label: "El Salvador",         maxDigits: 8,  format: fmt8       },
-  { code: "+502", flag: "🇬🇹", label: "Guatemala",           maxDigits: 8,  format: fmt8       },
-  { code: "+504", flag: "🇭🇳", label: "Honduras",            maxDigits: 8,  format: fmt8       },
-  { code: "+52",  flag: "🇲🇽", label: "México",              maxDigits: 10, format: fmt10_3   },
-  { code: "+505", flag: "🇳🇮", label: "Nicarágua",           maxDigits: 8,  format: fmt8       },
-  { code: "+507", flag: "🇵🇦", label: "Panamá",              maxDigits: 8,  format: fmt8       },
-  { code: "+595", flag: "🇵🇾", label: "Paraguai",            maxDigits: 9,  format: fmt9       },
-  { code: "+51",  flag: "🇵🇪", label: "Peru",                maxDigits: 9,  format: fmt9       },
-  { code: "+1",   flag: "🇺🇸", label: "EUA / Canadá",        maxDigits: 10, format: fmt10_3   },
-  { code: "+598", flag: "🇺🇾", label: "Uruguai",             maxDigits: 8,  format: fmt8       },
-  { code: "+58",  flag: "🇻🇪", label: "Venezuela",           maxDigits: 10, format: fmt10_2   },
+  { code: "+54",  flag: "🇦🇷", maxDigits: 10, format: fmt10_2   },
+  { code: "+591", flag: "🇧🇴", maxDigits: 8,  format: fmt8       },
+  { code: "+56",  flag: "🇨🇱", maxDigits: 9,  format: fmt9       },
+  { code: "+57",  flag: "🇨🇴", maxDigits: 10, format: fmt10_2   },
+  { code: "+506", flag: "🇨🇷", maxDigits: 8,  format: fmt8       },
+  { code: "+53",  flag: "🇨🇺", maxDigits: 8,  format: fmt8       },
+  { code: "+593", flag: "🇪🇨", maxDigits: 9,  format: fmt9       },
+  { code: "+503", flag: "🇸🇻", maxDigits: 8,  format: fmt8       },
+  { code: "+502", flag: "🇬🇹", maxDigits: 8,  format: fmt8       },
+  { code: "+504", flag: "🇭🇳", maxDigits: 8,  format: fmt8       },
+  { code: "+52",  flag: "🇲🇽", maxDigits: 10, format: fmt10_3   },
+  { code: "+505", flag: "🇳🇮", maxDigits: 8,  format: fmt8       },
+  { code: "+507", flag: "🇵🇦", maxDigits: 8,  format: fmt8       },
+  { code: "+595", flag: "🇵🇾", maxDigits: 9,  format: fmt9       },
+  { code: "+51",  flag: "🇵🇪", maxDigits: 9,  format: fmt9       },
+  { code: "+1",   flag: "🇺🇸", maxDigits: 10, format: fmt10_3   },
+  { code: "+598", flag: "🇺🇾", maxDigits: 8,  format: fmt8       },
+  { code: "+58",  flag: "🇻🇪", maxDigits: 10, format: fmt10_2   },
   // ─ Europa ─
-  { code: "+49",  flag: "🇩🇪", label: "Alemanha",            maxDigits: 11, format: fmt11_de  },
-  { code: "+32",  flag: "🇧🇪", label: "Bélgica",             maxDigits: 10, format: fmt10_au  },
-  { code: "+34",  flag: "🇪🇸", label: "Espanha",             maxDigits: 9,  format: fmt9       },
-  { code: "+33",  flag: "🇫🇷", label: "França",              maxDigits: 10, format: fmt10_au  },
-  { code: "+39",  flag: "🇮🇹", label: "Itália",              maxDigits: 10, format: fmt10_in  },
-  { code: "+31",  flag: "🇳🇱", label: "Países Baixos",       maxDigits: 9,  format: fmt9       },
-  { code: "+351", flag: "🇵🇹", label: "Portugal",            maxDigits: 9,  format: fmt9       },
-  { code: "+44",  flag: "🇬🇧", label: "Reino Unido",         maxDigits: 11, format: fmt11_uk  },
-  { code: "+41",  flag: "🇨🇭", label: "Suíça",               maxDigits: 9,  format: fmt9       },
+  { code: "+49",  flag: "🇩🇪", maxDigits: 11, format: fmt11_de  },
+  { code: "+32",  flag: "🇧🇪", maxDigits: 10, format: fmt10_au  },
+  { code: "+34",  flag: "🇪🇸", maxDigits: 9,  format: fmt9       },
+  { code: "+33",  flag: "🇫🇷", maxDigits: 10, format: fmt10_au  },
+  { code: "+39",  flag: "🇮🇹", maxDigits: 10, format: fmt10_in  },
+  { code: "+31",  flag: "🇳🇱", maxDigits: 9,  format: fmt9       },
+  { code: "+351", flag: "🇵🇹", maxDigits: 9,  format: fmt9       },
+  { code: "+44",  flag: "🇬🇧", maxDigits: 11, format: fmt11_uk  },
+  { code: "+41",  flag: "🇨🇭", maxDigits: 9,  format: fmt9       },
   // ─ Ásia / Oceania ─
-  { code: "+61",  flag: "🇦🇺", label: "Austrália",           maxDigits: 10, format: fmt10_au  },
-  { code: "+86",  flag: "🇨🇳", label: "China",               maxDigits: 11, format: fmt11_de  },
-  { code: "+91",  flag: "🇮🇳", label: "Índia",               maxDigits: 10, format: fmt10_in  },
-  { code: "+81",  flag: "🇯🇵", label: "Japão",               maxDigits: 11, format: fmt11_de  },
+  { code: "+61",  flag: "🇦🇺", maxDigits: 10, format: fmt10_au  },
+  { code: "+86",  flag: "🇨🇳", maxDigits: 11, format: fmt11_de  },
+  { code: "+91",  flag: "🇮🇳", maxDigits: 10, format: fmt10_in  },
+  { code: "+81",  flag: "🇯🇵", maxDigits: 11, format: fmt11_de  },
 ];
 
 // ── Parser ────────────────────────────────────────────────────────────────────
@@ -162,6 +162,7 @@ interface PhoneInputProps {
  * @param id       - Optional id for the number input (for label association).
  */
 export function PhoneInput({ value, onChange, id, className, required }: PhoneInputProps) {
+  const t = useTranslations("Common");
   const { code, digits } = parseValue(value);
   const country = COUNTRIES.find((c) => c.code === code) ?? COUNTRIES[0];
 
@@ -184,7 +185,7 @@ export function PhoneInput({ value, onChange, id, className, required }: PhoneIn
     code === "+55"  ? "(11) 99999-9999" :
     code === "+1"   ? "(555) 000-0000"  :
     code === "+54"  ? "(11) 5555-5555"  :
-    "número";
+    t("phone_placeholder");
 
   return (
     <div
@@ -197,7 +198,7 @@ export function PhoneInput({ value, onChange, id, className, required }: PhoneIn
         value={code}
         onChange={(e) => handleCodeChange(e.target.value)}
         className="shrink-0 h-full border-r border-input bg-muted/40 px-2 text-sm focus:outline-none text-foreground cursor-pointer"
-        aria-label="Código do país"
+        aria-label={t("country_code")}
       >
         {COUNTRIES.map((c) => (
           <option key={c.code} value={c.code}>

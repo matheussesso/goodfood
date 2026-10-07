@@ -4,22 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { UserDropdown } from "@/components/layout/UserDropdown";
 import { FullscreenToggle } from "@/components/FullscreenToggle";
-import {
-  Menu,
-  Columns,
-  Rows,
-  LayoutDashboard,
-  Users,
-  PackageSearch,
-  ShoppingBag,
-  Dog,
-  Factory,
-  UtensilsCrossed,
-} from "lucide-react";
+import { Menu, Columns, Rows } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, usePathname, Link } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { getNavLinks, isNavLinkActive } from "@/components/layout/nav-links";
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -42,68 +32,7 @@ export function Navbar({
     router.replace(pathname, { locale: newLocale });
   };
 
-  const getLinksForRole = () => {
-    const role = user?.role || "customer";
-
-    const links = [];
-
-    if (role !== "admin") {
-      links.push({
-        href: "/dashboard",
-        label: t("dashboard"),
-        icon: LayoutDashboard,
-      });
-    }
-
-    if (role === "admin") {
-      links.push({
-        href: "/admin",
-        label: t("dashboard_admin"),
-        icon: LayoutDashboard,
-      });
-      links.push({
-        href: "/admin/customers",
-        label: t("customers"),
-        icon: Users,
-      });
-      links.push({
-        href: "/admin/catalog",
-        label: t("catalog"),
-        icon: PackageSearch,
-      });
-      links.push({
-        href: "/admin/orders",
-        label: t("orders"),
-        icon: ShoppingBag,
-      });
-    }
-
-    if (role === "customer") {
-      links.push({ href: "/pets", label: t("pets"), icon: Dog });
-      links.push({
-        href: "/recipes",
-        label: t("recipes"),
-        icon: UtensilsCrossed,
-      });
-      links.push({
-        href: "/orders",
-        label: t("orders"),
-        icon: ShoppingBag,
-      });
-    }
-
-    if (role === "producer" || role === "admin") {
-      links.push({
-        href: "/production",
-        label: t("production"),
-        icon: Factory,
-      });
-    }
-
-    return links;
-  };
-
-  const navLinks = getLinksForRole();
+  const navLinks = getNavLinks(user?.role);
 
   return (
     <header className="sticky top-0 z-30 flex flex-col border-b bg-background shadow-sm">
@@ -117,7 +46,7 @@ export function Navbar({
               className="lg:hidden shrink-0"
             >
               <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle Menu</span>
+              <span className="sr-only">{t("toggle_menu")}</span>
             </Button>
 
             <Link
@@ -153,8 +82,8 @@ export function Navbar({
                 onClick={toggleLayout}
                 title={
                   layoutMode === "horizontal"
-                    ? "Mudar para menu lateral"
-                    : "Mudar para menu superior"
+                    ? t("layout_sidebar")
+                    : t("layout_topbar")
                 }
                 className="hidden lg:flex"
               >
@@ -180,10 +109,7 @@ export function Navbar({
             <div className="mx-auto max-w-7xl w-full hidden lg:flex items-center space-x-1 h-12 overflow-x-auto">
               {navLinks.map((link) => {
                 const Icon = link.icon;
-                const isActive =
-                  (link.href === "/admin" || link.href === "/dashboard")
-                    ? pathname === link.href
-                    : pathname === link.href || pathname.startsWith(`${link.href}/`);
+                const isActive = isNavLinkActive(link.href, pathname);
                 return (
                   <Link
                     key={link.href}
@@ -196,7 +122,7 @@ export function Navbar({
                     )}
                   >
                     <Icon className="h-4 w-4" />
-                    {link.label}
+                    {t(link.labelKey)}
                   </Link>
                 );
               })}

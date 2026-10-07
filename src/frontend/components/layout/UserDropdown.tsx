@@ -44,6 +44,7 @@ function UserAvatar({ name, size = "md" }: { name?: string; size?: "sm" | "md" }
 export function UserDropdown() {
   const { user, logout } = useAuth();
   const t = useTranslations("Navigation");
+  const tAdmin = useTranslations("admin");
   const router = useRouter();
   const { setTheme, theme } = useTheme();
 
@@ -89,7 +90,7 @@ export function UserDropdown() {
         <UserAvatar name={user?.name} />
         <div className="hidden sm:flex flex-col items-start leading-none">
           <span className="text-sm font-medium text-foreground">{user?.name}</span>
-          <span className="text-[11px] text-muted-foreground capitalize">{user?.role}</span>
+          <span className="text-[11px] text-muted-foreground">{user?.role ? tAdmin(`role_${user.role}`) : ""}</span>
         </div>
         <ChevronDown className={cn(
           "hidden sm:block w-3.5 h-3.5 text-muted-foreground transition-transform duration-150",

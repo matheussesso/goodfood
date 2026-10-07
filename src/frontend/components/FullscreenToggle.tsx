@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import { Maximize, Minimize } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 export function FullscreenToggle() {
+  const t = useTranslations("Navigation");
   const [isFullscreen, setIsFullscreen] = React.useState(false);
 
   React.useEffect(() => {
@@ -36,7 +38,7 @@ export function FullscreenToggle() {
       variant="ghost"
       size="icon"
       onClick={toggleFullscreen}
-      title={isFullscreen ? "Sair da tela cheia" : "Tela cheia"}
+      title={isFullscreen ? t("exit_fullscreen") : t("fullscreen")}
       className="hidden sm:flex"
     >
       {isFullscreen ? (
@@ -44,7 +46,7 @@ export function FullscreenToggle() {
       ) : (
         <Maximize className="h-4 w-4" />
       )}
-      <span className="sr-only">Toggle fullscreen</span>
+      <span className="sr-only">{isFullscreen ? t("exit_fullscreen") : t("fullscreen")}</span>
     </Button>
   );
 }
