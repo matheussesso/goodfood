@@ -8,6 +8,12 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
+# Pet photos/documents live in storage/app/public (persistent volume), but the
+# public/storage symlink lives in the container layer and is lost on recreate.
+# --force keeps this idempotent across plain container restarts.
+mkdir -p storage/app/public
+php artisan storage:link --force
+
 # Run migrations only from the main service (frankenphp), so the
 # scheduler (same image, different command) does not race migrations
 # with the backend during simultaneous container startup.
