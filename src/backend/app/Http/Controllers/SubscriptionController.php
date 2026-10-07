@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Subscription\StoreSubscriptionRequest;
 use App\Http\Requests\Subscription\UpdateSubscriptionRequest;
 use App\Http\Resources\SubscriptionResource;
+use App\Models\Recipe;
 use App\Models\Subscription;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -51,6 +52,10 @@ class SubscriptionController extends Controller
             return $this->respondError('Pet not found or unauthorized', 403);
         }
 
+        if (! $this->canUseRecipes($request, $validated['recipe_ids'])) {
+            return $this->respondError('Recipe not found or unauthorized', 403);
+        }
+
         $subscription = $request->user()->subscriptions()->create([
             'pet_id' => $validated['pet_id'],
             'duration_days' => $validated['duration_days'],
@@ -89,6 +94,10 @@ class SubscriptionController extends Controller
     {
         $validated = $request->validated();
 
+        if (array_key_exists('recipe_ids', $validated) && ! $this->canUseRecipes($request, $validated['recipe_ids'])) {
+            return $this->respondError('Recipe not found or unauthorized', 403);
+        }
+
         $subscription->update([
             'status' => $validated['status'] ?? $subscription->status,
             'duration_days' => $validated['duration_days'] ?? $subscription->duration_days,
@@ -117,6 +126,19 @@ class SubscriptionController extends Controller
             SubscriptionResource::make($subscription->load(['pet', 'recipes.ingredients'])),
             'Subscription cancelled successfully'
         );
+    }
+
+    /**
+     * Whether the authenticated user may view every given recipe, so private
+     * recipes of other customers cannot be attached to a plan.
+     *
+     * @param  array<int, int>  $recipeIds
+     */
+    private function canUseRecipes(Request $request, array $recipeIds): bool
+    {
+        return Recipe::whereIn('id', array_unique($recipeIds))
+            ->get()
+            ->every(fn (Recipe $recipe): bool => $request->user()->can('view', $recipe));
     }
 
     /**

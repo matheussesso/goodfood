@@ -14,9 +14,9 @@ class RecipeSeeder extends Seeder
     public function run(): void
     {
         $ingFrango = Ingredient::where('name', 'Peito de Frango')->first();
-        $ingCarne = Ingredient::where('name', 'Carne Bovina (Patinho)')->first();
+        $ingCarne = Ingredient::where('name', 'Carne Moída (Patinho)')->first();
         $ingArroz = Ingredient::where('name', 'Arroz Integral')->first();
-        $ingCenoura = Ingredient::where('name', 'Cenoura')->first();
+        $ingCenoura = Ingredient::where('name', 'Cenoura (c/ casca)')->first();
         $ingBatata = Ingredient::where('name', 'Batata Doce')->first();
         $ingOleo = Ingredient::where('name', 'Óleo de Coco')->first();
 
@@ -24,15 +24,17 @@ class RecipeSeeder extends Seeder
             $recipeFrango = Recipe::firstOrCreate(['name' => 'Mix Frango e Legumes'], [
                 'description' => 'Dieta balanceada com base em frango, arroz e cenoura.',
                 'pet_type' => 'all',
+                'duration_days' => 15,
+                'daily_portions' => 2,
                 'is_template' => true,
                 'is_active' => true,
             ]);
 
             $recipeFrango->ingredients()->syncWithoutDetaching([
-                $ingFrango->id => ['quantity' => 0.25, 'unit' => 'kg'],
-                $ingArroz->id => ['quantity' => 0.15, 'unit' => 'kg'],
-                $ingCenoura->id => ['quantity' => 0.08, 'unit' => 'kg'],
-                $ingOleo->id => ['quantity' => 0.02, 'unit' => 'l'],
+                $ingFrango->id => ['quantity' => 250, 'unit' => 'g'],
+                $ingArroz->id => ['quantity' => 150, 'unit' => 'g'],
+                $ingCenoura->id => ['quantity' => 80, 'unit' => 'g'],
+                $ingOleo->id => ['quantity' => 20, 'unit' => 'ml'],
             ]);
         }
 
@@ -40,14 +42,16 @@ class RecipeSeeder extends Seeder
             $recipeCarne = Recipe::firstOrCreate(['name' => 'Mix Carne Premium'], [
                 'description' => 'Alta proteína com carne bovina e batata doce. Sem frango.',
                 'pet_type' => 'all',
+                'duration_days' => 15,
+                'daily_portions' => 2,
                 'is_template' => true,
                 'is_active' => true,
             ]);
 
             $recipeCarne->ingredients()->syncWithoutDetaching([
-                $ingCarne->id => ['quantity' => 0.30, 'unit' => 'kg'],
-                $ingBatata->id => ['quantity' => 0.18, 'unit' => 'kg'],
-                $ingOleo->id => ['quantity' => 0.02, 'unit' => 'l'],
+                $ingCarne->id => ['quantity' => 300, 'unit' => 'g'],
+                $ingBatata->id => ['quantity' => 180, 'unit' => 'g'],
+                $ingOleo->id => ['quantity' => 20, 'unit' => 'ml'],
             ]);
         }
     }

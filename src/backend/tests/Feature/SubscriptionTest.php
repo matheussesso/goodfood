@@ -23,7 +23,7 @@ function makePet(User $user): Pet
 }
 
 /**
- * Create a recipe with a fixed base cost, bypassing the ingredient-based calculator.
+ * Create a visible (template) recipe with a fixed base cost, bypassing the ingredient-based calculator.
  */
 function makeRecipe(string $name, float $cost = 50): Recipe
 {
@@ -32,7 +32,7 @@ function makeRecipe(string $name, float $cost = 50): Recipe
         'pet_type' => 'dog',
         'duration_days' => 14,
         'daily_portions' => 1,
-        'is_template' => false,
+        'is_template' => true,
         'base_cost' => $cost,
         'ingredient_cost' => $cost,
         'is_active' => true,
@@ -272,4 +272,25 @@ test('current_cycle_index is null before the plan starts and after it ends, and 
         'start_date' => Carbon::today()->subDays(9),
     ]);
     expect($midPlan->current_cycle_index)->toBe(1);
+});
+
+test('a customer cannot build a plan from another customer\'s private recipe', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+    $pet = makePet($user);
+    $visible = makeRecipe('Visible');
+    $private = Recipe::create([
+        'user_id' => $other->id,
+        'name' => 'Private',
+        'pet_type' => 'dog',
+        'is_template' => false,
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($user)->postJson('/api/subscriptions', [
+        'pet_id' => $pet->id,
+        'recipe_ids' => [$visible->id, $private->id],
+        'start_date' => Carbon::today()->toDateString(),
+        'duration_days' => 14,
+    ])->assertStatus(403);
 });

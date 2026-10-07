@@ -14,6 +14,7 @@ use App\Models\Recipe;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Manages order resources. Ownership rules live in OrderPolicy.
@@ -58,6 +59,12 @@ class OrderController extends Controller
         $recipeIds = collect($validated['items'])->pluck('recipe_id');
         $recipesById = Recipe::with('ingredients')->whereIn('id', $recipeIds->unique())->get()->keyBy('id');
 
+        foreach ($recipesById as $recipe) {
+            if ($request->user()->cannot('view', $recipe)) {
+                return $this->respondError('Recipe not found or unauthorized', 403);
+            }
+        }
+
         $total = collect($validated['items'])->sum(function (array $item) use ($recipesById): float {
             /** @var Recipe|null $recipe */
             $recipe = $recipesById->get($item['recipe_id']);
@@ -65,32 +72,37 @@ class OrderController extends Controller
             return (float) ($recipe?->calculateTotalCost() ?? 0);
         });
 
-        $order = $request->user()->orders()->create([
-            'total_price' => $total,
-            'status' => 'pending_payment',
-            'delivery_address' => $validated['delivery_address'] ?? null,
-        ]);
-
-        Invoice::create([
-            'order_id' => $order->id,
-            'user_id' => $request->user()->id,
-            'amount' => $total,
-            'status' => 'pending',
-            'due_date' => Carbon::today()->addDays(3),
-        ]);
-
-        foreach ($validated['items'] as $item) {
-            /** @var Recipe|null $recipe */
-            $recipe = $recipesById->get($item['recipe_id']);
-            $currentPrice = (float) ($recipe?->calculateTotalCost() ?? 0);
-            OrderItem::create([
-                'order_id' => $order->id,
-                'pet_id' => $item['pet_id'] ?? null,
-                'recipe_id' => $item['recipe_id'],
-                'unit_price' => $currentPrice,
-                'quantity' => 1,
+        // Order, invoice and items are persisted atomically so a failure
+        // mid-way never leaves a header without its items or invoice.
+        $order = DB::transaction(function () use ($request, $validated, $total, $recipesById): Order {
+            $order = $request->user()->orders()->create([
+                'total_price' => $total,
+                'status' => 'pending_payment',
+                'delivery_address' => $validated['delivery_address'] ?? null,
             ]);
-        }
+
+            Invoice::create([
+                'order_id' => $order->id,
+                'user_id' => $request->user()->id,
+                'amount' => $total,
+                'status' => 'pending',
+                'due_date' => Carbon::today()->addDays(3),
+            ]);
+
+            foreach ($validated['items'] as $item) {
+                /** @var Recipe|null $recipe */
+                $recipe = $recipesById->get($item['recipe_id']);
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'pet_id' => $item['pet_id'] ?? null,
+                    'recipe_id' => $item['recipe_id'],
+                    'unit_price' => (float) ($recipe?->calculateTotalCost() ?? 0),
+                    'quantity' => 1,
+                ]);
+            }
+
+            return $order;
+        });
 
         return $this->respondSuccess(
             OrderResource::make($order->load(['items.recipe.ingredients', 'items.pet', 'invoice'])),

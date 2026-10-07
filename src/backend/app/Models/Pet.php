@@ -78,9 +78,14 @@ class Pet extends Model
         return $this->hasMany(Subscription::class);
     }
 
+    /**
+     * Orders that contain at least one item for this pet. The pet is stored on
+     * `order_items.pet_id` (not on the legacy `orders.pet_id` column), so an
+     * order with several items for the same pet is still returned once.
+     */
     public function orders()
     {
-        return $this->hasMany(Order::class);
+        return $this->belongsToMany(Order::class, 'order_items')->distinct();
     }
 
     public function recipes()

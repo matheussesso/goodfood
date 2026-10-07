@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Ingredient;
+use App\Models\Order;
 use App\Models\Pet;
 use App\Models\Recipe;
 use App\Models\User;
@@ -174,4 +175,35 @@ test('a customer cannot order for a pet they do not own', function () {
         ],
     ])->assertStatus(403)
         ->assertJsonPath('success', false);
+});
+
+test('a customer cannot order another customer\'s private recipe', function () {
+    $customer = User::factory()->create();
+    $other = User::factory()->create();
+    $pet = createPetFor($customer);
+    $private = createRecipeOwnedBy($other);
+
+    $this->actingAs($customer)->postJson('/api/orders', [
+        'items' => [['recipe_id' => $private->id, 'pet_id' => $pet->id]],
+    ])->assertStatus(403)
+        ->assertJsonPath('success', false);
+
+    expect(Order::count())->toBe(0);
+});
+
+test('a pet exposes the orders that contain items for it exactly once', function () {
+    $customer = User::factory()->create();
+    $pet = createPetFor($customer);
+    $template = createRecipeOwnedBy(null, isTemplate: true);
+
+    $this->actingAs($customer)->postJson('/api/orders', [
+        'items' => [
+            ['recipe_id' => $template->id, 'pet_id' => $pet->id],
+            ['recipe_id' => $template->id, 'pet_id' => $pet->id],
+        ],
+    ])->assertStatus(201);
+
+    $this->actingAs($customer)->getJson("/api/pets/{$pet->id}")
+        ->assertStatus(200)
+        ->assertJsonCount(1, 'data.orders');
 });
