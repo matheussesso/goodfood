@@ -12,8 +12,7 @@ class GeneralSettingSeeder extends Seeder
      */
     public function run(): void
     {
-        GeneralSetting::updateOrCreate(
-            ['id' => 1],
+        GeneralSetting::getInstance()->update(
             [
                 'ingredient_cost_days_division' => 2,
                 'production_fixed_value' => 45.00,

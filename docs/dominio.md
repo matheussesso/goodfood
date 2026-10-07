@@ -19,7 +19,7 @@ User (tutor ou admin)
 Ingredient
  └── Recipe (N:M via ingredient_recipe, pivot com `quantity` e `unit`)
 
-GeneralSetting (singleton, id=1 — parâmetros globais de precificação)
+GeneralSetting (linha única — parâmetros globais de precificação)
 ```
 
 > `Subscription` e `Order` **não têm relação entre si** — não existe `subscription_id` em `orders`. Uma assinatura é um plano salvo, não gera pedidos sozinha (ver [Subscription](#subscription) abaixo).
@@ -62,7 +62,7 @@ erDiagram
         string status "pending_payment..delivered|cancelled"
     }
     GENERAL_SETTING {
-        int id "singleton, sempre 1"
+        int id "linha única (qualquer id)"
     }
 ```
 

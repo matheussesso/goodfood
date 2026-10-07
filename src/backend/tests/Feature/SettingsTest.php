@@ -16,7 +16,7 @@ test('an admin reads the settings singleton, which is created on first access', 
     $this->actingAs($admin)->getJson('/api/settings')
         ->assertStatus(200)
         ->assertJsonPath('success', true)
-        ->assertJsonPath('data.id', 1);
+        ->assertJsonStructure(['data' => ['id', 'production_fixed_value']]);
 
     expect(GeneralSetting::count())->toBe(1);
 });
@@ -74,4 +74,16 @@ test('a settings update is reflected immediately in recipe pricing', function ()
     $after = (float) $this->actingAs($admin)->getJson("/api/recipes/{$recipe->id}")->json('data.base_cost');
 
     expect($after)->toBeGreaterThan($before);
+});
+
+test('the settings singleton is reused whatever its id is and never duplicated', function () {
+    // Postgres sequences do not reset between rows, so the row is not always id 1.
+    GeneralSetting::query()->forceCreate(['id' => 7]);
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($admin)->getJson('/api/settings')->assertJsonPath('data.id', 7);
+    $this->actingAs($admin)->putJson('/api/settings', ['charge_fixed_value' => 12])->assertJsonPath('data.id', 7);
+    $this->actingAs($admin)->getJson('/api/settings')->assertJsonPath('data.charge_fixed_value', '12.00');
+
+    expect(GeneralSetting::count())->toBe(1);
 });

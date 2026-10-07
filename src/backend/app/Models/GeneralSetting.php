@@ -83,6 +83,8 @@ class GeneralSetting extends Model
      */
     public static function loadOrCreate(): self
     {
-        return self::find(1) ?? self::create(['id' => 1])->refresh();
+        // Not keyed on id = 1: `id` is not mass assignable and Postgres sequences
+        // do not reset between rows, so the single row can have any id.
+        return self::query()->orderBy('id')->first() ?? self::create([])->refresh();
     }
 }
