@@ -19,18 +19,9 @@ import {
 } from "lucide-react";
 import { Order } from "@/hooks/useOrders";
 import { Button } from "@/components/ui/button";
-import { computeCycleDates, Phase, STATUS_STYLE, STATUS_VALUES } from "@/features/production/cycle";
-
-/** Small colored badge for an order status. */
-export function StatusBadge({ status, label }: { status: string; label: string }) {
-  const s = STATUS_STYLE[status] ?? STATUS_STYLE.pending;
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border ${s.badge}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-      {label}
-    </span>
-  );
-}
+import { computeCycleDates, Phase } from "@/features/production/cycle";
+import { ORDER_STATUSES } from "@/lib/order-status";
+import { OrderStatusBadge } from "@/features/orders/components/OrderStatusBadge";
 
 /**
  * Slide-in detail panel shown when an order is selected.
@@ -134,7 +125,7 @@ export function OrderDetailPanel({
                     </p>
                   </div>
                 </div>
-                <StatusBadge status={order.status} label={t(`status_${order.status}`)} />
+                <OrderStatusBadge status={order.status} label={t(`status_${order.status}`)} />
               </div>
 
               {/* Info grid */}
@@ -256,7 +247,7 @@ export function OrderDetailPanel({
               </p>
               <div>
                 <p className="text-[10px] text-muted-foreground mb-1.5">{t("current_status")}</p>
-                <StatusBadge status={order.status} label={t(`status_${order.status}`)} />
+                <OrderStatusBadge status={order.status} label={t(`status_${order.status}`)} />
               </div>
               <div>
                 <label className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5 block">
@@ -267,7 +258,7 @@ export function OrderDetailPanel({
                   onChange={(e) => setLocalStatus(e.target.value)}
                   className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                 >
-                  {STATUS_VALUES.map((s) => (
+                  {ORDER_STATUSES.map((s) => (
                     <option key={s} value={s}>
                       {t(`status_${s}`)}
                     </option>

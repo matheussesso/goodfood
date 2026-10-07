@@ -61,6 +61,7 @@ export function PetFormModal({ customerId, pet, isOpen, onClose }: PetFormModalP
     }
 
     queryClient.invalidateQueries({ queryKey: ["customer", String(customerId)] });
+    queryClient.invalidateQueries({ queryKey: ["pet"] });
     onClose();
   }
 
