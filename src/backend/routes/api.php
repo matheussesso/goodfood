@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GeneralSettingController;
 use App\Http\Controllers\IngredientController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PetController;
 use App\Http\Controllers\PetDocumentController;
@@ -22,6 +24,9 @@ Route::middleware('throttle:10,1')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/dashboard', [DashboardController::class, 'show']);
+    Route::post('/onboarding/dismiss', [OnboardingController::class, 'dismiss']);
+    Route::delete('/onboarding/dismiss', [OnboardingController::class, 'restore']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
     Route::put('/profile/password', [AuthController::class, 'updatePassword']);
 
@@ -47,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('ingredients', IngredientController::class);
     Route::apiResource('recipes', RecipeController::class);
     Route::post('recipes/calculate-cost', [RecipeController::class, 'calculateCost']);
+    Route::post('recipes/{recipe}/clone', [RecipeController::class, 'clone']);
     Route::apiResource('subscriptions', SubscriptionController::class);
     Route::apiResource('orders', OrderController::class);
 });

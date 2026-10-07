@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Recipe\CalculateRecipeCostRequest;
+use App\Http\Requests\Recipe\CloneRecipeRequest;
 use App\Http\Requests\Recipe\StoreRecipeRequest;
 use App\Http\Requests\Recipe\UpdateRecipeRequest;
 use App\Http\Resources\RecipeResource;
@@ -12,6 +13,7 @@ use App\Models\Recipe;
 use App\Services\RecipeCostCalculatorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Manages recipe resources. Visibility/mutation rules live in RecipePolicy.
@@ -123,6 +125,57 @@ class RecipeController extends Controller
         $recipe->delete();
 
         return $this->respondSuccess(null, 'Recipe deleted successfully');
+    }
+
+    /**
+     * Copy a recipe (usually a catalog template) into the user's own private
+     * recipes, optionally linking the copy to their pets in one step.
+     *
+     * Ownership, template flag and cached costs are never copied: the clone
+     * always belongs to the caller, is never a template, and its price is
+     * recomputed from the current ingredient costs.
+     */
+    public function clone(CloneRecipeRequest $request, Recipe $recipe): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $clone = DB::transaction(function () use ($request, $recipe, $validated): Recipe {
+            $copy = Recipe::create([
+                'user_id' => $request->user()->id,
+                'name' => $validated['name'] ?? $recipe->name,
+                'description' => $recipe->description,
+                'pet_type' => $recipe->pet_type,
+                'duration_days' => $recipe->duration_days,
+                'daily_portions' => $recipe->daily_portions,
+                'instructions' => $recipe->instructions,
+                'frequency' => $recipe->frequency,
+                'is_template' => false,
+                'is_active' => true,
+            ]);
+
+            $copy->ingredients()->sync(
+                $recipe->ingredients->mapWithKeys(fn ($ingredient) => [
+                    $ingredient->id => [
+                        'quantity' => $ingredient->pivot->quantity,
+                        'unit' => $ingredient->pivot->unit,
+                    ],
+                ])->all()
+            );
+
+            if (! empty($validated['pet_ids'])) {
+                $copy->pets()->sync($validated['pet_ids']);
+            }
+
+            $copy->updateBaseCost();
+
+            return $copy;
+        });
+
+        return $this->respondSuccess(
+            RecipeResource::make($clone->load(['ingredients', 'pets'])),
+            'Recipe cloned successfully',
+            201
+        );
     }
 
     /**

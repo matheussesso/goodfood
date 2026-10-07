@@ -44,6 +44,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'whatsapp_notifications' => 'boolean',
+            'onboarding_dismissed_at' => 'datetime',
         ];
     }
 
