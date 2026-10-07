@@ -71,6 +71,7 @@ erDiagram
 ### User
 - Campos principais: `name`, `email`, `password`, `phone`, endereço desmembrado (`street`, `number`, `complement`, `neighborhood`, `city`, `state`, `zipcode`), `whatsapp_notifications`.
 - **`role`**: `customer` (padrão) | `admin` | `producer` | `delivery` | `vet` | `petshop`. O campo **não é mass assignable** — é atribuído explicitamente no código (registro público sempre cria `customer`).
+- **`onboarding_dismissed_at`** (timestamp, nullable): quando o cliente dispensou o guia de primeiros passos do dashboard. Não é mass assignable — só os endpoints `/onboarding/dismiss` alteram.
 - Helpers: `isAdmin()`, `isCustomer()`.
 
 ### Pet

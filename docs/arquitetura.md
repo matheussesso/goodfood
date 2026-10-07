@@ -69,6 +69,7 @@ Local: `src/frontend`. **Next.js 16 (App Router)** com **React 19** e **TypeScri
 - **Formulários**: React Hook Form + **Zod** (`@hookform/resolvers`), schemas em `lib/validations/`.
 - **Páginas decompostas**: componentes de feature em `features/<feature>/components` (ex.: `features/admin-customers/`).
 - **Peças compartilhadas**: `lib/order-status.ts` (status/estilos de pedido e assinatura), `features/orders/components` (badge, timeline, itens), `features/recipes` (simulação de custo debounced, seletor de ingredientes e painel de custo), `components/address/AddressFields` (endereço com ViaCEP), `components/layout/nav-links.ts` (menu por papel) e `lib/masks.ts` (CEP/e-mail/telefone).
+- **Dashboard e onboarding**: `GET /dashboard` (`DashboardService`) devolve todo o resumo do cliente e o `next_step` da jornada pet → receita → vínculo → pedido. No frontend, `hooks/useDashboard.ts` consome o endpoint; `features/onboarding/journey.ts` deriva o status de cada passo e `features/dashboard/components` compõe a tela. Um `MutationCache` global (`createAppQueryClient`) invalida `["dashboard"]` após qualquer mutação bem-sucedida, mantendo o resumo sempre fresco.
 - **Boundaries**: `error.tsx` e `loading.tsx` por route group, com `unstable_retry` (Next 16).
 - **UI**: Tailwind CSS 4 + componentes em `components/ui/` (padrão shadcn sobre Base UI/cmdk), `clsx`/`tailwind-merge` via `lib/utils.ts`, ícones lucide-react, temas com next-themes.
 - **Imagens**: `next/image` com `remotePatterns` derivado de `NEXT_PUBLIC_API_URL` (fotos servidas pelo backend em `/storage`).

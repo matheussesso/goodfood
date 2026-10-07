@@ -39,6 +39,8 @@ docker exec -it goodfood_backend php artisan test
 | `tests/Feature/IngredientTest.php` | Listagem por papel, CRUD admin, validação e autorização |
 | `tests/Feature/PetTest.php` | CRUD de pets, escopo por dono, criação por admin, upload de foto |
 | `tests/Feature/RecipeTest.php` | Criação/edição/listagem/exclusão, peso mínimo, `calculate-cost` e **número constante de queries** na listagem (anti N+1) |
+| `tests/Feature/DashboardTest.php` | Resumo do dashboard: `next_step` em cada etapa da jornada, alertas (faturas, vacinas vencidas, pets incompletos), pedido atual, assinatura ativa, ordenação dos pedidos recentes, dismiss/restore do guia e isolamento entre clientes |
+| `tests/Feature/RecipeCloneTest.php` | Clonagem de receita: template e própria, vínculo com pets (só do dono), cópia privada com custo recalculado, bloqueio de receita alheia |
 | `tests/Feature/RecipePricingTest.php` | Custo de receita retornado pela API reflete o preço atual dos ingredientes, mesmo sem resalvar a receita |
 
 ### Convenções
@@ -67,12 +69,16 @@ npm run test:watch    # modo watch
 | `hooks/useAuth.test.ts` | Store de sessão: setAuth/restore/logout (incl. falha da API), flags de resolução |
 | `features/admin-customers/components/PetFormModal.test.tsx` | RTL: seed do formulário em criar vs. editar (com providers intl + react-query) |
 | `hooks/use*.test.tsx` | Hooks de dados (pedidos, receitas, pets, assinaturas, clientes, ingredientes, settings, perfil, vacinas, documentos, custo por ciclo): URLs, payloads e invalidação de cache |
+| `i18n/pathnames.test.ts` | URLs traduzidas: ida e volta canônica ↔ localizada, rotas dinâmicas, query/hash, prioridade estática sobre dinâmica |
 | `lib/*.test.ts` | `api-client` (CSRF), `api-error`, `format`, `masks`, `order-status`, `recipe-weight`, `user-roles` |
 | `components/address`, `components/layout/nav-links`, `components/ui/view-mode-toggle` | Endereço com ViaCEP, menu por papel, alternador de visualização |
+| `features/onboarding`, `features/dashboard`, `features/profile` | Jornada (`journey.ts`), stepper, card do próximo passo, estados vazios, guia "primeiros passos", banner de continuação, alertas, cards de pet, pedidos recentes e medidor de completude da conta |
+| `app/[locale]/(dashboard)/dashboard/page.test.tsx` | Estados da tela: conta nova (só guia), guia dispensado, conta ativa, erro com retry e visão de staff |
 | `features/orders`, `features/recipes`, `features/subscriptions` | Badge/timeline de status, seletor de ingredientes, painel e hook de custo, stepper e utilitários de assinatura |
 
 ### Convenções
 
+- `vitest.setup.ts` mocka `@/i18n/routing` (Link/router) globalmente; `test/render-intl.tsx` (`renderWithProviders`) entrega locale `pt` + QueryClient.
 - Componentes que dependem de `useTranslations`/TanStack Query são renderizados com `NextIntlClientProvider` (messages `pt`) + `QueryClientProvider`; `@/lib/api-client` é mockado com `vi.mock`.
 - Lógica pura (helpers, schemas, stores) é testada sem render.
 

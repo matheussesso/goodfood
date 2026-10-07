@@ -55,12 +55,20 @@ Erros:
 
 | Método | Rota | Descrição |
 | --- | --- | --- |
-| POST | `/register` | Cria conta `customer` e inicia a sessão (cookie). Campos de endereço opcionais. Throttle: 10 req/min por IP |
+| POST | `/register` | Cria conta `customer` e inicia a sessão (cookie). Campos de endereço opcionais (a UI não os pede mais: o endereço é cadastrado depois, no perfil ou no primeiro pedido). Throttle: 10 req/min por IP |
 | POST | `/login` | Autentica e inicia a sessão (cookie). Throttle: 10 req/min por IP |
 | GET | `/me` | Usuário autenticado |
 | POST | `/logout` | Encerra a sessão atual |
 | PUT | `/profile` | Atualiza dados/endereço do próprio usuário |
 | PUT | `/profile/password` | Troca senha (exige `current_password`) |
+
+### Dashboard e onboarding (autenticado)
+
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| GET | `/dashboard` | Resumo do cliente em uma única chamada: `progress` (contagens + `next_step`: `add_pet` \| `create_recipe` \| `link_recipe` \| `place_order` \| `complete`, `first_unlinked_recipe_id`, `has_address`), `onboarding_dismissed`, `alerts` (faturas pendentes, vacinas vencidas, pets incompletos), `current_order`, `active_subscription`, `pets` (com receitas vinculadas) e `recent_orders` (5 últimos) |
+| POST | `/onboarding/dismiss` | Dispensa o guia "primeiros passos" (grava `users.onboarding_dismissed_at`) |
+| DELETE | `/onboarding/dismiss` | Traz o guia de volta (limpa `onboarding_dismissed_at`) |
 
 ### Pets (autenticado)
 
@@ -101,6 +109,7 @@ Erros:
 | GET | `/recipes/{id}` | Detalhe (ver visibilidade acima) |
 | PUT | `/recipes/{id}` | Atualiza e re-sincroniza ingredientes/pets; recalcula custo. Cliente não altera template |
 | DELETE | `/recipes/{id}` | Dono/admin |
+| POST | `/recipes/{id}/clone` | Copia uma receita (template ou própria) para o usuário: `name` opcional e `pet_ids[]` opcional (devem ser pets do próprio usuário; admin isento). A cópia é privada, não-template, com ingredientes copiados e custo recalculado ao vivo. Retorna `201` com a receita |
 | POST | `/recipes/calculate-cost` | Simula custo sem persistir (`ingredients[]`, `duration_days`, `daily_portions`) |
 
 ### Orders (autenticado)

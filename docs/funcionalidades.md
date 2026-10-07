@@ -6,6 +6,21 @@ Dois perfis de usuário: **cliente** (tutor do pet) e **admin** (equipe GoodFood
 
 ---
 
+## Conta do cliente: dashboard, guia e primeiros passos
+
+Pensado para quem acabou de criar a conta e ainda não tem pets nem receitas.
+
+- **Cadastro enxuto**: nome, e-mail, telefone e senha. O endereço é pedido só quando necessário (perfil → seção *Endereço*, ou no primeiro pedido, com a opção "Salvar este endereço na minha conta").
+- **Jornada de 4 passos**: cadastrar o pet → criar a receita → vincular a receita ao pet → fazer o pedido. O backend calcula o `next_step`; o frontend mostra o passo atual com um único botão.
+- **Início** (`/dashboard`, URL pública `/inicio` em português): conta nova vê só o guia "Primeiros passos" (dispensável — depois fica um banner "Continuar configuração"); conta ativa vê alertas (fatura pendente, vacina vencida, perfil de pet incompleto, endereço ausente), pedido atual com timeline, assinatura ativa, pets com ação rápida (*Pedir* ou *Criar receita para {pet}*), pedidos recentes e ações rápidas.
+- **Guia** (`/guide` → `/guia`): explica cada passo (o quê, por quê, dica) e traz um FAQ.
+- **Estados vazios guiados**: `/pets`, `/recipes` e `/orders` mostram onde o cliente está na jornada e o botão do passo atual.
+- **Atalhos entre passos**: ao salvar um pet, a tela de sucesso oferece "Criar receita para {pet}"; ao salvar uma receita, "Fazer um pedido" (se vinculada) ou "Vincular a um pet"; no pedido/assinatura sem receitas há link direto para criar uma.
+- **Templates em 1 clique**: na criação de receita, "Usar direto" clona o template já vinculado aos pets escolhidos (`POST /recipes/{id}/clone`); "Personalizar" abre o formulário preenchido.
+- **Minha conta**: medidor de completude (telefone, endereço, primeiro pet) e seções navegáveis por `?section=` (`personal`, `address`, `security`, `preferences`).
+
+---
+
 ## Pets
 
 Cadastro dos pets do cliente — base para receitas, pedidos e assinaturas (tudo é vinculado a um pet).
