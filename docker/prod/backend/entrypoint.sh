@@ -14,9 +14,9 @@ php artisan view:cache
 mkdir -p storage/app/public
 php artisan storage:link --force
 
-# Run migrations only from the main service (frankenphp), so the
-# scheduler (same image, different command) does not race migrations
-# with the backend during simultaneous container startup.
+# Run migrations only when the container runs the web server, so any other
+# command using this image (e.g. an ad-hoc `php artisan ...` job) does not
+# race migrations with the backend during startup.
 if [ "$1" = "frankenphp" ]; then
     php artisan migrate --force
 fi

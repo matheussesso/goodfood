@@ -46,22 +46,6 @@ services:
     networks:
       - goodfood_network
 
-  scheduler:
-    image: ghcr.io/${GHCR_OWNER}/goodfood-backend:${IMAGE_TAG:-latest}
-    container_name: goodfood_scheduler
-    restart: unless-stopped
-    command: ["php", "artisan", "schedule:work"]
-    env_file:
-      - ./src/backend/.env
-    volumes:
-      - backend_storage:/app/storage/app
-      - ./src/backend/.env:/app/.env
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - goodfood_network
-
   frontend:
     image: ghcr.io/${GHCR_OWNER}/goodfood-frontend:${IMAGE_TAG:-latest}
     container_name: goodfood_frontend
