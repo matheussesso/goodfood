@@ -158,6 +158,7 @@ export const PHASE_STYLE: Record<Phase, {
 
 /** Per-status badge/dot Tailwind styling. */
 export const STATUS_STYLE: Record<string, { badge: string; dot: string }> = {
+  pending_payment:  { badge: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400", dot: "bg-orange-400" },
   pending:          { badge: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400",    dot: "bg-amber-400" },
   in_production:    { badge: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400",         dot: "bg-blue-400" },
   ready:            { badge: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400", dot: "bg-violet-400" },
@@ -168,5 +169,5 @@ export const STATUS_STYLE: Record<string, { badge: string; dot: string }> = {
 
 /** Every order status accepted by the admin status selector. */
 export const STATUS_VALUES = [
-  "pending", "in_production", "ready", "out_for_delivery", "delivered", "cancelled",
+  "pending_payment", "pending", "in_production", "ready", "out_for_delivery", "delivered", "cancelled",
 ] as const;

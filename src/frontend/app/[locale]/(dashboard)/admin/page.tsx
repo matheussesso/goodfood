@@ -3,42 +3,49 @@
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { useCustomers } from "@/hooks/useCustomers";
-import { Users, ShoppingBag, DollarSign, Activity, ArrowRight, Package, TrendingUp } from "lucide-react";
+import { useOrders } from "@/hooks/useOrders";
+import { useSubscriptions } from "@/hooks/useSubscriptions";
+import { formatBRL } from "@/lib/format";
+import { Users, ShoppingBag, DollarSign, Activity, ArrowRight, Package } from "lucide-react";
 
 export default function AdminDashboardPage() {
   const t = useTranslations("admin");
+  const tOrders = useTranslations("Orders");
   const { customers, isLoading: loadingCustomers } = useCustomers();
+  const { orders, isLoading: loadingOrders } = useOrders();
+  const { subscriptions } = useSubscriptions();
+
+  const grossRevenue = (orders ?? [])
+    .filter((o) => o.status !== "cancelled")
+    .reduce((sum, o) => sum + Number(o.total_price), 0);
+  const activeSubscriptions = (subscriptions ?? []).filter((s) => s.status === "active").length;
 
   const stats = [
     {
       title: t("total_customers"),
       value: customers?.length || 0,
       icon: Users,
-      trend: "+12%",
       color: "text-blue-500",
       bg: "bg-blue-500/10",
     },
     {
       title: t("total_orders"),
-      value: "145",
+      value: orders?.length ?? 0,
       icon: ShoppingBag,
-      trend: "+5%",
       color: "text-emerald-500",
       bg: "bg-emerald-500/10",
     },
     {
       title: t("revenue"),
-      value: "R$ 12.450",
+      value: formatBRL(grossRevenue, true),
       icon: DollarSign,
-      trend: "+18%",
       color: "text-violet-500",
       bg: "bg-violet-500/10",
     },
     {
       title: t("active_subscriptions"),
-      value: "42",
+      value: activeSubscriptions,
       icon: Activity,
-      trend: "+2%",
       color: "text-orange-500",
       bg: "bg-orange-500/10",
     },
@@ -68,11 +75,6 @@ export default function AdminDashboardPage() {
                 <div className={`p-3 rounded-lg ${stat.bg} ${stat.color}`}>
                   <Icon className="w-5 h-5" />
                 </div>
-              </div>
-              <div className="mt-4 flex items-center text-sm">
-                <TrendingUp className="w-4 h-4 mr-1 text-emerald-500" />
-                <span className="text-emerald-500 font-medium">{stat.trend}</span>
-                <span className="text-muted-foreground ml-2">{t("vs_last_month")}</span>
               </div>
             </div>
           );
@@ -116,12 +118,33 @@ export default function AdminDashboardPage() {
               {t("view_all")} <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </div>
-          <div className="p-8 flex flex-col items-center justify-center text-center h-full min-h-[300px]">
-             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-               <Package className="w-8 h-8 text-muted-foreground" />
-             </div>
-             <p className="text-muted-foreground">{t("no_orders_yet")}</p>
-          </div>
+          {loadingOrders ? (
+            <div className="p-6 text-center text-muted-foreground">{t("loading")}</div>
+          ) : orders && orders.length > 0 ? (
+            <div className="divide-y">
+              {orders.slice(0, 5).map((order) => (
+                <div key={order.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                  <div>
+                    <p className="font-medium">{tOrders("order_number")}{order.id}</p>
+                    <p className="text-xs text-muted-foreground">{order.user?.name ?? "—"}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-primary">R$ {formatBRL(order.total_price)}</span>
+                    <Link href={`/admin/orders/${order.id}`} className="p-2 hover:bg-muted rounded-full">
+                      <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 flex flex-col items-center justify-center text-center h-full min-h-[300px]">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                <Package className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground">{t("no_orders_yet")}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -10,7 +10,6 @@ import {
   ShoppingBag,
   PackageSearch,
   Factory,
-  Truck,
   X,
   Users,
   UtensilsCrossed,
@@ -54,10 +53,6 @@ export function Sidebar({ isOpen, setIsOpen, layoutMode = "vertical" }: SidebarP
 
     if (role === "producer" || role === "admin") {
       links.push({ href: "/production", label: t("production"), icon: Factory });
-    }
-
-    if (role === "delivery" || role === "admin") {
-      links.push({ href: "/deliveries", label: t("deliveries"), icon: Truck });
     }
 
     return links;

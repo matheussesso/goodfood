@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const STATUS_PIPELINE = [
+  "pending_payment",
   "pending",
   "in_production",
   "ready",
@@ -39,6 +40,7 @@ const STATUS_VALUES = [...STATUS_PIPELINE, "cancelled"] as const;
 type OrderStatus = (typeof STATUS_VALUES)[number];
 
 const STATUS_STYLE: Record<string, { badge: string; dot: string; bar: string }> = {
+  pending_payment:  { badge: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800", dot: "bg-orange-400", bar: "bg-orange-400" },
   pending:          { badge: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",            dot: "bg-amber-400",   bar: "bg-amber-400" },
   in_production:    { badge: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",                  dot: "bg-blue-400",    bar: "bg-blue-400" },
   ready:            { badge: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800",      dot: "bg-violet-400",  bar: "bg-violet-400" },

@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/useAuth";
+import { usePets } from "@/hooks/usePets";
+import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function DashboardPage() {
@@ -9,6 +11,9 @@ export default function DashboardPage() {
   const tDash = useTranslations("Dashboard");
   const tSub = useTranslations("Subscriptions");
   const { user } = useAuth();
+  const { pets } = usePets();
+  const { subscriptions } = useSubscriptions();
+  const activeSubscriptions = (subscriptions ?? []).filter((s) => s.status === "active").length;
 
   return (
     <div className="space-y-6">
@@ -28,7 +33,7 @@ export default function DashboardPage() {
             <CardDescription>{tDash("manage_pets_desc")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">{tDash("no_pets_registered")}</p>
+            <p className="text-sm text-muted-foreground">{tDash("pets_count", { count: pets?.length ?? 0 })}</p>
           </CardContent>
         </Card>
 
@@ -38,7 +43,7 @@ export default function DashboardPage() {
             <CardDescription>{tDash("view_subscriptions_desc")}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">{tDash("no_active_subscriptions")}</p>
+            <p className="text-sm text-muted-foreground">{tDash("active_subscriptions_count", { count: activeSubscriptions })}</p>
           </CardContent>
         </Card>
       </div>

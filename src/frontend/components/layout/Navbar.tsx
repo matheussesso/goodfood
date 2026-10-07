@@ -14,7 +14,6 @@ import {
   ShoppingBag,
   Dog,
   Factory,
-  Truck,
   UtensilsCrossed,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -99,10 +98,6 @@ export function Navbar({
         label: t("production"),
         icon: Factory,
       });
-    }
-
-    if (role === "delivery" || role === "admin") {
-      links.push({ href: "/deliveries", label: t("deliveries"), icon: Truck });
     }
 
     return links;

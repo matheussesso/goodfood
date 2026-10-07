@@ -35,9 +35,7 @@ export default function LoginPage() {
         if (data.data.user.role === "admin") {
           router.push("/admin");
         } else if (data.data.user.role === "producer") {
-          router.push("/producer");
-        } else if (data.data.user.role === "delivery") {
-          router.push("/delivery");
+          router.push("/production");
         } else {
           router.push("/dashboard");
         }

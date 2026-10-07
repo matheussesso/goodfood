@@ -26,6 +26,8 @@ export default function NewRecipePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const petId = searchParams.get("pet_id");
+  // Admin-only: create the recipe on behalf of this customer (backend ignores it for non-admins).
+  const ownerId = searchParams.get("user_id");
   const queryClient = useQueryClient();
   const { pets } = usePets();
 
@@ -147,6 +149,7 @@ export default function NewRecipePage() {
   const onSubmit = (data: RecipeFormData) => {
     const validData = {
       ...data,
+      ...(ownerId ? { user_id: parseInt(ownerId) } : {}),
       ingredients: data.ingredients.filter(i => i.id > 0 && Number(i.quantity) > 0).map(i => ({
         ...i,
         quantity: Number(i.quantity)
@@ -179,12 +182,14 @@ export default function NewRecipePage() {
     setStep("builder");
   };
 
+  const afterSaveHref = ownerId ? `/admin/customers/${ownerId}` : petId ? `/pets/${petId}` : "/recipes";
+
   // Success redirect timer
   useEffect(() => {
     if (confirmedRecipeId === null) return;
-    const timer = setTimeout(() => router.push(petId ? `/pets/${petId}` : "/recipes"), 3000);
+    const timer = setTimeout(() => router.push(afterSaveHref), 3000);
     return () => clearTimeout(timer);
-  }, [confirmedRecipeId, router, petId]);
+  }, [confirmedRecipeId, router, afterSaveHref]);
 
   if (confirmedRecipeId !== null) {
     return (
@@ -200,7 +205,7 @@ export default function NewRecipePage() {
         </div>
         <div className="flex flex-col items-center gap-3">
           <div className="flex items-center gap-3 flex-wrap justify-center">
-            <Button size="lg" className="gap-2" onClick={() => router.push(petId ? `/pets/${petId}` : "/recipes")}>
+            <Button size="lg" className="gap-2" onClick={() => router.push(afterSaveHref)}>
               <UtensilsCrossed className="w-5 h-5" />
               {t("my_recipes")}
             </Button>

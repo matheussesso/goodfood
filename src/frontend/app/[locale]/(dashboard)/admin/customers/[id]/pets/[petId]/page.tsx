@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
+import { STATUS_STYLE } from "@/features/production/cycle";
 import { getApiErrorMessage } from "@/lib/api-error";
 
 /** Generates a deterministic HSL color from a string. */
@@ -51,6 +52,7 @@ export default function AdminPetProfilePage() {
 
   const t       = useTranslations("Pets");
   const tCommon = useTranslations("Common");
+  const tOrders = useTranslations("Orders");
   const tCat    = useTranslations("Catalog");
   const tRec    = useTranslations("Recipes");
   const tAdmin  = useTranslations("admin");
@@ -141,16 +143,6 @@ export default function AdminPetProfilePage() {
   const avatarBg     = nameToHsl(pet.name);
   const speciesLabel = isDog ? t("dog") : t("cat");
 
-  const statusColors: Record<string, string> = {
-    pending:   "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-    confirmed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-    delivered: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-    cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
-  };
-  const statusLabel: Record<string, string> = {
-    pending: "Pendente", confirmed: "Confirmado",
-    delivered: "Entregue", cancelled: "Cancelado",
-  };
 
   return (
     <div className="space-y-6">
@@ -455,7 +447,7 @@ export default function AdminPetProfilePage() {
             {pet.orders && pet.orders.length > 0 ? (
               <div className="space-y-3">
                 {pet.orders.map((order) => {
-                  const colorClass = statusColors[order.status] ?? "bg-muted text-muted-foreground border-border";
+                  const colorClass = STATUS_STYLE[order.status]?.badge ?? "bg-muted text-muted-foreground border-border";
                   return (
                     <div
                       key={order.id}
@@ -467,9 +459,9 @@ export default function AdminPetProfilePage() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="font-semibold text-foreground">Pedido #{order.id}</p>
+                            <p className="font-semibold text-foreground">{tOrders("order_number")}{order.id}</p>
                             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${colorClass}`}>
-                              {statusLabel[order.status] ?? order.status}
+                              {tOrders(`status_${order.status}` as "status_pending")}
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">

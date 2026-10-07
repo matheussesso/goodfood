@@ -369,7 +369,7 @@ function AdminSubscriptionCard({ subscription, t }: { subscription: Subscription
         </div>
 
         <Link
-          href={`/subscriptions/${subscription.id}`}
+          href={`/orders/subscriptions/${subscription.id}`}
           className="flex items-center justify-center gap-1 text-xs font-medium text-primary hover:text-primary/80 pt-2.5 mt-auto border-t border-border/50"
         >
           {t("view_detail")}
