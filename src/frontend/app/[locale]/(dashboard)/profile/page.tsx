@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { BRAZIL_STATES } from "@/lib/brazil-states";
-import { fetchAddressByCep } from "@/lib/viacep";
+import { AddressFields, type AddressValue } from "@/components/address/AddressFields";
+import { hasPhoneNumber, isValidEmail } from "@/lib/masks";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Button } from "@/components/ui/button";
@@ -22,31 +22,12 @@ import {
   Loader2,
   Shield,
   CalendarDays,
-  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Section = "personal" | "security" | "preferences";
 type FeedbackState = { type: "success" | "error"; message: string } | null;
 type FormErrors = Partial<Record<string, string>>;
-
-/** Formats raw digits as XXXXX-XXX. */
-function formatCep(raw: string) {
-  const d = raw.replace(/\D/g, "").slice(0, 8);
-  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
-}
-
-/** Validates email format. */
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-/** Returns true if a PhoneInput value contains at least 4 digits after the country code. */
-function hasPhoneNumber(phone: string): boolean {
-  const idx = phone.indexOf(" ");
-  if (idx === -1) return false;
-  return phone.slice(idx + 1).replace(/\D/g, "").length >= 4;
-}
 
 /**
  * User account management page.
@@ -58,6 +39,7 @@ function hasPhoneNumber(phone: string): boolean {
 export default function ProfilePage() {
   const t  = useTranslations("Profile");
   const tC = useTranslations("Common");
+  const tA = useTranslations("admin");
   const { user } = useAuth();
   const { updateProfile, isUpdatingProfile, updatePassword, isUpdatingPassword } = useProfile();
 
@@ -73,15 +55,15 @@ export default function ProfilePage() {
   const [profileFeedback, setProfileFeedback] = useState<FeedbackState>(null);
 
   // ── Address form ──────────────────────────────────────────────────────────
-  const [addrZipcode,      setAddrZipcode]      = useState(user?.zipcode      ?? "");
-  const [addrStreet,       setAddrStreet]        = useState(user?.street       ?? "");
-  const [addrNumber,       setAddrNumber]        = useState(user?.number       ?? "");
-  const [addrComplement,   setAddrComplement]    = useState(user?.complement   ?? "");
-  const [addrNeighborhood, setAddrNeighborhood]  = useState(user?.neighborhood ?? "");
-  const [addrCity,         setAddrCity]          = useState(user?.city         ?? "");
-  const [addrState,        setAddrState]         = useState(user?.state        ?? "");
-  const [cepSearching,     setCepSearching]      = useState(false);
-  const [cepError,         setCepError]          = useState("");
+  const [address, setAddress] = useState<AddressValue>({
+    zipcode:      user?.zipcode      ?? "",
+    street:       user?.street       ?? "",
+    number:       user?.number       ?? "",
+    complement:   user?.complement   ?? "",
+    neighborhood: user?.neighborhood ?? "",
+    city:         user?.city         ?? "",
+    state:        user?.state        ?? "",
+  });
   const [addrErrors,       setAddrErrors]        = useState<FormErrors>({});
   const [addrFeedback,     setAddrFeedback]      = useState<FeedbackState>(null);
 
@@ -106,38 +88,6 @@ export default function ProfilePage() {
       })
     : "";
 
-  const fetchCep = useCallback(
-    async (digits: string) => {
-      setCepSearching(true);
-      setCepError("");
-      try {
-        const address = await fetchAddressByCep(digits);
-        if (!address) {
-          setCepError(t("cep_not_found"));
-        } else {
-          setAddrStreet(address.street);
-          setAddrNeighborhood(address.neighborhood);
-          setAddrCity(address.city);
-          setAddrState(address.state);
-        }
-      } catch {
-        setCepError(t("cep_not_found"));
-      } finally {
-        setCepSearching(false);
-      }
-    },
-    [t]
-  );
-
-  /** Formats the zipcode, clears its error, and triggers a CEP lookup once 8 digits are entered. */
-  function handleZipcodeChange(raw: string) {
-    setAddrZipcode(formatCep(raw));
-    clearAddrError("zipcode");
-    const digits = raw.replace(/\D/g, "");
-    if (digits.length === 8) fetchCep(digits);
-    else setCepError("");
-  }
-
   // ── Validation ────────────────────────────────────────────────────────────
 
   function validateProfile(): FormErrors {
@@ -151,12 +101,12 @@ export default function ProfilePage() {
 
   function validateAddress(): FormErrors {
     const errs: FormErrors = {};
-    if (!addrZipcode.replace(/\D/g, "")) errs.zipcode      = tC("validation_required");
-    if (!addrStreet.trim())               errs.street       = tC("validation_required");
-    if (!addrNumber.trim())               errs.number       = tC("validation_required");
-    if (!addrNeighborhood.trim())         errs.neighborhood = tC("validation_required");
-    if (!addrCity.trim())                 errs.city         = tC("validation_required");
-    if (!addrState)                       errs.state        = tC("validation_required");
+    if (!address.zipcode.replace(/\D/g, "")) errs.zipcode = tC("validation_required");
+    if (!address.street.trim()) errs.street = tC("validation_required");
+    if (!address.number.trim()) errs.number = tC("validation_required");
+    if (!address.neighborhood.trim()) errs.neighborhood = tC("validation_required");
+    if (!address.city.trim()) errs.city = tC("validation_required");
+    if (!address.state) errs.state = tC("validation_required");
     return errs;
   }
 
@@ -222,13 +172,13 @@ export default function ProfilePage() {
       await updateProfile({
         name:         profileForm.name,
         email:        profileForm.email,
-        street:       addrStreet,
-        number:       addrNumber,
-        complement:   addrComplement  || undefined,
-        neighborhood: addrNeighborhood,
-        city:         addrCity,
-        state:        addrState,
-        zipcode:      addrZipcode.replace(/\D/g, ""),
+        street:       address.street,
+        number:       address.number,
+        complement:   address.complement || undefined,
+        neighborhood: address.neighborhood,
+        city:         address.city,
+        state:        address.state,
+        zipcode:      address.zipcode.replace(/\D/g, ""),
       });
       setAddrFeedback({ type: "success", message: t("address_updated") });
     } catch (err) {
@@ -306,7 +256,7 @@ export default function ProfilePage() {
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-muted/50 rounded-full px-3 py-1">
               <Shield className="w-3 h-3" />
-              <span className="capitalize font-medium">{user?.role}</span>
+              <span className="font-medium">{user?.role ? tA(`role_${user.role}`) : ""}</span>
             </div>
             {memberSince && (
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -411,109 +361,15 @@ export default function ProfilePage() {
                 <form onSubmit={handleAddressSubmit} className="p-6 space-y-4" noValidate>
                   {addrFeedback && <FeedbackBanner feedback={addrFeedback} />}
 
-                  {/* CEP */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="addr_zipcode">{t("zipcode")}</Label>
-                    <div className="relative">
-                      <Input
-                        id="addr_zipcode"
-                        placeholder="00000-000"
-                        inputMode="numeric"
-                        value={addrZipcode}
-                        onChange={(e) => handleZipcodeChange(e.target.value)}
-                        className={cn("pr-9", (addrErrors.zipcode || cepError) && "border-destructive focus-visible:ring-destructive")}
-                      />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
-                        {cepSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 opacity-40" />}
-                      </div>
-                    </div>
-                    {cepSearching && <p className="text-xs text-muted-foreground">{t("cep_searching")}</p>}
-                    {cepError && <FieldError msg={cepError} />}
-                    {!cepError && addrErrors.zipcode && <FieldError msg={addrErrors.zipcode} />}
-                  </div>
-
-                  {/* Street + Number */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="col-span-2 space-y-1.5">
-                      <Label htmlFor="addr_street">{t("addr_street")}</Label>
-                      <Input
-                        id="addr_street"
-                        placeholder="Av. Paulista"
-                        value={addrStreet}
-                        onChange={(e) => { setAddrStreet(e.target.value); clearAddrError("street"); }}
-                        className={inputErr("street", addrErrors)}
-                      />
-                      {addrErrors.street && <FieldError msg={addrErrors.street} />}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="addr_number">{t("addr_number")}</Label>
-                      <Input
-                        id="addr_number"
-                        placeholder="123"
-                        value={addrNumber}
-                        onChange={(e) => { setAddrNumber(e.target.value); clearAddrError("number"); }}
-                        className={inputErr("number", addrErrors)}
-                      />
-                      {addrErrors.number && <FieldError msg={addrErrors.number} />}
-                    </div>
-                  </div>
-
-                  {/* Complement */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="addr_complement">{t("addr_complement")}</Label>
-                    <Input
-                      id="addr_complement"
-                      placeholder="Apto, bloco, referência..."
-                      value={addrComplement}
-                      onChange={(e) => setAddrComplement(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Neighborhood */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="addr_neighborhood">{t("addr_neighborhood")}</Label>
-                    <Input
-                      id="addr_neighborhood"
-                      placeholder="Bela Vista"
-                      value={addrNeighborhood}
-                      onChange={(e) => { setAddrNeighborhood(e.target.value); clearAddrError("neighborhood"); }}
-                      className={inputErr("neighborhood", addrErrors)}
-                    />
-                    {addrErrors.neighborhood && <FieldError msg={addrErrors.neighborhood} />}
-                  </div>
-
-                  {/* City + State */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="addr_city">{t("addr_city")}</Label>
-                      <Input
-                        id="addr_city"
-                        placeholder="São Paulo"
-                        value={addrCity}
-                        onChange={(e) => { setAddrCity(e.target.value); clearAddrError("city"); }}
-                        className={inputErr("city", addrErrors)}
-                      />
-                      {addrErrors.city && <FieldError msg={addrErrors.city} />}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="addr_state">{t("addr_state")}</Label>
-                      <select
-                        id="addr_state"
-                        value={addrState}
-                        onChange={(e) => { setAddrState(e.target.value); clearAddrError("state"); }}
-                        className={cn(
-                          "flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                          addrErrors.state && "border-destructive"
-                        )}
-                      >
-                        <option value="">{t("select_state")}</option>
-                        {BRAZIL_STATES.map((s) => (
-                          <option key={s.uf} value={s.uf}>{s.uf} — {s.name}</option>
-                        ))}
-                      </select>
-                      {addrErrors.state && <FieldError msg={addrErrors.state} />}
-                    </div>
-                  </div>
+                  <AddressFields
+                    value={address}
+                    errors={addrErrors}
+                    idPrefix="profile"
+                    onChange={(patch) => {
+                      setAddress((current) => ({ ...current, ...patch }));
+                      Object.keys(patch).forEach(clearAddrError);
+                    }}
+                  />
 
                   <div className="flex justify-end pt-2">
                     <Button type="submit" disabled={isUpdatingProfile} className="gap-2">

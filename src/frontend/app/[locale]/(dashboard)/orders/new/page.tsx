@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { Link } from "@/i18n/routing";
@@ -8,31 +8,10 @@ import { useOrders, CreateOrderPayload, OrderItemPayload } from "@/hooks/useOrde
 import { usePets } from "@/hooks/usePets";
 import { useAuth } from "@/hooks/useAuth";
 import { Recipe } from "@/hooks/useRecipes";
-import { BRAZIL_STATES } from "@/lib/brazil-states";
-import { fetchAddressByCep } from "@/lib/viacep";
+import { AddressFields, EMPTY_ADDRESS, type AddressValue } from "@/components/address/AddressFields";
+import { formatCep } from "@/lib/masks";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  ArrowLeft,
-  ShoppingBag,
-  CalendarCheck,
-  Dog,
-  Cat,
-  UtensilsCrossed,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  MapPin,
-  Trash2,
-  BookUser,
-  Clock,
-  Salad,
-  Layers,
-  PartyPopper,
-  Search,
-} from "lucide-react";
+import { ArrowLeft, ShoppingBag, CalendarCheck, Dog, Cat, UtensilsCrossed, CheckCircle2, ChevronDown, ChevronUp, Loader2, MapPin, Trash2, BookUser, Clock, Salad, Layers, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Tuple identifying a unique recipe selection scoped to a specific pet. */
@@ -70,15 +49,7 @@ export default function NewOrderPage() {
   /** Unique selections: one entry per (petId, recipeId) tuple. */
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
 
-  const [addrZipcode,      setAddrZipcode]      = useState("");
-  const [addrStreet,       setAddrStreet]        = useState("");
-  const [addrNumber,       setAddrNumber]        = useState("");
-  const [addrComplement,   setAddrComplement]    = useState("");
-  const [addrNeighborhood, setAddrNeighborhood]  = useState("");
-  const [addrCity,         setAddrCity]          = useState("");
-  const [addrState,        setAddrState]         = useState("");
-  const [cepSearching,     setCepSearching]      = useState(false);
-  const [cepError,         setCepError]          = useState("");
+  const [address, setAddress] = useState<AddressValue>(EMPTY_ADDRESS);
 
   /** Field-level validation errors. */
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -146,68 +117,30 @@ export default function NewOrderPage() {
     );
   }
 
-  /** Formats raw digits as XXXXX-XXX CEP. */
-  function formatCep(raw: string) {
-    const digits = raw.replace(/\D/g, "").slice(0, 8);
-    return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
-  }
-
-  /** Fetches address data from ViaCEP and auto-fills the address fields. */
-  const fetchCep = useCallback(async (digits: string) => {
-    setCepSearching(true);
-    setCepError("");
-    try {
-      const address = await fetchAddressByCep(digits);
-      if (!address) {
-        setCepError(t("cep_not_found"));
-      } else {
-        setAddrStreet(address.street);
-        setAddrNeighborhood(address.neighborhood);
-        setAddrCity(address.city);
-        setAddrState(address.state);
-        setErrors((p) => ({ ...p, addrStreet: "", addrCity: "", addrState: "", addrZipcode: "" }));
-      }
-    } catch {
-      setCepError(t("cep_not_found"));
-    } finally {
-      setCepSearching(false);
-    }
-  }, [t]);
-
-  /** Formats the zipcode, clears its error, and triggers a CEP lookup once 8 digits are entered. */
-  function handleZipcodeChange(raw: string) {
-    setAddrZipcode(formatCep(raw));
-    setErrors((p) => ({ ...p, addrZipcode: "" }));
-    const digits = raw.replace(/\D/g, "");
-    if (digits.length === 8) {
-      fetchCep(digits);
-    } else {
-      setCepError("");
-    }
-  }
-
   /** Fill address fields from the user's registered address. */
   function fillRegisteredAddress() {
     if (!user) return;
-    setAddrStreet(user.street ?? "");
-    setAddrNumber(user.number ?? "");
-    setAddrComplement(user.complement ?? "");
-    setAddrNeighborhood(user.neighborhood ?? "");
-    setAddrCity(user.city ?? "");
-    setAddrState(user.state ?? "");
-    const rawZip = user.zipcode ?? "";
-    setAddrZipcode(formatCep(rawZip));
+    setAddress({
+      zipcode: formatCep(user.zipcode ?? ""),
+      street: user.street ?? "",
+      number: user.number ?? "",
+      complement: user.complement ?? "",
+      neighborhood: user.neighborhood ?? "",
+      city: user.city ?? "",
+      state: user.state ?? "",
+    });
+    setErrors((p) => ({ ...p, street: "", number: "", city: "", state: "", zipcode: "" }));
   }
 
   /** Build a formatted address string from the individual fields, or undefined if empty. */
   function buildAddress(): string | undefined {
-    const streetLine = [addrStreet, addrNumber].filter(Boolean).join(", ");
+    const streetLine = [address.street, address.number].filter(Boolean).join(", ");
     const parts = [
       streetLine,
-      addrComplement,
-      addrNeighborhood,
-      addrCity && addrState ? `${addrCity}/${addrState}` : addrCity,
-      addrZipcode,
+      address.complement,
+      address.neighborhood,
+      address.city && address.state ? `${address.city}/${address.state}` : address.city,
+      address.zipcode,
     ].filter(Boolean);
     return parts.length > 0 ? parts.join(" — ") : undefined;
   }
@@ -220,11 +153,11 @@ export default function NewOrderPage() {
       newErrors.items = t("error_no_items");
     }
 
-    if (!addrStreet.trim())   newErrors.addrStreet  = t("error_street_required");
-    if (!addrNumber.trim())   newErrors.addrNumber  = t("error_number_required");
-    if (!addrCity.trim())     newErrors.addrCity    = t("error_city_required");
-    if (!addrState.trim())    newErrors.addrState   = t("error_state_required");
-    if (!addrZipcode.trim())  newErrors.addrZipcode = t("error_zipcode_required");
+    if (!address.street.trim())  newErrors.street  = t("error_street_required");
+    if (!address.number.trim())  newErrors.number  = t("error_number_required");
+    if (!address.city.trim())    newErrors.city    = t("error_city_required");
+    if (!address.state.trim())   newErrors.state   = t("error_state_required");
+    if (!address.zipcode.trim()) newErrors.zipcode = t("error_zipcode_required");
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -578,132 +511,15 @@ export default function NewOrderPage() {
               )}
             </div>
             <div className="px-5 py-4 space-y-3">
-              {/* CEP — first, triggers ViaCEP auto-fill */}
-              <div className="space-y-1.5">
-                <Label htmlFor="addr_zipcode">
-                  {t("addr_zipcode")}
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="addr_zipcode"
-                    placeholder="00000-000"
-                    inputMode="numeric"
-                    value={addrZipcode}
-                    onChange={(e) => handleZipcodeChange(e.target.value)}
-                    className={cn(
-                      "pr-9",
-                      (errors.addrZipcode || cepError) && "border-destructive focus-visible:ring-destructive"
-                    )}
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    {cepSearching
-                      ? <Loader2 className="w-4 h-4 animate-spin" />
-                      : <Search className="w-4 h-4 opacity-40" />
-                    }
-                  </div>
-                </div>
-                {cepSearching && (
-                  <p>{t("cep_searching")}</p>
-                )}
-                {(cepError || errors.addrZipcode) && (
-                  <p className="text-xs text-destructive">{cepError || errors.addrZipcode}</p>
-                )}
-              </div>
-
-              {/* Street + Number */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2 space-y-1.5">
-                  <Label htmlFor="addr_street">
-                    {t("addr_street")}
-                  </Label>
-                  <Input
-                    id="addr_street"
-                    placeholder={t("addr_street_placeholder")}
-                    value={addrStreet}
-                    onChange={(e) => { setAddrStreet(e.target.value); setErrors((p) => ({ ...p, addrStreet: "" })); }}
-                    className={errors.addrStreet ? "border-destructive focus-visible:ring-destructive" : ""}
-                  />
-                  {errors.addrStreet && <p className="text-xs text-destructive">{errors.addrStreet}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="addr_number">
-                    {t("addr_number")}
-                  </Label>
-                  <Input
-                    id="addr_number"
-                    placeholder="123"
-                    value={addrNumber}
-                    onChange={(e) => { setAddrNumber(e.target.value); setErrors((p) => ({ ...p, addrNumber: "" })); }}
-                    className={errors.addrNumber ? "border-destructive focus-visible:ring-destructive" : ""}
-                  />
-                  {errors.addrNumber && <p className="text-xs text-destructive">{errors.addrNumber}</p>}
-                </div>
-              </div>
-
-              {/* Complement */}
-              <div className="space-y-1.5">
-                <Label htmlFor="addr_complement">
-                  {t("addr_complement")}
-                </Label>
-                <Input
-                  id="addr_complement"
-                  placeholder={t("addr_complement_placeholder")}
-                  value={addrComplement}
-                  onChange={(e) => setAddrComplement(e.target.value)}
-                />
-              </div>
-
-              {/* Neighborhood (auto-filled from ViaCEP) */}
-              <div className="space-y-1.5">
-                <Label htmlFor="addr_neighborhood">
-                  {t("addr_neighborhood")}
-                </Label>
-                <Input
-                  id="addr_neighborhood"
-                  placeholder="Ex.: Bela Vista"
-                  value={addrNeighborhood}
-                  onChange={(e) => setAddrNeighborhood(e.target.value)}
-                />
-              </div>
-
-              {/* City + State select */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="addr_city">
-                    {t("addr_city")}
-                  </Label>
-                  <Input
-                    id="addr_city"
-                    placeholder={t("addr_city_placeholder")}
-                    value={addrCity}
-                    onChange={(e) => { setAddrCity(e.target.value); setErrors((p) => ({ ...p, addrCity: "" })); }}
-                    className={errors.addrCity ? "border-destructive focus-visible:ring-destructive" : ""}
-                  />
-                  {errors.addrCity && <p className="text-xs text-destructive">{errors.addrCity}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="addr_state">
-                    {t("addr_state")}
-                  </Label>
-                  <select
-                    id="addr_state"
-                    value={addrState}
-                    onChange={(e) => { setAddrState(e.target.value); setErrors((p) => ({ ...p, addrState: "" })); }}
-                    className={cn(
-                      "flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                      errors.addrState && "border-destructive"
-                    )}
-                  >
-                    <option value="">{t("select_state")}</option>
-                    {BRAZIL_STATES.map((s) => (
-                      <option key={s.uf} value={s.uf}>
-                        {s.uf} — {s.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.addrState && <p className="text-xs text-destructive">{errors.addrState}</p>}
-                </div>
-              </div>
+              <AddressFields
+                value={address}
+                errors={errors}
+                idPrefix="order"
+                onChange={(patch) => {
+                  setAddress((current) => ({ ...current, ...patch }));
+                  setErrors((previous) => ({ ...previous, ...Object.fromEntries(Object.keys(patch).map((key) => [key, ""])) }));
+                }}
+              />
             </div>
           </div>
 

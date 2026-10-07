@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
@@ -9,7 +9,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { recipeEditFormSchema, RecipeEditFormData } from "@/lib/validations/recipe";
 import { Ingredient } from "@/hooks/useIngredients";
-import { calculateRecipeCost, useRecipe } from "@/hooks/useRecipes";
+import { useRecipe } from "@/hooks/useRecipes";
+import { MIN_RECIPE_WEIGHT_KG, totalWeightKg } from "@/lib/recipe-weight";
+import { useRecipeCostSimulation } from "@/features/recipes/useRecipeCostSimulation";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Save, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp, Dog, Cat, Clock, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -36,9 +38,6 @@ export default function EditRecipePage() {
 
   const { recipe, isLoading: loadingRecipe } = useRecipe(id);
 
-  const [estimatedCost, setEstimatedCost] = useState<number>(0);
-  const [costPerKg, setCostPerKg] = useState<number>(0);
-  const [isCalculatingCost, setIsCalculatingCost] = useState(false);
   const [searchIngredient, setSearchIngredient] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todos");
   const [focusedIngIdx, setFocusedIngIdx] = useState<number | null>(null);
@@ -98,44 +97,15 @@ export default function EditRecipePage() {
     () => watchedValues.ingredients.filter(i => i.id > 0 && Number(i.quantity) > 0),
     [watchedValues.ingredients]
   );
-  let totalWeightKg = 0;
-  validIngredients.forEach(i => {
-    const qty = Number(i.quantity);
-    if (i.unit === "g" || i.unit === "ml") totalWeightKg += qty / 1000;
-    else if (i.unit === "kg" || i.unit === "l") totalWeightKg += qty;
-    else if (i.unit === "unit") totalWeightKg += qty * 0.1;
-  });
-  const totalWeightAcrossDays = totalWeightKg * (Number(watchedValues.duration_days) || 15);
+  const totalWeightAcrossDays = totalWeightKg(validIngredients, Number(watchedValues.duration_days));
 
-  useEffect(() => {
-    const fetchCost = async () => {
-      if (user?.role === "customer" && totalWeightAcrossDays < 1.5) {
-        setEstimatedCost(0);
-        return;
-      }
-      if (validIngredients.length > 0) {
-        setIsCalculatingCost(true);
-        try {
-          const result = await calculateRecipeCost({
-            ingredients: validIngredients.map(i => ({ ingredient_id: i.id, quantity: Number(i.quantity), unit: i.unit })),
-            duration_days: Number(watchedValues.duration_days) || 15,
-            daily_portions: Number(watchedValues.daily_portions) || 2,
-          });
-          setEstimatedCost(result.estimatedCost);
-          setCostPerKg(result.costPerKg || 0);
-        } catch (e) {
-          console.error(e);
-        } finally {
-          setIsCalculatingCost(false);
-        }
-      } else {
-        setEstimatedCost(0);
-        setCostPerKg(0);
-      }
-    };
-    const timeoutId = setTimeout(fetchCost, 500);
-    return () => clearTimeout(timeoutId);
-  }, [validIngredients, watchedValues.duration_days, watchedValues.daily_portions, user?.role, totalWeightAcrossDays]);
+  // Customers must reach the minimum total weight before a price is shown.
+  const { estimatedCost, costPerKg, isCalculating: isCalculatingCost } = useRecipeCostSimulation({
+    ingredients: validIngredients,
+    durationDays: Number(watchedValues.duration_days) || 15,
+    dailyPortions: Number(watchedValues.daily_portions) || 2,
+    enabled: !(user?.role === "customer" && totalWeightAcrossDays < MIN_RECIPE_WEIGHT_KG),
+  });
 
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -314,7 +284,7 @@ export default function EditRecipePage() {
                 <textarea
                   {...register("instructions")}
                   rows={3}
-                  placeholder="Opcional. Ex: Cozinhar a vapor..."
+                  placeholder={t("instructions_placeholder")}
                   className={`w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50 ${errors.instructions ? "border-destructive" : ""}`}
                 />
                 {errors.instructions && <span className="text-xs text-destructive">{errors.instructions.message}</span>}
@@ -398,7 +368,7 @@ export default function EditRecipePage() {
             <div className="p-5 space-y-4">
               <div className="bg-primary/10 border border-primary/20 text-primary text-sm p-3 rounded-lg flex gap-2">
                 <Info className="w-5 h-5 shrink-0" />
-                <span><strong>{tCommon("error") === "Erro!" ? "Importante:" : tCommon("error") === "Error!" ? "Important:" : "Importante:"}</strong> {t("important_daily_qty")}</span>
+                <span>{t("important_daily_qty")}</span>
               </div>
               <div className="space-y-3">
                 {fields.length === 0 && (
@@ -490,7 +460,7 @@ export default function EditRecipePage() {
             </div>
 
             <div className="p-5 space-y-4">
-              {user?.role === "customer" && totalWeightAcrossDays < 1.5 ? (
+              {user?.role === "customer" && totalWeightAcrossDays < MIN_RECIPE_WEIGHT_KG ? (
                 <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-lg flex gap-2">
                   <Info className="w-5 h-5 flex-shrink-0" />
                   <span>
@@ -581,7 +551,7 @@ export default function EditRecipePage() {
 
               <button
                 type="submit"
-                disabled={updateRecipe.isPending || isCalculatingCost || (user?.role === "customer" && totalWeightAcrossDays < 1.5)}
+                disabled={updateRecipe.isPending || isCalculatingCost || (user?.role === "customer" && totalWeightAcrossDays < MIN_RECIPE_WEIGHT_KG)}
                 className="w-full mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 disabled:opacity-50"
               >
                 {updateRecipe.isPending ? t("saving") : (

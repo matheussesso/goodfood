@@ -2,109 +2,28 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useOrders, Order, OrderItem } from "@/hooks/useOrders";
+import { useOrders, Order } from "@/hooks/useOrders";
 import { useSubscriptions, Subscription } from "@/hooks/useSubscriptions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Label } from "@/components/ui/label";
 import { Link } from "@/i18n/routing";
-import {
-  ShoppingBag,
-  CalendarCheck,
-  Loader2,
-  Search,
-  Calendar,
-  CalendarDays,
-  Dog,
-  Cat,
-  UtensilsCrossed,
-  Users,
-  ChevronDown,
-  ChevronUp,
-  MapPin,
-  Layers,
-  ExternalLink,
-  ChevronRight,
-  PauseCircle,
-  PlayCircle,
-  XCircle,
-} from "lucide-react";
+import { ShoppingBag, CalendarCheck, Loader2, Search, Calendar, CalendarDays, Dog, Cat, UtensilsCrossed, Users, ChevronDown, ChevronUp, MapPin, Layers, ChevronRight, PauseCircle, PlayCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ORDER_PIPELINE, ORDER_STATUSES, ORDER_STATUS_STYLE, SUBSCRIPTION_STATUSES, getOrderProgressStep, getOrderStatusStyle, getSubscriptionStatusStyle, type OrderStatus, type SubscriptionStatus } from "@/lib/order-status";
+import { OrderStatusBadge } from "@/features/orders/components/OrderStatusBadge";
+import { OrderRecipeBlock } from "@/features/orders/components/OrderRecipeBlock";
+import { sortRecipesByWeek, weekProgressLabel } from "@/features/subscriptions/utils";
 import { ViewModeToggle } from "@/components/ui/view-mode-toggle";
 
 /* ─────────────────────────── One-off order pieces ─────────────────────────── */
 
-const ORDER_STATUS_VALUES = [
-  "pending_payment",
-  "pending",
-  "in_production",
-  "ready",
-  "out_for_delivery",
-  "delivered",
-  "cancelled",
-] as const;
-type OrderStatus = (typeof ORDER_STATUS_VALUES)[number];
-const ORDER_STATUS_PIPELINE = ORDER_STATUS_VALUES.slice(0, 6) as readonly string[];
-
-const ORDER_STATUS_STYLE: Record<OrderStatus, { badge: string; dot: string; bar: string }> = {
-  pending_payment:  { badge: "text-orange-700 bg-orange-100 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",       dot: "bg-orange-400",  bar: "bg-orange-400" },
-  pending:          { badge: "text-amber-700 bg-amber-100 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",            dot: "bg-amber-400",   bar: "bg-amber-400" },
-  in_production:    { badge: "text-blue-700 bg-blue-100 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",                  dot: "bg-blue-400",    bar: "bg-blue-400" },
-  ready:            { badge: "text-violet-700 bg-violet-100 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800",      dot: "bg-violet-400",  bar: "bg-violet-400" },
-  out_for_delivery: { badge: "text-sky-700 bg-sky-100 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400 dark:border-sky-800",                       dot: "bg-sky-400",     bar: "bg-sky-400" },
-  delivered:        { badge: "text-emerald-700 bg-emerald-100 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800", dot: "bg-emerald-500", bar: "bg-emerald-500" },
-  cancelled:        { badge: "text-red-700 bg-red-100 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",                       dot: "bg-red-400",     bar: "bg-red-400" },
-};
-
-function orderProgressStep(status: string): number {
-  return ORDER_STATUS_PIPELINE.indexOf(status);
-}
-
-function OrderStatusBadge({ status, label }: { status: string; label: string }) {
-  const s = ORDER_STATUS_STYLE[status as OrderStatus] ?? ORDER_STATUS_STYLE.pending;
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${s.badge}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-      {label}
-    </span>
-  );
-}
-
-function OrderRecipeBlock({ item }: { item: OrderItem }) {
-  const PetIcon = item.pet?.type === "cat" ? Cat : Dog;
-  return (
-    <div className="flex items-start gap-2 py-1.5 first:pt-0">
-      <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-        <UtensilsCrossed className="w-3 h-3 text-primary" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <Link
-          href={`/recipes/${item.recipe_id}`}
-          className="text-xs font-semibold text-foreground hover:text-primary transition-colors line-clamp-1 flex items-center gap-1 group"
-        >
-          {item.recipe?.name ?? `#${item.recipe_id}`}
-          <ExternalLink className="w-2.5 h-2.5 opacity-0 group-hover:opacity-60 shrink-0" />
-        </Link>
-        {item.pet && (
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-            <PetIcon className="w-3 h-3" /> {item.pet.name}
-          </p>
-        )}
-      </div>
-      <span className="text-xs font-bold text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
-        R$ {Number(item.unit_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-      </span>
-    </div>
-  );
-}
-
 function AdminOrderCard({
   order, t, onEdit,
 }: { order: Order; t: ReturnType<typeof useTranslations>; onEdit: (o: Order) => void }) {
-  const status = order.status as OrderStatus;
-  const style = ORDER_STATUS_STYLE[status] ?? ORDER_STATUS_STYLE.pending;
-  const step = orderProgressStep(order.status);
+  const style = getOrderStatusStyle(order.status);
+  const step = getOrderProgressStep(order.status);
   const isCancelled = order.status === "cancelled";
   const items = order.items ?? [];
   const hasItems = items.length > 0;
@@ -164,7 +83,7 @@ function AdminOrderCard({
 
         {!isCancelled && (
           <div className="flex items-center gap-1 mt-2.5">
-            {ORDER_STATUS_PIPELINE.map((s, idx) => (
+            {ORDER_PIPELINE.map((s, idx) => (
               <div key={s} className={cn("flex-1 h-1 rounded-full transition-colors", idx <= step ? style.bar : "bg-border")} />
             ))}
           </div>
@@ -301,37 +220,22 @@ function AdminOrderRow({
 
 /* ─────────────────────────── Subscription pieces ─────────────────────────── */
 
-const SUB_STATUS_VALUES = ["active", "paused", "cancelled"] as const;
-type SubStatus = (typeof SUB_STATUS_VALUES)[number];
-
-const SUB_STATUS_STYLE: Record<SubStatus, { badge: string; dot: string }> = {
-  active:    { badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800", dot: "bg-emerald-500" },
-  paused:    { badge: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",           dot: "bg-amber-400" },
-  cancelled: { badge: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",                       dot: "bg-red-400" },
-};
-
-function weekProgressLabel(sub: Subscription, t: ReturnType<typeof useTranslations>): string | null {
-  if (sub.current_cycle_index === null || sub.current_cycle_index === undefined) return null;
-  if (!sub.total_cycles) return null;
-  return t("current_week_progress", { current: String(sub.current_cycle_index + 1), total: String(sub.total_cycles) });
-}
-
 interface AdminSubProps {
   sub: Subscription;
   t: ReturnType<typeof useTranslations>;
   tOrders: ReturnType<typeof useTranslations>;
   isUpdating: boolean;
-  onStatusChange: (sub: Subscription, status: SubStatus) => void;
+  onStatusChange: (sub: Subscription, status: SubscriptionStatus) => void;
 }
 
 function AdminSubscriptionCard({ sub, t, tOrders, isUpdating, onStatusChange }: AdminSubProps) {
-  const status = sub.status as SubStatus;
-  const style = SUB_STATUS_STYLE[status] ?? SUB_STATUS_STYLE.active;
+  const status = sub.status as SubscriptionStatus;
+  const style = getSubscriptionStatusStyle(status);
   const PetIcon = sub.pet?.type === "cat" ? Cat : Dog;
   const estimatedPrice = sub.estimated_price ?? 0;
   const progress = weekProgressLabel(sub, t);
   const [expanded, setExpanded] = useState(false);
-  const orderedRecipes = [...(sub.recipes ?? [])].sort((a, b) => (a.pivot?.position ?? 0) - (b.pivot?.position ?? 0));
+  const orderedRecipes = sortRecipesByWeek(sub.recipes);
 
   const startDate = sub.start_date
     ? new Date(sub.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
@@ -362,7 +266,7 @@ function AdminSubscriptionCard({ sub, t, tOrders, isUpdating, onStatusChange }: 
             </span>
             <span className={cn("inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border", style.badge)}>
               <span className={cn("w-1.5 h-1.5 rounded-full", style.dot)} />
-              {t(`status_${status}` as `status_${SubStatus}`)}
+              {t(`status_${status}` as `status_${SubscriptionStatus}`)}
             </span>
           </div>
         </div>
@@ -473,8 +377,8 @@ function AdminSubscriptionCard({ sub, t, tOrders, isUpdating, onStatusChange }: 
 }
 
 function AdminSubscriptionRow({ sub, t, tOrders, isUpdating, onStatusChange }: AdminSubProps) {
-  const status = sub.status as SubStatus;
-  const style = SUB_STATUS_STYLE[status] ?? SUB_STATUS_STYLE.active;
+  const status = sub.status as SubscriptionStatus;
+  const style = getSubscriptionStatusStyle(status);
   const PetIcon = sub.pet?.type === "cat" ? Cat : Dog;
   const estimatedPrice = sub.estimated_price ?? 0;
   const progress = weekProgressLabel(sub, t);
@@ -496,7 +400,7 @@ function AdminSubscriptionRow({ sub, t, tOrders, isUpdating, onStatusChange }: A
             </span>
             <span className={cn("inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border", style.badge)}>
               <span className={cn("w-1 h-1 rounded-full", style.dot)} />
-              {t(`status_${status}` as `status_${SubStatus}`)}
+              {t(`status_${status}` as `status_${SubscriptionStatus}`)}
             </span>
           </div>
           {sub.user && (
@@ -600,7 +504,7 @@ export default function AdminOrdersPage() {
     setSelectedOrder(null);
   }
 
-  async function handleSubStatusChange(sub: Subscription, status: SubStatus) {
+  async function handleSubStatusChange(sub: Subscription, status: SubscriptionStatus) {
     if (status === "cancelled" && !confirm(tSub("cancel_confirm"))) return;
     try {
       await updateSubscription({ id: sub.id, status });
@@ -709,7 +613,7 @@ export default function AdminOrdersPage() {
               className="h-10 flex-1 sm:w-48 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="all">{t("all_statuses")}</option>
-              {ORDER_STATUS_VALUES.map((s) => (
+              {ORDER_STATUSES.map((s) => (
                 <option key={s} value={s}>{orderStatusLabel(s)}</option>
               ))}
             </select>
@@ -722,8 +626,8 @@ export default function AdminOrdersPage() {
               className="h-10 flex-1 sm:w-48 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="all">{t("all_statuses")}</option>
-              {SUB_STATUS_VALUES.map((s) => (
-                <option key={s} value={s}>{tSub(`status_${s}` as `status_${SubStatus}`)}</option>
+              {SUBSCRIPTION_STATUSES.map((s) => (
+                <option key={s} value={s}>{tSub(`status_${s}` as `status_${SubscriptionStatus}`)}</option>
               ))}
             </select>
           )}
@@ -823,7 +727,7 @@ export default function AdminOrdersPage() {
           <div className="space-y-2">
             <Label className="font-semibold">{t("new_status")}</Label>
             <div className="grid grid-cols-2 gap-2">
-              {ORDER_STATUS_VALUES.map((s) => (
+              {ORDER_STATUSES.map((s) => (
                 <button
                   key={s}
                   type="button"

@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { STATUS_STYLE } from "@/features/production/cycle";
+import { getOrderStatusStyle } from "@/lib/order-status";
 import { useParams } from "next/navigation";
 
 /** Generates a deterministic HSL color from a string. */
@@ -74,7 +74,7 @@ export default function PetProfilePage() {
         <p className="text-destructive text-sm">{t("pet_not_found")}</p>
         <Link href="/pets">
           <Button variant="outline" className="gap-2">
-            <ArrowLeft className="w-4 h-4" /> Voltar para Meus Pets
+            <ArrowLeft className="w-4 h-4" /> {t("back_to_pets")}
           </Button>
         </Link>
       </div>
@@ -238,7 +238,7 @@ export default function PetProfilePage() {
                   { label: t("breed"), value: pet.breed || t("no_breed") },
                   { label: t("species"), value: speciesLabel },
                   ...(pet.sex ? [{ label: t("sex"), value: pet.sex === "male" ? t("sex_male") : t("sex_female") }] : []),
-                  { label: t("age_months"), value: pet.age ? `${pet.age} meses` : "—" },
+                  { label: t("age_months"), value: pet.age ? `${pet.age}` : "—" },
                   { label: t("weight_kg"), value: pet.weight ? `${pet.weight} kg` : "—" },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-center gap-4 px-5 py-3.5">
@@ -394,13 +394,10 @@ export default function PetProfilePage() {
           <div className="space-y-4">
             {/* Filter bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card p-4 rounded-xl border shadow-sm">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">{pet.recipes?.length || 0}</span>{" "}
-                receita{(pet.recipes?.length || 0) !== 1 ? "s" : ""} vinculada{(pet.recipes?.length || 0) !== 1 ? "s" : ""}
-              </p>
+              <p className="text-sm text-muted-foreground">{t("linked_recipes_count", { count: pet.recipes?.length ?? 0 })}</p>
               <Link href="/recipes/new">
                 <Button size="sm" className="gap-1.5">
-                  <Plus className="w-3.5 h-3.5" /> Nova Receita
+                  <Plus className="w-3.5 h-3.5" /> {t("new_recipe")}
                 </Button>
               </Link>
             </div>
@@ -425,7 +422,7 @@ export default function PetProfilePage() {
                         </div>
                         {recipe.is_template && (
                           <span className="text-[10px] font-medium px-1.5 py-0.5 bg-muted text-muted-foreground rounded-sm shrink-0">
-                            Modelo
+                            {tRec("model")}
                           </span>
                         )}
                       </div>
@@ -438,11 +435,11 @@ export default function PetProfilePage() {
                         <span className="text-sm font-semibold text-foreground">{recipe.duration_days ?? "—"}d</span>
                       </div>
                       <div className="flex-1 py-2.5 flex flex-col items-center gap-0.5">
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Ingred.</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("ingredients_short")}</span>
                         <span className="text-sm font-semibold text-foreground">{recipe.ingredients?.length ?? 0}</span>
                       </div>
                       <div className="flex-1 py-2.5 flex flex-col items-center gap-0.5">
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Custo Est.</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("estimated_cost_short")}</span>
                         <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
                           R$ {Number(recipe.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
@@ -475,7 +472,7 @@ export default function PetProfilePage() {
                 <p className="text-sm">{t("no_recipes_linked")}</p>
                 <Link href="/recipes/new">
                   <Button variant="outline" size="sm" className="mt-1 gap-1.5 text-xs h-8">
-                    <Plus className="w-3.5 h-3.5" /> Criar primeira receita
+                    <Plus className="w-3.5 h-3.5" /> {tRec("create_first_recipe")}
                   </Button>
                 </Link>
               </div>
@@ -488,16 +485,13 @@ export default function PetProfilePage() {
           <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center bg-card p-4 rounded-xl border shadow-sm">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">{pet.orders?.length || 0}</span>{" "}
-                pedido{(pet.orders?.length || 0) !== 1 ? "s" : ""} realizado{(pet.orders?.length || 0) !== 1 ? "s" : ""}
-              </p>
+              <p className="text-sm text-muted-foreground">{t("orders_placed_count", { count: pet.orders?.length ?? 0 })}</p>
             </div>
 
             {pet.orders && pet.orders.length > 0 ? (
               <div className="space-y-3">
                 {pet.orders.map((order) => {
-                  const colorClass = STATUS_STYLE[order.status]?.badge ?? "bg-muted text-muted-foreground border-border";
+                  const colorClass = getOrderStatusStyle(order.status).badge;
                   return (
                     <div
                       key={order.id}

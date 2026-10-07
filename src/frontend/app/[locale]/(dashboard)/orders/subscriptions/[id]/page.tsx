@@ -27,14 +27,8 @@ import { useSubscription, useSubscriptions, SubscriptionRecipe } from "@/hooks/u
 import { useRecipeCycleCost, CYCLE_DAYS } from "@/hooks/useRecipeCycleCost";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-type SubStatus = "active" | "paused" | "cancelled";
-
-const STATUS_STYLE: Record<SubStatus, { badge: string; dot: string; bar: string }> = {
-  active:    { badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800", dot: "bg-emerald-500", bar: "bg-emerald-500" },
-  paused:    { badge: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",           dot: "bg-amber-400",  bar: "bg-amber-400" },
-  cancelled: { badge: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",                       dot: "bg-red-400",    bar: "bg-red-400" },
-};
+import { getSubscriptionStatusStyle, type SubscriptionStatus } from "@/lib/order-status";
+import { sortRecipesByWeek } from "@/features/subscriptions/utils";
 
 /**
  * Detail card for a single week's recipe: description, species, portions,
@@ -169,7 +163,7 @@ export default function SubscriptionDetailPage() {
    *
    * @param status - The new status to set.
    */
-  async function handleStatusChange(status: SubStatus) {
+  async function handleStatusChange(status: SubscriptionStatus) {
     if (!subscription) return;
     if (status === "cancelled" && !confirm(t("cancel_confirm"))) return;
     try {
@@ -208,16 +202,14 @@ export default function SubscriptionDetailPage() {
     );
   }
 
-  const status = subscription.status as SubStatus;
-  const style = STATUS_STYLE[status] ?? STATUS_STYLE.active;
+  const status = subscription.status as SubscriptionStatus;
+  const style = getSubscriptionStatusStyle(status);
   const isCancelled = status === "cancelled";
   const isOwner = user?.id === subscription.user_id;
   const PetIcon = subscription.pet?.type === "cat" ? Cat : Dog;
   const totalWeeks = subscription.total_cycles ?? 0;
   const currentWeek = subscription.current_cycle_index;
-  const orderedRecipes = [...(subscription.recipes ?? [])].sort(
-    (a, b) => (a.pivot?.position ?? 0) - (b.pivot?.position ?? 0)
-  );
+  const orderedRecipes = sortRecipesByWeek(subscription.recipes);
 
   const startDate = subscription.start_date
     ? new Date(subscription.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
@@ -242,7 +234,7 @@ export default function SubscriptionDetailPage() {
               </h1>
               <span className={cn("inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border", style.badge)}>
                 <span className={cn("w-1.5 h-1.5 rounded-full", style.dot)} />
-                {t(`status_${status}` as `status_${SubStatus}`)}
+                {t(`status_${status}` as `status_${SubscriptionStatus}`)}
               </span>
             </div>
             <p className="text-muted-foreground mt-0.5 text-sm flex items-center gap-1.5">
@@ -284,7 +276,7 @@ export default function SubscriptionDetailPage() {
             value: `R$ ${(subscription.estimated_price ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             color: "text-amber-600 bg-amber-500/10",
           },
-          { icon: CalendarCheck, label: tCommon("status"), value: t(`status_${status}` as `status_${SubStatus}`), color: "text-blue-600 bg-blue-500/10" },
+          { icon: CalendarCheck, label: tCommon("status"), value: t(`status_${status}` as `status_${SubscriptionStatus}`), color: "text-blue-600 bg-blue-500/10" },
         ].map(({ icon: Icon, label, value, color }) => (
           <div key={label} className="bg-card border rounded-xl p-4 shadow-sm flex items-center gap-3">
             <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", color)}>
@@ -410,7 +402,7 @@ export default function SubscriptionDetailPage() {
               </div>
               <div className="flex justify-between items-center px-5 py-3">
                 <span className="text-muted-foreground">{t("duration_days")}</span>
-                <span className="font-medium text-foreground">{subscription.duration_days} dias</span>
+                <span className="font-medium text-foreground">{subscription.duration_days} {tCat("days")}</span>
               </div>
               <div className="flex justify-between items-center px-5 py-3">
                 <span className="text-muted-foreground">{t("total_cycles_label")}</span>

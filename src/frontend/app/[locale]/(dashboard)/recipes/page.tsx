@@ -245,7 +245,7 @@ export default function RecipesPage() {
                       )}
                     </td>
                     <td className="px-6 py-3.5 text-center">{rec.pet_type === 'cat' ? tCat('cat') : rec.pet_type === 'dog' ? tCat('dog') : tCommon('all')}</td>
-                    <td className="px-6 py-3.5 text-center">{rec.duration_days} dias</td>
+                    <td className="px-6 py-3.5 text-center">{rec.duration_days} {tCat("days")}</td>
                     <td className="px-6 py-3.5 text-center">{rec.daily_portions}</td>
                     <td className="px-6 py-3.5 text-center">
                       <div className="relative inline-flex group/ing cursor-default">

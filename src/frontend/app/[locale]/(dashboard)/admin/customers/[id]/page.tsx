@@ -20,6 +20,8 @@ import {
   ShoppingBag, ChevronDown, ChevronUp, CalendarCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getOrderStatusStyle, getSubscriptionStatusStyle } from "@/lib/order-status";
+import { sortRecipesByWeek } from "@/features/subscriptions/utils";
 
 /** Returns two uppercase initials from a full name. */
 function getInitials(name: string): string {
@@ -32,22 +34,6 @@ function nameToHsl(str: string): string {
   for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
   return `hsl(${Math.abs(hash) % 360}, 60%, 42%)`;
 }
-
-const ORDER_STATUS_STYLE: Record<string, { badge: string; dot: string }> = {
-  pending_payment:  { badge: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800", dot: "bg-orange-400" },
-  pending:          { badge: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",       dot: "bg-amber-400" },
-  in_production:    { badge: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",             dot: "bg-blue-400" },
-  ready:            { badge: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800", dot: "bg-violet-400" },
-  out_for_delivery: { badge: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400 dark:border-sky-800",                  dot: "bg-sky-400" },
-  delivered:        { badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800", dot: "bg-emerald-500" },
-  cancelled:        { badge: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",                   dot: "bg-red-400" },
-};
-
-const SUB_STATUS_STYLE: Record<string, { badge: string; dot: string }> = {
-  active:    { badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800", dot: "bg-emerald-500" },
-  paused:    { badge: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",           dot: "bg-amber-400" },
-  cancelled: { badge: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",                       dot: "bg-red-400" },
-};
 
 interface TabProps {
   t: ReturnType<typeof useTranslations>;
@@ -220,7 +206,7 @@ function AdminRecipeCard({ recipe, onEdit, tRec, tCat, tCommon }: {
  */
 function AdminOrderCard({ order, t }: { order: Order } & TabProps) {
   const [expanded, setExpanded] = useState(false);
-  const style = ORDER_STATUS_STYLE[order.status] ?? ORDER_STATUS_STYLE.pending;
+  const style = getOrderStatusStyle(order.status);
   const items = order.items ?? [];
   const hasItems = items.length > 0;
   const itemCount = hasItems ? items.length : order.recipe ? 1 : 0;
@@ -306,8 +292,8 @@ function AdminOrderCard({ order, t }: { order: Order } & TabProps) {
  */
 function AdminSubscriptionCard({ subscription, t }: { subscription: Subscription } & TabProps) {
   const [expanded, setExpanded] = useState(false);
-  const style = SUB_STATUS_STYLE[subscription.status] ?? SUB_STATUS_STYLE.active;
-  const orderedRecipes = [...(subscription.recipes ?? [])].sort((a, b) => (a.pivot?.position ?? 0) - (b.pivot?.position ?? 0));
+  const style = getSubscriptionStatusStyle(subscription.status);
+  const orderedRecipes = sortRecipesByWeek(subscription.recipes);
 
   return (
     <div className="bg-card border rounded-xl shadow-sm overflow-hidden hover:shadow-md hover:border-primary/30 transition-all flex flex-col">

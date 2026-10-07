@@ -340,7 +340,7 @@ export default function NewPetPage() {
                   {isUploadingPhoto ? (
                     <Loader2 className="w-7 h-7 text-primary mb-1 animate-spin" />
                   ) : photoUrl ? (
-                    <Image src={photoUrl} alt="Pet" fill sizes="96px" className="object-cover" />
+                    <Image src={photoUrl} alt={t("pet_profile")} fill sizes="96px" className="object-cover" />
                   ) : (
                     <Camera className="w-8 h-8 text-muted-foreground/50" />
                   )}

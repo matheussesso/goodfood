@@ -4,8 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { usePet, usePets } from "@/hooks/usePets";
-import { useQueryClient } from "@tanstack/react-query";
+import { usePet } from "@/hooks/usePets";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -25,12 +24,9 @@ import {
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/utils";
-import { STATUS_STYLE } from "@/features/production/cycle";
-import { getApiErrorMessage } from "@/lib/api-error";
+import { PetFormModal } from "@/features/admin-customers/components/PetFormModal";
+import { getOrderStatusStyle } from "@/lib/order-status";
 
 /** Generates a deterministic HSL color from a string. */
 function nameToHsl(str: string): string {
@@ -57,59 +53,11 @@ export default function AdminPetProfilePage() {
   const tRec    = useTranslations("Recipes");
   const tAdmin  = useTranslations("admin");
 
-  const queryClient = useQueryClient();
   const { pet, isLoading } = usePet(petId);
-  const { updatePet, isUpdating } = usePets();
 
   const [activeTab, setActiveTab] = useState<"overview" | "recipes" | "orders">("overview");
 
-  // ── Edit modal ────────────────────────────────────────────────────────────
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [petForm, setPetForm]       = useState({
-    name: "", type: "dog", breed: "", weight: "", age: "",
-    restrictions: "", allergies: "", special_needs: "",
-  });
-  const [editError, setEditError] = useState("");
-
-  function openEdit() {
-    if (!pet) return;
-    setPetForm({
-      name:          pet.name,
-      type:          pet.type         || "dog",
-      breed:         pet.breed        || "",
-      weight:        pet.weight       ? String(pet.weight) : "",
-      age:           pet.age          ? String(pet.age)    : "",
-      restrictions:  pet.restrictions || "",
-      allergies:     pet.allergies    || "",
-      special_needs: pet.special_needs || "",
-    });
-    setEditError("");
-    setIsEditOpen(true);
-  }
-
-  async function handleSaveEdit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!pet) return;
-    setEditError("");
-    try {
-      await updatePet({
-        id:            pet.id,
-        name:          petForm.name,
-        type:          petForm.type as "dog" | "cat",
-        breed:         petForm.breed        || undefined,
-        weight:        petForm.weight       ? parseFloat(petForm.weight)    : undefined,
-        age:           petForm.age          ? parseInt(petForm.age, 10)     : undefined,
-        restrictions:  petForm.restrictions  || undefined,
-        allergies:     petForm.allergies     || undefined,
-        special_needs: petForm.special_needs || undefined,
-        user_id:       Number(customerId),
-      });
-      queryClient.invalidateQueries({ queryKey: ["pet", petId] });
-      setIsEditOpen(false);
-    } catch (err) {
-      setEditError(getApiErrorMessage(err, "Erro ao salvar pet."));
-    }
-  }
 
   // ── Loading / not found ───────────────────────────────────────────────────
 
@@ -131,7 +79,7 @@ export default function AdminPetProfilePage() {
         <p className="text-destructive text-sm">{t("pet_not_found")}</p>
         <Link href={`/admin/customers/${customerId}`}>
           <Button variant="outline" className="gap-2">
-            <ArrowLeft className="w-4 h-4" /> Voltar ao Cliente
+            <ArrowLeft className="w-4 h-4" /> {tAdmin("back_to_customer")}
           </Button>
         </Link>
       </div>
@@ -211,7 +159,7 @@ export default function AdminPetProfilePage() {
                   href={`/admin/customers/${customerId}`}
                   className="hover:text-primary transition-colors"
                 >
-                  Ver perfil do cliente
+                  {tAdmin("view_details")}
                 </Link>
               </div>
 
@@ -239,8 +187,8 @@ export default function AdminPetProfilePage() {
 
             {/* Quick-stats + edit */}
             <div className="flex flex-col items-end gap-3 shrink-0">
-              <Button onClick={openEdit} variant="outline" size="sm" className="gap-1.5">
-                <Edit2 className="w-3.5 h-3.5" /> Editar Pet
+              <Button onClick={() => setIsEditOpen(true)} variant="outline" size="sm" className="gap-1.5">
+                <Edit2 className="w-3.5 h-3.5" /> {t("edit_pet")}
               </Button>
               <div className="flex items-center gap-2">
                 <div className="flex flex-col items-center px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-xl">
@@ -305,7 +253,7 @@ export default function AdminPetProfilePage() {
                 {[
                   { label: t("breed"),      value: pet.breed  || t("no_breed") },
                   { label: t("species"),    value: speciesLabel },
-                  { label: t("age_months"), value: pet.age    ? `${pet.age} meses` : "—" },
+                  { label: t("age_months"), value: pet.age    ? `${pet.age}` : "—" },
                   { label: t("weight_kg"),  value: pet.weight ? `${pet.weight} kg` : "—" },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-center gap-4 px-5 py-3.5">
@@ -362,13 +310,10 @@ export default function AdminPetProfilePage() {
         {activeTab === "recipes" && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card p-4 rounded-xl border shadow-sm">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">{pet.recipes?.length || 0}</span>{" "}
-                receita{(pet.recipes?.length || 0) !== 1 ? "s" : ""} vinculada{(pet.recipes?.length || 0) !== 1 ? "s" : ""}
-              </p>
+              <p className="text-sm text-muted-foreground">{t("linked_recipes_count", { count: pet.recipes?.length ?? 0 })}</p>
               <Link href={`/recipes/new?user_id=${customerId}`}>
                 <Button size="sm" className="gap-1.5">
-                  <Plus className="w-3.5 h-3.5" /> Nova Receita
+                  <Plus className="w-3.5 h-3.5" /> {t("new_recipe")}
                 </Button>
               </Link>
             </div>
@@ -392,7 +337,7 @@ export default function AdminPetProfilePage() {
                         </div>
                         {recipe.is_template && (
                           <span className="text-[10px] font-medium px-1.5 py-0.5 bg-muted text-muted-foreground rounded-sm shrink-0">
-                            Modelo
+                            {tRec("model")}
                           </span>
                         )}
                       </div>
@@ -403,11 +348,11 @@ export default function AdminPetProfilePage() {
                         <span className="text-sm font-semibold text-foreground">{recipe.duration_days ?? "—"}d</span>
                       </div>
                       <div className="flex-1 py-2.5 flex flex-col items-center gap-0.5">
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Ingred.</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("ingredients_short")}</span>
                         <span className="text-sm font-semibold text-foreground">{recipe.ingredients?.length ?? 0}</span>
                       </div>
                       <div className="flex-1 py-2.5 flex flex-col items-center gap-0.5">
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Custo Est.</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("estimated_cost_short")}</span>
                         <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
                           R$ {Number(recipe.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
@@ -438,16 +383,13 @@ export default function AdminPetProfilePage() {
         {activeTab === "orders" && (
           <div className="space-y-4">
             <div className="flex items-center bg-card p-4 rounded-xl border shadow-sm">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">{pet.orders?.length || 0}</span>{" "}
-                pedido{(pet.orders?.length || 0) !== 1 ? "s" : ""} realizado{(pet.orders?.length || 0) !== 1 ? "s" : ""}
-              </p>
+              <p className="text-sm text-muted-foreground">{t("orders_placed_count", { count: pet.orders?.length ?? 0 })}</p>
             </div>
 
             {pet.orders && pet.orders.length > 0 ? (
               <div className="space-y-3">
                 {pet.orders.map((order) => {
-                  const colorClass = STATUS_STYLE[order.status]?.badge ?? "bg-muted text-muted-foreground border-border";
+                  const colorClass = getOrderStatusStyle(order.status).badge;
                   return (
                     <div
                       key={order.id}
@@ -489,105 +431,7 @@ export default function AdminPetProfilePage() {
         )}
       </div>
 
-      {/* ── Edit modal ───────────────────────────────────────────────────── */}
-      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title={`Editar Pet: ${pet.name}`}>
-        <form onSubmit={handleSaveEdit} className="space-y-4">
-          {editError && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive border border-destructive/20">
-              {editError}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Nome *</Label>
-              <Input
-                required
-                value={petForm.name}
-                onChange={(e) => setPetForm({ ...petForm, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Espécie</Label>
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={petForm.type}
-                onChange={(e) => setPetForm({ ...petForm, type: e.target.value })}
-              >
-                <option value="dog">Cachorro</option>
-                <option value="cat">Gato</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Raça</Label>
-              <Input
-                value={petForm.breed}
-                onChange={(e) => setPetForm({ ...petForm, breed: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Idade (meses)</Label>
-              <Input
-                type="number"
-                min="0"
-                value={petForm.age}
-                onChange={(e) => setPetForm({ ...petForm, age: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Peso (kg)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                min="0"
-                value={petForm.weight}
-                onChange={(e) => setPetForm({ ...petForm, weight: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Restrições Alimentares</Label>
-            <textarea
-              className="flex w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={petForm.restrictions}
-              onChange={(e) => setPetForm({ ...petForm, restrictions: e.target.value })}
-              placeholder="Sem farinha de trigo, etc..."
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Alergias</Label>
-            <textarea
-              className="flex w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={petForm.allergies}
-              onChange={(e) => setPetForm({ ...petForm, allergies: e.target.value })}
-              placeholder="Frango, corantes..."
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Necessidades Especiais</Label>
-            <textarea
-              className="flex w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={petForm.special_needs}
-              onChange={(e) => setPetForm({ ...petForm, special_needs: e.target.value })}
-              placeholder="Diabético, cego..."
-            />
-          </div>
-
-          <div className="pt-2 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
-              {tCommon("cancel")}
-            </Button>
-            <Button type="submit" disabled={isUpdating}>
-              {isUpdating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              {tAdmin("save_pet")}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      {isEditOpen && <PetFormModal customerId={Number(customerId)} pet={pet} isOpen onClose={() => setIsEditOpen(false)} />}
     </div>
   );
 }

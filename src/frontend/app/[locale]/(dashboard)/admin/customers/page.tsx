@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { useCustomers, useCreateCustomer, UserRole } from "@/hooks/useCustomers";
@@ -27,8 +27,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { BRAZIL_STATES } from "@/lib/brazil-states";
-import { fetchAddressByCep } from "@/lib/viacep";
+import { AddressFields, EMPTY_ADDRESS, type AddressValue } from "@/components/address/AddressFields";
+import { hasPhoneNumber, isValidEmail } from "@/lib/masks";
 import { getApiErrorMessage } from "@/lib/api-error";
 import {
   Select,
@@ -65,26 +65,9 @@ function nameToHsl(str: string): string {
 
 type FormErrors = Partial<Record<string, string>>;
 
-/** Validates email format. */
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-/** Returns true if a PhoneInput value contains at least 4 digits after the country code. */
-function hasPhoneNumber(phone: string): boolean {
-  const idx = phone.indexOf(" ");
-  if (idx === -1) return false;
-  return phone.slice(idx + 1).replace(/\D/g, "").length >= 4;
-}
-
 /** Inline field error message. */
 function FieldError({ msg }: { msg: string }) {
   return <p className="text-xs text-destructive mt-0.5">{msg}</p>;
-}
-
-function formatCep(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 8);
-  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
 }
 
 const emptyCreateForm = {
@@ -96,24 +79,9 @@ const emptyCreateForm = {
   role:                  "customer" as UserRole,
 };
 
-const emptyAddr = {
-  zipcode:      "",
-  street:       "",
-  number:       "",
-  complement:   "",
-  neighborhood: "",
-  city:         "",
-  state:        "",
-};
-
 type SortKey = "name" | "date" | "pets" | "orders";
 
-const SORT_LABELS: Record<SortKey, string> = {
-  name:   "Nome (A-Z)",
-  date:   "Mais recentes",
-  pets:   "Mais pets",
-  orders: "Mais pedidos",
-};
+
 
 /**
  * Admin customers listing page with grid/list views, search, sort, and create modal.
@@ -132,45 +100,12 @@ export default function CustomersPage() {
   // ── Create modal state ──────────────────────────────────────────────────────
   const [createOpen,  setCreateOpen]  = useState(false);
   const [createForm,  setCreateForm]  = useState(emptyCreateForm);
-  const [addr,        setAddr]        = useState(emptyAddr);
-  const [cepSearching,setCepSearching]= useState(false);
-  const [cepError,    setCepError]    = useState("");
+  const [addr,        setAddr]        = useState<AddressValue>(EMPTY_ADDRESS);
   const [createError,  setCreateError]  = useState("");
   const [createOk,     setCreateOk]     = useState("");
   const [createErrors, setCreateErrors] = useState<FormErrors>({});
 
   const createCustomer = useCreateCustomer();
-
-  const fetchCep = useCallback(async (digits: string) => {
-    setCepSearching(true);
-    setCepError("");
-    try {
-      const address = await fetchAddressByCep(digits);
-      if (!address) {
-        setCepError(t("cep_not_found"));
-      } else {
-        setAddr((a) => ({
-          ...a,
-          street:       address.street       || a.street,
-          neighborhood: address.neighborhood || a.neighborhood,
-          city:         address.city         || a.city,
-          state:        address.state        || a.state,
-        }));
-      }
-    } catch {
-      setCepError(t("cep_not_found"));
-    } finally {
-      setCepSearching(false);
-    }
-  }, [t]);
-
-  /** Formats the zipcode, clears its error, and triggers a CEP lookup once 8 digits are entered. */
-  function handleZipcodeChange(raw: string) {
-    setAddr((a) => ({ ...a, zipcode: formatCep(raw) }));
-    clearCreateError("zipcode");
-    const digits = raw.replace(/\D/g, "");
-    if (digits.length === 8) fetchCep(digits);
-  }
 
   function validateCreate(): FormErrors {
     const errs: FormErrors = {};
@@ -205,8 +140,7 @@ export default function CustomersPage() {
 
   function openCreate() {
     setCreateForm(emptyCreateForm);
-    setAddr(emptyAddr);
-    setCepError("");
+    setAddr(EMPTY_ADDRESS);
     setCreateError("");
     setCreateOk("");
     setCreateErrors({});
@@ -239,7 +173,7 @@ export default function CustomersPage() {
       setCreateOk(t("customer_created"));
       setTimeout(() => setCreateOpen(false), 1200);
     } catch (err) {
-      setCreateError(getApiErrorMessage(err, "Erro ao criar cliente."));
+      setCreateError(getApiErrorMessage(err, t("customer_create_error")));
     }
   }
 
@@ -388,15 +322,15 @@ export default function CustomersPage() {
             onValueChange={(v) => v && setSortKey(v as SortKey)}
           >
             <SelectTrigger className="w-full md:w-[200px] h-10">
-              <SelectValue placeholder="Ordenar por">
-                {(value: SortKey | null) => value ? SORT_LABELS[value] : "Ordenar por"}
+              <SelectValue placeholder={t("sort_by")}>
+                {(value: SortKey | null) => (value ? t(`sort_${value}`) : t("sort_by"))}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name">{SORT_LABELS.name}</SelectItem>
-              <SelectItem value="date">{SORT_LABELS.date}</SelectItem>
-              <SelectItem value="pets">{SORT_LABELS.pets}</SelectItem>
-              <SelectItem value="orders">{SORT_LABELS.orders}</SelectItem>
+              <SelectItem value="name">{t("sort_name")}</SelectItem>
+              <SelectItem value="date">{t("sort_date")}</SelectItem>
+              <SelectItem value="pets">{t("sort_pets")}</SelectItem>
+              <SelectItem value="orders">{t("sort_orders")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -648,7 +582,7 @@ export default function CustomersPage() {
                 id="c-name"
                 value={createForm.name}
                 onChange={(e) => { setCreateForm((f) => ({ ...f, name: e.target.value })); clearCreateError("name"); }}
-                placeholder="Nome completo"
+                placeholder={t("name_placeholder")}
                 className={createErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}
               />
               {createErrors.name && <FieldError msg={createErrors.name} />}
@@ -660,7 +594,7 @@ export default function CustomersPage() {
                 type="email"
                 value={createForm.email}
                 onChange={(e) => { setCreateForm((f) => ({ ...f, email: e.target.value })); clearCreateError("email"); }}
-                placeholder="email@exemplo.com"
+                placeholder={t("email_placeholder")}
                 className={createErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}
               />
               {createErrors.email && <FieldError msg={createErrors.email} />}
@@ -726,121 +660,27 @@ export default function CustomersPage() {
           <div className="pt-2 border-t border-border/60">
             <p className="text-sm font-medium text-foreground mb-3">{t("address_title")}</p>
 
-            {/* CEP */}
-            <div className="space-y-2 mb-3">
-              <Label htmlFor="c-zipcode">{t("addr_zipcode")}</Label>
-              <div className="relative">
-                <Input
-                  id="c-zipcode"
-                  value={addr.zipcode}
-                  onChange={(e) => handleZipcodeChange(e.target.value)}
-                  placeholder="00000-000"
-                  inputMode="numeric"
-                  maxLength={9}
-                  className={cn("pr-10", (createErrors.zipcode || cepError) && "border-destructive focus-visible:ring-destructive")}
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
-                  {cepSearching
-                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : <Search className="h-4 w-4 opacity-40" />}
-                </div>
-              </div>
-              {cepSearching && <p className="text-xs text-muted-foreground">{t("cep_searching")}</p>}
-              {cepError && <FieldError msg={cepError} />}
-              {!cepError && createErrors.zipcode && <FieldError msg={createErrors.zipcode} />}
-            </div>
-
-            {/* Street + Number */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-              <div className="sm:col-span-2 space-y-2">
-                <Label htmlFor="c-street">{t("addr_street")}</Label>
-                <Input
-                  id="c-street"
-                  value={addr.street}
-                  onChange={(e) => { setAddr((a) => ({ ...a, street: e.target.value })); clearCreateError("street"); }}
-                  placeholder="Av. Paulista"
-                  className={createErrors.street ? "border-destructive focus-visible:ring-destructive" : ""}
-                />
-                {createErrors.street && <FieldError msg={createErrors.street} />}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="c-number">{t("addr_number")}</Label>
-                <Input
-                  id="c-number"
-                  value={addr.number}
-                  onChange={(e) => { setAddr((a) => ({ ...a, number: e.target.value })); clearCreateError("number"); }}
-                  placeholder="123"
-                  className={createErrors.number ? "border-destructive focus-visible:ring-destructive" : ""}
-                />
-                {createErrors.number && <FieldError msg={createErrors.number} />}
-              </div>
-            </div>
-
-            {/* Complement */}
-            <div className="space-y-2 mb-3">
-              <Label htmlFor="c-complement">{t("addr_complement")}</Label>
-              <Input
-                id="c-complement"
-                value={addr.complement}
-                onChange={(e) => setAddr((a) => ({ ...a, complement: e.target.value }))}
-                placeholder="Apto, bloco, referência..."
-              />
-            </div>
-
-            {/* Neighborhood */}
-            <div className="space-y-2 mb-3">
-              <Label htmlFor="c-neighborhood">{t("addr_neighborhood")}</Label>
-              <Input
-                id="c-neighborhood"
-                value={addr.neighborhood}
-                onChange={(e) => { setAddr((a) => ({ ...a, neighborhood: e.target.value })); clearCreateError("neighborhood"); }}
-                placeholder="Bela Vista"
-                className={createErrors.neighborhood ? "border-destructive focus-visible:ring-destructive" : ""}
-              />
-              {createErrors.neighborhood && <FieldError msg={createErrors.neighborhood} />}
-            </div>
-
-            {/* City + State */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2 space-y-2">
-                <Label htmlFor="c-city">{t("addr_city")}</Label>
-                <Input
-                  id="c-city"
-                  value={addr.city}
-                  onChange={(e) => { setAddr((a) => ({ ...a, city: e.target.value })); clearCreateError("city"); }}
-                  placeholder="São Paulo"
-                  className={createErrors.city ? "border-destructive focus-visible:ring-destructive" : ""}
-                />
-                {createErrors.city && <FieldError msg={createErrors.city} />}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="c-state">{t("addr_state")}</Label>
-                <select
-                  id="c-state"
-                  value={addr.state}
-                  onChange={(e) => { setAddr((a) => ({ ...a, state: e.target.value })); clearCreateError("state"); }}
-                  className={cn(selectClass, createErrors.state && "border-destructive")}
-                >
-                  <option value="">{t("select_state")}</option>
-                  {BRAZIL_STATES.map((s) => (
-                    <option key={s.uf} value={s.uf}>{s.uf} — {s.name}</option>
-                  ))}
-                </select>
-                {createErrors.state && <FieldError msg={createErrors.state} />}
-              </div>
-            </div>
+            <AddressFields
+              value={addr}
+              errors={createErrors}
+              idPrefix="create-user"
+              onChange={(patch) => {
+                setAddr((current) => ({ ...current, ...patch }));
+                Object.keys(patch).forEach(clearCreateError);
+              }}
+            />
           </div>
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
-              Cancelar
+              {tC("cancel")}
             </Button>
             <Button type="submit" disabled={createCustomer.isPending}>
               {createCustomer.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Criando...
+                  {t("creating")}
                 </>
               ) : (
                 t("create_customer")

@@ -10,7 +10,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { recipeFormSchema, RecipeFormData } from "@/lib/validations/recipe";
 import { Ingredient } from "@/hooks/useIngredients";
-import { calculateRecipeCost, Recipe } from "@/hooks/useRecipes";
+import { Recipe } from "@/hooks/useRecipes";
+import { MIN_RECIPE_WEIGHT_KG, totalWeightKg } from "@/lib/recipe-weight";
+import { useRecipeCostSimulation } from "@/features/recipes/useRecipeCostSimulation";
 import { usePets } from "@/hooks/usePets";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp, PartyPopper, Dog, Cat, Clock, DollarSign } from "lucide-react";
@@ -32,9 +34,6 @@ export default function NewRecipePage() {
   const { pets } = usePets();
 
   const [step, setStep] = useState<"choose_method" | "builder">("choose_method");
-  const [estimatedCost, setEstimatedCost] = useState<number>(0);
-  const [costPerKg, setCostPerKg] = useState<number>(0);
-  const [isCalculatingCost, setIsCalculatingCost] = useState(false);
   const [searchIngredient, setSearchIngredient] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todos");
   const [focusedIngIdx, setFocusedIngIdx] = useState<number | null>(null);
@@ -89,51 +88,15 @@ export default function NewRecipePage() {
     () => watchedValues.ingredients.filter(i => i.id > 0 && Number(i.quantity) > 0),
     [watchedValues.ingredients]
   );
-  let totalWeightKg = 0;
-  validIngredients.forEach(i => {
-    const qty = Number(i.quantity);
-    if (i.unit === "g" || i.unit === "ml") totalWeightKg += qty / 1000;
-    else if (i.unit === "kg" || i.unit === "l") totalWeightKg += qty;
-    else if (i.unit === "unit") totalWeightKg += qty * 0.1;
+  const totalWeightAcrossDays = totalWeightKg(validIngredients, Number(watchedValues.duration_days));
+
+  // Customers must reach the minimum total weight before a price is shown.
+  const { estimatedCost, costPerKg, isCalculating: isCalculatingCost } = useRecipeCostSimulation({
+    ingredients: validIngredients,
+    durationDays: Number(watchedValues.duration_days) || 15,
+    dailyPortions: Number(watchedValues.daily_portions) || 2,
+    enabled: step === "builder" && !(user?.role === "customer" && totalWeightAcrossDays < MIN_RECIPE_WEIGHT_KG),
   });
-  // Total weight across all days — matches old system: sum(daily_weight) * duration_days >= 1.5kg
-  const totalWeightAcrossDays = totalWeightKg * (Number(watchedValues.duration_days) || 15);
-
-  // Watch for cost calculation
-  useEffect(() => {
-    if (step !== "builder") return;
-
-    const fetchCost = async () => {
-      // Customer constraint: total weight across all days must be >= 1.5kg (matches old system: sum * duration_days >= 1500g)
-      if (user?.role === "customer" && totalWeightAcrossDays < 1.5) {
-        setEstimatedCost(0);
-        return; // Don't fetch cost yet
-      }
-
-      if (validIngredients.length > 0) {
-        setIsCalculatingCost(true);
-        try {
-          const result = await calculateRecipeCost({
-            ingredients: validIngredients.map(i => ({ ingredient_id: i.id, quantity: Number(i.quantity), unit: i.unit })),
-            duration_days: Number(watchedValues.duration_days) || 15,
-            daily_portions: Number(watchedValues.daily_portions) || 2
-          });
-          setEstimatedCost(result.estimatedCost);
-          setCostPerKg(result.costPerKg || 0);
-        } catch (e) {
-          console.error(e);
-        } finally {
-          setIsCalculatingCost(false);
-        }
-      } else {
-        setEstimatedCost(0);
-        setCostPerKg(0);
-      }
-    };
-
-    const timeoutId = setTimeout(fetchCost, 500);
-    return () => clearTimeout(timeoutId);
-  }, [validIngredients, watchedValues.duration_days, watchedValues.daily_portions, step, user?.role, totalWeightAcrossDays]);
 
   const createRecipe = useMutation({
     mutationFn: async (data: RecipeFormData) => {
@@ -268,15 +231,15 @@ export default function NewRecipePage() {
               {templates?.length === 0 && (
                 <div className="text-sm text-center p-4 bg-muted/30 rounded-lg">{t("no_templates")}</div>
               )}
-              {templates?.map(t => (
+              {templates?.map(tpl => (
                 <div
-                  key={t.id}
-                  onClick={() => handleSelectTemplate(t)}
+                  key={tpl.id}
+                  onClick={() => handleSelectTemplate(tpl)}
                   className="flex items-center justify-between p-3 border rounded-lg hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-colors"
                 >
                   <div>
-                    <p className="font-semibold text-sm">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.duration_days} dias • {t.ingredients.length} ingr.</p>
+                    <p className="font-semibold text-sm">{tpl.name}</p>
+                    <p className="text-xs text-muted-foreground">{t("template_summary", { days: tpl.duration_days ?? 0, count: tpl.ingredients.length })}</p>
                   </div>
                   <CheckCircle2 className="w-4 h-4 text-primary opacity-0 hover:opacity-100" />
                 </div>
@@ -410,7 +373,7 @@ export default function NewRecipePage() {
                   <textarea
                     {...register("instructions")}
                     rows={3}
-                    placeholder="Opcional. Ex: Cozinhar a vapor..."
+                    placeholder={t("instructions_placeholder")}
                     className={`w-full px-3 py-2 bg-background border rounded-md text-sm focus:ring-2 focus:ring-primary/50 ${errors.instructions ? "border-destructive" : ""}`}
                   />
                   {errors.instructions && <span className="text-xs text-destructive">{errors.instructions.message}</span>}
@@ -497,7 +460,7 @@ export default function NewRecipePage() {
               <div className="p-5 space-y-4">
                 <div className="bg-primary/10 border border-primary/20 text-primary text-sm p-3 rounded-lg flex gap-2">
                   <Info className="w-5 h-5 shrink-0" />
-                  <span><strong>{tCommon("error") === "Erro!" ? "Importante:" : tCommon("error") === "Error!" ? "Important:" : "Importante:"}</strong> {t("important_daily_qty")}</span>
+                  <span>{t("important_daily_qty")}</span>
                 </div>
 
                 <div className="space-y-3">
@@ -590,7 +553,7 @@ export default function NewRecipePage() {
               </div>
 
               <div className="p-5 space-y-4">
-                {user?.role === "customer" && totalWeightAcrossDays < 1.5 ? (
+                {user?.role === "customer" && totalWeightAcrossDays < MIN_RECIPE_WEIGHT_KG ? (
                   <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-lg flex gap-2">
                     <Info className="w-5 h-5 flex-shrink-0" />
                     <span>
@@ -678,7 +641,7 @@ export default function NewRecipePage() {
 
                 <button
                   type="submit"
-                  disabled={createRecipe.isPending || isCalculatingCost || (user?.role === "customer" && totalWeightAcrossDays < 1.5)}
+                  disabled={createRecipe.isPending || isCalculatingCost || (user?.role === "customer" && totalWeightAcrossDays < MIN_RECIPE_WEIGHT_KG)}
                   className="w-full mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 disabled:opacity-50"
                 >
                   {createRecipe.isPending ? t("saving") : (

@@ -33,9 +33,10 @@ import {
   isHighlightDay,
   isSameDay,
   toDateStr,
-  STATUS_VALUES,
 } from "@/features/production/cycle";
-import { OrderDetailPanel, StatusBadge } from "@/features/production/components/OrderDetailPanel";
+import { OrderDetailPanel } from "@/features/production/components/OrderDetailPanel";
+import { OrderStatusBadge } from "@/features/orders/components/OrderStatusBadge";
+import { ORDER_STATUSES } from "@/lib/order-status";
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -280,7 +281,7 @@ export default function ProductionPage() {
               className="h-10 w-full sm:w-48 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="all">{t("all_statuses")}</option>
-              {STATUS_VALUES.map((s) => (
+              {ORDER_STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {t(`status_${s}`)}
                 </option>
@@ -542,7 +543,7 @@ export default function ProductionPage() {
                           <span className="font-semibold text-sm text-foreground">
                             {t("order_number")}{order.id}
                           </span>
-                          <StatusBadge
+                          <OrderStatusBadge
                             status={order.status}
                             label={t(`status_${order.status}`)}
                           />
