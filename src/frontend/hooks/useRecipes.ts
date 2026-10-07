@@ -100,6 +100,36 @@ export function useRecipe(id: string) {
   };
 }
 
+/** Payload for cloning a recipe (usually a catalog template). */
+export interface CloneRecipePayload {
+  id: number;
+  /** Optional name for the copy; defaults to the original's. */
+  name?: string;
+  /** Pets (own) to link the copy to. */
+  pet_ids?: number[];
+}
+
+/**
+ * Copies a recipe into the user's own private recipes, optionally linking the
+ * copy to their pets in the same request.
+ *
+ * @returns A mutation resolving to the newly created recipe.
+ */
+export function useCloneRecipe() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...payload }: CloneRecipePayload) => {
+      const response = await apiClient.post<{ success: boolean; data: Recipe }>(`/recipes/${id}/clone`, payload);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["pets"] });
+    },
+  });
+}
+
 /** One line of the cost breakdown returned by /recipes/calculate-cost. */
 export interface RecipeCostBreakdownLine {
   name: string;

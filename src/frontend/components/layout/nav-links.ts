@@ -1,4 +1,5 @@
 import {
+  CircleHelp,
   Dog,
   Factory,
   LayoutDashboard,
@@ -18,7 +19,8 @@ export type NavLabelKey =
   | "orders"
   | "pets"
   | "recipes"
-  | "production";
+  | "production"
+  | "guide";
 
 /** A single sidebar/navbar entry. */
 export interface NavLink {
@@ -52,7 +54,8 @@ export function getNavLinks(role: string = "customer"): NavLink[] {
     links.push(
       { href: "/pets", labelKey: "pets", icon: Dog },
       { href: "/recipes", labelKey: "recipes", icon: UtensilsCrossed },
-      { href: "/orders", labelKey: "orders", icon: ShoppingBag }
+      { href: "/orders", labelKey: "orders", icon: ShoppingBag },
+      { href: "/guide", labelKey: "guide", icon: CircleHelp }
     );
   }
 

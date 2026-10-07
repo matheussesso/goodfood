@@ -4,10 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { usePets } from "@/hooks/usePets";
-import { Link } from "@/i18n/routing";
+import { Link } from "@/i18n/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { JourneyEmptyState } from "@/features/onboarding/components/JourneyEmptyState";
 import { Plus, Edit2, Trash2, Dog, Cat, Loader2, LayoutGrid, List as ListIcon, ChevronRight, Search, FilterX } from "lucide-react";
 
 export default function PetsPage() {
@@ -99,23 +100,12 @@ export default function PetsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : pets?.length === 0 ? (
-        <Card className="text-center p-12">
-          <CardContent className="flex flex-col items-center justify-center space-y-4">
-            <div className="rounded-full bg-primary/10 p-4 text-primary">
-              <Dog className="h-10 w-10" />
-            </div>
-            <h3 className="text-lg font-semibold">{t("no_pets")}</h3>
-            <p className="text-sm text-muted-foreground max-w-sm">
-              {t("no_pets_desc")}
-            </p>
-            <Link href="/pets/new" className="mt-4">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                {t("new_pet")}
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <JourneyEmptyState
+          icon={<Dog className="h-8 w-8" />}
+          title={t("no_pets")}
+          description={t("no_pets_desc")}
+          fallbackAction={{ href: "/pets/new", label: t("new_pet") }}
+        />
       ) : filteredPets.length === 0 ? (
         <Card className="text-center p-12">
           <CardContent className="flex flex-col items-center justify-center space-y-4">

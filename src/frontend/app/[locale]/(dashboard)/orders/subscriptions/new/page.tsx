@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/routing";
-import { Link } from "@/i18n/routing";
+import { useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { usePets } from "@/hooks/usePets";
 import { useRecipeCycleCostTotal } from "@/hooks/useRecipeCycleCost";
@@ -246,6 +246,7 @@ export default function NewSubscriptionPage() {
                   recipeIds={recipeIds}
                   options={petRecipeOptions}
                   onChange={handleRecipeChange}
+                  petId={selectedPetId}
                   t={t}
                 />
                 {errors.recipeIds && <p className="text-xs text-destructive mt-2">{errors.recipeIds}</p>}

@@ -6,7 +6,7 @@ import { UserDropdown } from "@/components/layout/UserDropdown";
 import { FullscreenToggle } from "@/components/FullscreenToggle";
 import { Menu, Columns, Rows } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter, usePathname, Link } from "@/i18n/routing";
+import { useRouter, usePathname, Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { getNavLinks, isNavLinkActive } from "@/components/layout/nav-links";

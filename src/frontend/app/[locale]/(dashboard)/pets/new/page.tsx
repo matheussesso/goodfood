@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Link, useRouter } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, PawPrint, Info, Stethoscope, Camera, Loader2, Dog, Cat, PartyPopper } from "lucide-react";
+import { ArrowLeft, PawPrint, UtensilsCrossed, Info, Stethoscope, Camera, Loader2, Dog, Cat, PartyPopper } from "lucide-react";
 
 /**
  * Dedicated page for registering a new pet. Health-record features
@@ -32,7 +32,7 @@ export default function NewPetPage() {
   const [photoUrl, setPhotoUrl] = useState("");
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [confirmedPetId, setConfirmedPetId] = useState<number | null>(null);
+  const [confirmedPet, setConfirmedPet] = useState<{ id: number; name: string } | null>(null);
 
   const { register, control, handleSubmit, setValue, formState: { errors } } = useForm<PetFormData>({
     resolver: zodResolver(petFormSchema),
@@ -68,9 +68,9 @@ export default function NewPetPage() {
     setSubmitError(null);
     try {
       const result = await createPet(data);
-      const newId = result?.data?.id;
-      if (newId) {
-        setConfirmedPetId(newId);
+      const created = result?.data;
+      if (created?.id) {
+        setConfirmedPet({ id: created.id, name: created.name ?? data.name });
       } else {
         router.push("/pets");
       }
@@ -79,15 +79,7 @@ export default function NewPetPage() {
     }
   };
 
-  // Auto-redirect to the edit page (to continue with vaccines/documents)
-  // shortly after the success screen is shown.
-  useEffect(() => {
-    if (confirmedPetId === null) return;
-    const timer = setTimeout(() => router.push(`/pets/${confirmedPetId}/edit`), 2500);
-    return () => clearTimeout(timer);
-  }, [confirmedPetId, router]);
-
-  if (confirmedPetId !== null) {
+  if (confirmedPet !== null) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-6 px-4">
         <div className="w-24 h-24 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center animate-bounce">
@@ -95,19 +87,21 @@ export default function NewPetPage() {
         </div>
         <div className="space-y-2">
           <h1 className="text-3xl font-bold text-foreground">{t("pet_created_success")}</h1>
-          <p className="text-muted-foreground max-w-sm mx-auto">{t("pet_created_next_step")}</p>
+          <p className="text-muted-foreground max-w-sm mx-auto">{t("next_step_hint", { name: confirmedPet.name })}</p>
         </div>
-        <div className="flex flex-col items-center gap-3">
-          <Link href={`/pets/${confirmedPetId}/edit`}>
+        <div className="flex flex-col items-center gap-3 sm:flex-row">
+          <Link href={`/recipes/new?pet_id=${confirmedPet.id}`}>
             <Button size="lg" className="gap-2">
-              <PawPrint className="w-5 h-5" />
-              {t("continue_pet_setup")}
+              <UtensilsCrossed className="w-5 h-5" />
+              {t("create_recipe_for_pet", { name: confirmedPet.name })}
             </Button>
           </Link>
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            {t("pet_created_redirect")}
-          </p>
+          <Link href={`/pets/${confirmedPet.id}/edit`}>
+            <Button size="lg" variant="outline" className="gap-2">
+              <PawPrint className="w-5 h-5" />
+              {t("complete_pet_profile")}
+            </Button>
+          </Link>
         </div>
       </div>
     );

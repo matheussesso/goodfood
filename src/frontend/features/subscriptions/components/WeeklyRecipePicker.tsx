@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { UtensilsCrossed, ChevronDown, ChevronUp, Loader2, Salad } from "lucide-react";
 import { Recipe } from "@/hooks/useRecipes";
@@ -94,6 +95,7 @@ function SelectedRecipeDetail({
  * @param recipeIds - Selected recipe id for each week, in order (null = not yet chosen).
  * @param options - The recipes available to pick from (already filtered to the chosen pet).
  * @param onChange - Called with the week index and the newly selected recipe id.
+ * @param petId - Pet the recipes belong to; used to deep-link recipe creation when there are none.
  * @param t - Subscriptions namespace translator.
  */
 export function WeeklyRecipePicker({
@@ -101,18 +103,30 @@ export function WeeklyRecipePicker({
   recipeIds,
   options,
   onChange,
+  petId,
   t,
 }: {
   totalWeeks: number;
   recipeIds: (number | null)[];
   options: Recipe[];
   onChange: (weekIndex: number, recipeId: number) => void;
+  petId?: number | null;
   t: ReturnType<typeof useTranslations>;
 }) {
   const tRec = useTranslations("Recipes");
 
   if (options.length === 0) {
-    return <p className="text-sm text-muted-foreground py-2">{t("no_recipes_for_pet_short")}</p>;
+    return (
+      <div className="flex flex-col items-start gap-3 py-2">
+        <p className="text-sm text-muted-foreground">{t("no_recipes_for_pet_short")}</p>
+        <Link
+          href={petId ? `/recipes/new?pet_id=${petId}` : "/recipes/new"}
+          className="inline-flex min-h-11 items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-muted"
+        >
+          {t("no_recipes_cta")}
+        </Link>
+      </div>
+    );
   }
 
   return (

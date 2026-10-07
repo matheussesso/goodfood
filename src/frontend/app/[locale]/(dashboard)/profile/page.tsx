@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useDashboard } from "@/hooks/useDashboard";
+import { getCompleteness } from "@/features/profile/completeness";
+import { AccountCompleteness } from "@/features/profile/components/AccountCompleteness";
+import { useRouter, usePathname } from "@/i18n/navigation";
 import { AddressFields, type AddressValue } from "@/components/address/AddressFields";
 import { hasPhoneNumber, isValidEmail } from "@/lib/masks";
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -25,25 +30,51 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Section = "personal" | "security" | "preferences";
+const SECTION_KEYS = ["personal", "address", "security", "preferences"] as const;
+type Section = (typeof SECTION_KEYS)[number];
 type FeedbackState = { type: "success" | "error"; message: string } | null;
 type FormErrors = Partial<Record<string, string>>;
 
 /**
- * User account management page.
- * Personal section shows info card + address card stacked.
- * Security and Preferences are separate tabs.
+ * User account management page. Sections (personal, address, security,
+ * preferences) are selectable through the `?section=` query parameter so other
+ * screens can deep-link to the exact form a customer needs to fill.
  *
  * @returns The profile page element.
  */
 export default function ProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <ProfileContent />
+    </Suspense>
+  );
+}
+
+/** Profile page body; isolated so `useSearchParams` sits under a Suspense boundary. */
+function ProfileContent() {
   const t  = useTranslations("Profile");
   const tC = useTranslations("Common");
   const tA = useTranslations("admin");
   const { user } = useAuth();
   const { updateProfile, isUpdatingProfile, updatePassword, isUpdatingPassword } = useProfile();
 
-  const [activeSection, setActiveSection] = useState<Section>("personal");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const requestedSection = searchParams.get("section");
+  const activeSection: Section = SECTION_KEYS.find((key) => key === requestedSection) ?? "personal";
+  const isCustomer = user?.role === "customer";
+  const { data: dashboard } = useDashboard(isCustomer);
+  const completeness = getCompleteness({
+    phone: user?.phone,
+    street: user?.street,
+    city: user?.city,
+    petsCount: dashboard?.progress.pets_count,
+  });
+
+  function setActiveSection(section: Section) {
+    router.replace(`${pathname}?section=${section}`, { scroll: false });
+  }
 
   // ── Personal info form ────────────────────────────────────────────────────
   const [profileForm, setProfileForm] = useState({
@@ -222,6 +253,7 @@ export default function ProfilePage() {
 
   const SECTIONS: { key: Section; label: string; icon: typeof User }[] = [
     { key: "personal",    label: t("personal_info"), icon: User },
+    { key: "address",     label: t("section_address"), icon: MapPin },
     { key: "security",    label: t("security"),       icon: Lock },
     { key: "preferences", label: t("preferences"),    icon: Bell },
   ];
@@ -290,6 +322,8 @@ export default function ProfilePage() {
         <div className="space-y-4">
 
           {/* ─ Personal info ─────────────────────────────────────────────── */}
+          {isCustomer && dashboard && activeSection !== "security" && <AccountCompleteness completeness={completeness} />}
+
           {activeSection === "personal" && (
             <>
               {/* Card 1: name / email / phone */}
@@ -299,6 +333,7 @@ export default function ProfilePage() {
                     <User className="w-4 h-4 text-primary" />
                     {t("personal_info")}
                   </h2>
+                  <p className="mt-1 text-xs text-muted-foreground">{t("personal_hint")}</p>
                 </div>
 
                 <form onSubmit={handleProfileSubmit} className="p-6 space-y-4" noValidate>
@@ -348,14 +383,18 @@ export default function ProfilePage() {
                   </div>
                 </form>
               </div>
+            </>
+          )}
 
-              {/* Card 2: address */}
+          {/* ─ Address ───────────────────────────────────────────────────── */}
+          {activeSection === "address" && (
               <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b">
                   <h2 className="font-semibold text-foreground flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-primary" />
                     {t("address_section")}
                   </h2>
+                  <p className="mt-1 text-xs text-muted-foreground">{t("address_hint")}</p>
                 </div>
 
                 <form onSubmit={handleAddressSubmit} className="p-6 space-y-4" noValidate>
@@ -379,7 +418,6 @@ export default function ProfilePage() {
                   </div>
                 </form>
               </div>
-            </>
           )}
 
           {/* ─ Security ──────────────────────────────────────────────────── */}

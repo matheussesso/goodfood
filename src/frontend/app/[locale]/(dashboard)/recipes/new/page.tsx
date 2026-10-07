@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/routing";
+import { useRouter } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,15 +10,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { recipeFormSchema, RecipeFormData } from "@/lib/validations/recipe";
 import { Ingredient } from "@/hooks/useIngredients";
-import { Recipe } from "@/hooks/useRecipes";
+import { Recipe, useCloneRecipe } from "@/hooks/useRecipes";
+import { RecipeSavedScreen } from "@/features/recipes/components/RecipeSavedScreen";
+import { TemplatePicker } from "@/features/recipes/components/TemplatePicker";
 import { MIN_RECIPE_WEIGHT_KG, totalWeightKg } from "@/lib/recipe-weight";
 import { useRecipeCostSimulation } from "@/features/recipes/useRecipeCostSimulation";
 import { usePets } from "@/hooks/usePets";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp, PartyPopper, Dog, Cat, Clock, DollarSign } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, UtensilsCrossed, FileText, CheckCircle2, Loader2, Info, Search, ChevronDown, ChevronUp, Dog, Cat, Clock, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 
 export default function NewRecipePage() {
@@ -38,7 +39,11 @@ export default function NewRecipePage() {
   const [categoryFilter, setCategoryFilter] = useState("Todos");
   const [focusedIngIdx, setFocusedIngIdx] = useState<number | null>(null);
   const [recipeDetailOpen, setRecipeDetailOpen] = useState(false);
-  const [confirmedRecipeId, setConfirmedRecipeId] = useState<number | null>(null);
+  const [saved, setSaved] = useState<{ id: number; linked: boolean } | null>(null);
+  const [cloneTargets, setCloneTargets] = useState<number[] | null>(null);
+  const [cloningId, setCloningId] = useState<number | null>(null);
+  const [cloneError, setCloneError] = useState<string | null>(null);
+  const cloneRecipe = useCloneRecipe();
 
   // Fetch data
   const { data: ingredients, isLoading: loadingIngredients } = useQuery({
@@ -103,9 +108,9 @@ export default function NewRecipePage() {
       const response = await apiClient.post("/recipes", data);
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      setConfirmedRecipeId(data?.data?.id ?? 0);
+      setSaved({ id: data?.data?.id ?? 0, linked: (variables.pet_ids ?? []).length > 0 });
     }
   });
 
@@ -119,6 +124,26 @@ export default function NewRecipePage() {
       }))
     };
     createRecipe.mutate(validData);
+  };
+
+  // Pets the template copy gets linked to: the user's choice, else the pet from the URL, else the only pet.
+  const defaultTargets = petId ? [parseInt(petId)] : pets?.length === 1 ? [pets[0].id] : [];
+  const selectedTargets = cloneTargets ?? defaultTargets;
+
+  const toggleTarget = (id: number) =>
+    setCloneTargets(selectedTargets.includes(id) ? selectedTargets.filter((target) => target !== id) : [...selectedTargets, id]);
+
+  const handleUseTemplate = async (template: Recipe) => {
+    setCloneError(null);
+    setCloningId(template.id);
+    try {
+      const created = await cloneRecipe.mutateAsync({ id: template.id, pet_ids: selectedTargets });
+      setSaved({ id: created.id, linked: selectedTargets.length > 0 });
+    } catch {
+      setCloneError(t("clone_error"));
+    } finally {
+      setCloningId(null);
+    }
   };
 
   const handleSelectTemplate = (template: Recipe) => {
@@ -147,39 +172,8 @@ export default function NewRecipePage() {
 
   const afterSaveHref = ownerId ? `/admin/customers/${ownerId}` : petId ? `/pets/${petId}` : "/recipes";
 
-  // Success redirect timer
-  useEffect(() => {
-    if (confirmedRecipeId === null) return;
-    const timer = setTimeout(() => router.push(afterSaveHref), 3000);
-    return () => clearTimeout(timer);
-  }, [confirmedRecipeId, router, afterSaveHref]);
-
-  if (confirmedRecipeId !== null) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-6 px-4">
-        <div className="w-24 h-24 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center animate-bounce">
-          <PartyPopper className="w-12 h-12 text-emerald-600 dark:text-emerald-400" />
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">{t("recipe_confirmed_title")}</h1>
-          <p className="text-muted-foreground max-w-sm mx-auto">
-            {t("recipe_confirmed_desc")}
-          </p>
-        </div>
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-3 flex-wrap justify-center">
-            <Button size="lg" className="gap-2" onClick={() => router.push(afterSaveHref)}>
-              <UtensilsCrossed className="w-5 h-5" />
-              {t("my_recipes")}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            {t("recipe_confirmed_redirect")}
-          </p>
-        </div>
-      </div>
-    );
+  if (saved !== null) {
+    return <RecipeSavedScreen recipeId={saved.id} linked={saved.linked} recipesHref={afterSaveHref} />;
   }
 
   if (loadingIngredients || loadingTemplates) return <div className="p-8 text-center text-muted-foreground"><Loader2 className="w-8 h-8 animate-spin mx-auto" /></div>;
@@ -208,7 +202,7 @@ export default function NewRecipePage() {
         <div className="grid md:grid-cols-2 gap-6 mt-8">
           <div
             onClick={handleStartScratch}
-            className="border-2 border-dashed border-primary/30 hover:border-primary/60 bg-card hover:bg-primary/5 rounded-2xl p-8 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-4 h-64"
+            className="border-2 border-dashed border-primary/30 hover:border-primary/60 bg-card hover:bg-primary/5 rounded-2xl p-8 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-4 min-h-64"
           >
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
               <Plus className="w-8 h-8" />
@@ -219,33 +213,16 @@ export default function NewRecipePage() {
             </div>
           </div>
 
-          <div className="border border-border bg-card rounded-2xl p-6 flex flex-col h-64">
-            <div className="flex items-center gap-3 mb-4">
-              <FileText className="w-6 h-6 text-primary" />
-              <h3 className="text-xl font-bold">{t("use_template")}</h3>
-            </div>
-            <p className="text-muted-foreground text-sm mb-4">
-              {t("use_template_desc")}
-            </p>
-            <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-              {templates?.length === 0 && (
-                <div className="text-sm text-center p-4 bg-muted/30 rounded-lg">{t("no_templates")}</div>
-              )}
-              {templates?.map(tpl => (
-                <div
-                  key={tpl.id}
-                  onClick={() => handleSelectTemplate(tpl)}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:border-primary/50 hover:bg-primary/5 cursor-pointer transition-colors"
-                >
-                  <div>
-                    <p className="font-semibold text-sm">{tpl.name}</p>
-                    <p className="text-xs text-muted-foreground">{t("template_summary", { days: tpl.duration_days ?? 0, count: tpl.ingredients.length })}</p>
-                  </div>
-                  <CheckCircle2 className="w-4 h-4 text-primary opacity-0 hover:opacity-100" />
-                </div>
-              ))}
-            </div>
-          </div>
+          <TemplatePicker
+            templates={templates ?? []}
+            pets={pets ?? []}
+            selectedPetIds={selectedTargets}
+            onTogglePet={toggleTarget}
+            onCustomize={handleSelectTemplate}
+            onUse={handleUseTemplate}
+            cloningId={cloningId}
+            error={cloneError}
+          />
         </div>
       )}
 

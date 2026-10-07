@@ -10,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Link, useRouter } from "@/i18n/routing";
-import { AddressFields, EMPTY_ADDRESS, type AddressValue } from "@/components/address/AddressFields";
+import { Link, useRouter } from "@/i18n/navigation";
 import { hasPhoneNumber, isValidEmail } from "@/lib/masks";
 import { getApiErrorMessage } from "@/lib/api-error";
 
@@ -24,13 +23,13 @@ function FieldError({ msg }: { msg: string }) {
 
 /**
  * Customer registration page.
- * Collects name, email, phone (with country code + mask), password, and address.
+ * Collects name, email, phone (with country code + mask) and password. The delivery
+ * address is asked later (profile or first order) to keep sign-up short.
  *
  * @returns The registration page element.
  */
 export default function RegisterPage() {
   const t  = useTranslations("Auth");
-  const tP = useTranslations("Profile");
   const tC = useTranslations("Common");
   const router  = useRouter();
   const setAuth = useAuth((state) => state.setAuth);
@@ -44,7 +43,6 @@ export default function RegisterPage() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
-  const [address, setAddress] = useState<AddressValue>(EMPTY_ADDRESS);
   const [errorMsg, setErrorMsg] = useState("");
 
   function validate(): FormErrors {
@@ -57,12 +55,6 @@ export default function RegisterPage() {
     else if (formData.password.length < 8) errs.password = tC("validation_password_min");
     if (formData.password !== formData.password_confirmation)
       errs.password_confirmation = tC("validation_password_match");
-    if (!address.zipcode.replace(/\D/g, "")) errs.zipcode = tC("validation_required");
-    if (!address.street.trim()) errs.street = tC("validation_required");
-    if (!address.number.trim()) errs.number = tC("validation_required");
-    if (!address.neighborhood.trim()) errs.neighborhood = tC("validation_required");
-    if (!address.city.trim()) errs.city = tC("validation_required");
-    if (!address.state) errs.state = tC("validation_required");
     return errs;
   }
 
@@ -76,17 +68,7 @@ export default function RegisterPage() {
 
   const registerMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
-        ...formData,
-        street: address.street,
-        number: address.number,
-        complement: address.complement || undefined,
-        neighborhood: address.neighborhood,
-        city: address.city,
-        state: address.state,
-        zipcode: address.zipcode.replace(/\D/g, ""),
-      };
-      const response = await apiClient.post("/register", payload);
+      const response = await apiClient.post("/register", formData);
       return response.data;
     },
     onSuccess: (data) => {
@@ -194,20 +176,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Address section */}
-          <div className="space-y-4 pt-2 border-t border-border/60">
-            <p className="text-sm font-medium text-foreground">{tP("address_section")}</p>
-
-            <AddressFields
-              value={address}
-              errors={errors}
-              idPrefix="reg"
-              onChange={(patch) => {
-                setAddress((current) => ({ ...current, ...patch }));
-                Object.keys(patch).forEach(clearError);
-              }}
-            />
-          </div>
+          <p className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">{t("register_address_later")}</p>
 
           <Button
             type="submit"

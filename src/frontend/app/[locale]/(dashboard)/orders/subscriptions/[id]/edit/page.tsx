@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/routing";
-import { Link } from "@/i18n/routing";
+import { useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { useSubscription, useSubscriptions } from "@/hooks/useSubscriptions";
 import { usePets } from "@/hooks/usePets";
 import { useRecipeCycleCostTotal } from "@/hooks/useRecipeCycleCost";
@@ -197,6 +197,7 @@ export default function EditSubscriptionPage() {
                 recipeIds={recipeIds}
                 options={petRecipeOptions}
                 onChange={handleRecipeChange}
+                petId={subscription?.pet_id}
                 t={t}
               />
               {errors.recipeIds && <p className="text-xs text-destructive mt-2">{errors.recipeIds}</p>}

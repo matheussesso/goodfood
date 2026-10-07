@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Cat, Clock, Dog, ExternalLink, Layers, Salad, UtensilsCrossed } from "lucide-react";
-import { Link } from "@/i18n/routing";
+import { Link } from "@/i18n/navigation";
 import { formatBRL } from "@/lib/format";
 import type { OrderItem } from "@/hooks/useOrders";
 

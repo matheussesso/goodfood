@@ -5,7 +5,7 @@ const hrefs = (role?: string) => getNavLinks(role).map((l) => l.href);
 
 describe("getNavLinks", () => {
   it("gives customers dashboard, pets, recipes and orders", () => {
-    expect(hrefs("customer")).toEqual(["/dashboard", "/pets", "/recipes", "/orders"]);
+    expect(hrefs("customer")).toEqual(["/dashboard", "/pets", "/recipes", "/orders", "/guide"]);
   });
 
   it("defaults to the customer menu", () => {

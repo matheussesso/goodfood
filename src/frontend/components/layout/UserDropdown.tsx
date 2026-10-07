@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Link, useRouter } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { UserCircle, User, Settings, LogOut, ChevronDown, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";

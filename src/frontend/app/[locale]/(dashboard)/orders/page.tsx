@@ -6,7 +6,8 @@ import { useOrders, Order, Invoice } from "@/hooks/useOrders";
 import { useSubscriptions, Subscription } from "@/hooks/useSubscriptions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link } from "@/i18n/routing";
+import { JourneyEmptyState } from "@/features/onboarding/components/JourneyEmptyState";
+import { Link } from "@/i18n/navigation";
 import { ShoppingBag, Plus, Loader2, Package, Calendar, CalendarDays, Dog, Cat, UtensilsCrossed, MapPin, Layers, Search, FilterX, ChevronRight, ChevronDown, ChevronUp, Receipt, AlertCircle, CheckCircle2, PauseCircle, PlayCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ORDER_PIPELINE, getOrderProgressStep, getOrderStatusStyle, getSubscriptionStatusStyle, type OrderStatus, type SubscriptionStatus } from "@/lib/order-status";
@@ -755,19 +756,12 @@ export default function OrdersPage() {
         </div>
 
       ) : !hasAnything ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-5 text-center bg-card border rounded-xl">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <Package className="w-7 h-7 text-primary/60" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground">{tOrders("no_orders_yet")}</h3>
-            <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">{tOrders("no_orders_yet_desc")}</p>
-          </div>
-          <Link href="/orders/new">
-            <Button className="gap-2"><Plus className="w-4 h-4" /> {tOrders("create_first_order")}</Button>
-          </Link>
-        </div>
-
+        <JourneyEmptyState
+          icon={<Package className="h-8 w-8" />}
+          title={tOrders("no_orders_yet")}
+          description={tOrders("no_orders_yet_desc")}
+          fallbackAction={{ href: "/orders/new", label: tOrders("create_first_order") }}
+        />
       ) : noResults ? (
         <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-xl gap-4 text-muted-foreground text-center">
           <div className="w-14 h-14 rounded-full bg-muted/50 flex items-center justify-center">

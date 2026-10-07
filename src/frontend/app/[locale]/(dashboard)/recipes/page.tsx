@@ -4,9 +4,10 @@ import { useTranslations } from "next-intl";
 import { useRecipes } from "@/hooks/useRecipes";
 import { Button } from "@/components/ui/button";
 import { UtensilsCrossed, Plus, Search, Loader2, LayoutGrid, List as ListIcon, Eye, Edit2, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
-import { Link } from "@/i18n/routing";
+import { Link } from "@/i18n/navigation";
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
+import { JourneyEmptyState } from "@/features/onboarding/components/JourneyEmptyState";
 import { Card, CardContent } from "@/components/ui/card";
 
 /**
@@ -88,6 +89,13 @@ export default function RecipesPage() {
         <div className="flex justify-center p-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
+      ) : filteredRecipes?.length === 0 && !searchTerm ? (
+        <JourneyEmptyState
+          icon={<UtensilsCrossed className="h-8 w-8" />}
+          title={tRec("no_recipes_found")}
+          description={tRec("no_recipes_yet")}
+          fallbackAction={{ href: "/recipes/new", label: tRec("create_first_recipe") }}
+        />
       ) : filteredRecipes?.length === 0 ? (
         <Card className="text-center p-12">
           <CardContent className="flex flex-col items-center justify-center space-y-4">
@@ -95,19 +103,7 @@ export default function RecipesPage() {
               <UtensilsCrossed className="h-10 w-10" />
             </div>
             <h3 className="text-lg font-semibold">{tRec("no_recipes_found")}</h3>
-            <p className="text-sm text-muted-foreground max-w-sm">
-              {searchTerm
-                ? tRec("no_recipes_search_match")
-                : tRec("no_recipes_yet")}
-            </p>
-            {!searchTerm && (
-              <Link href="/recipes/new" className="mt-4">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  {tRec("create_first_recipe")}
-                </Button>
-              </Link>
-            )}
+            <p className="text-sm text-muted-foreground max-w-sm">{tRec("no_recipes_search_match")}</p>
           </CardContent>
         </Card>
       ) : viewMode === "grid" ? (

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/routing";
+import { useRouter } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
 import { ArrowLeft, ShoppingBag, Calendar, MapPin, UtensilsCrossed, Loader2, DollarSign, Info, Users, Settings } from "lucide-react";
 import { useOrder } from "@/hooks/useOrders";

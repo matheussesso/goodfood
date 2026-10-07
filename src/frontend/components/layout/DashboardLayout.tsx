@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { Navbar } from "./Navbar";
 import { useAuth } from "@/hooks/useAuth";
-import { useRouter } from "@/i18n/routing";
+import { useRouter } from "@/i18n/navigation";
 import { Loader2 } from "lucide-react";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {

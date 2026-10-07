@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/routing";
+import { Link } from "@/i18n/navigation";
 
 /**
  * Localized 404 shown when notFound() is thrown inside the [locale] tree.

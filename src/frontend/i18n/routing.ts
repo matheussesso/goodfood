@@ -1,12 +1,13 @@
 import { defineRouting } from "next-intl/routing";
-import { createNavigation } from "next-intl/navigation";
+import { buildPathnames } from "./pathnames";
 
+const locales = ["pt", "en", "es"] as const;
+
+/** Locale and URL configuration shared by the middleware, the request config and the layout. */
 export const routing = defineRouting({
-  locales: ["pt", "en", "es"],
+  locales,
   defaultLocale: "pt",
   localePrefix: "as-needed",
   localeDetection: false,
+  pathnames: buildPathnames(locales),
 });
-
-export const { Link, redirect, usePathname, useRouter, getPathname } =
-  createNavigation(routing);

@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/routing";
-import { Link } from "@/i18n/routing";
+import { useRouter } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 import { useOrders, CreateOrderPayload, OrderItemPayload } from "@/hooks/useOrders";
 import { usePets } from "@/hooks/usePets";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,8 @@ import { Recipe } from "@/hooks/useRecipes";
 import { AddressFields, EMPTY_ADDRESS, type AddressValue } from "@/components/address/AddressFields";
 import { formatCep } from "@/lib/masks";
 import { Button } from "@/components/ui/button";
+import { useProfile } from "@/hooks/useProfile";
+import { JourneyEmptyState } from "@/features/onboarding/components/JourneyEmptyState";
 import { ArrowLeft, ShoppingBag, CalendarCheck, Dog, Cat, UtensilsCrossed, CheckCircle2, ChevronDown, ChevronUp, Loader2, MapPin, Trash2, BookUser, Clock, Salad, Layers, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,11 +37,14 @@ export default function NewOrderPage() {
   const tPets = useTranslations("Pets");
   const tRec = useTranslations("Recipes");
   const tCat = useTranslations("Catalog");
+  const tOnboarding = useTranslations("Onboarding");
 
   const router = useRouter();
   const { pets, isLoading: petsLoading } = usePets();
   const { createOrder, isCreating } = useOrders();
   const user = useAuth((s) => s.user);
+  const { updateProfile } = useProfile();
+  const [saveAddress, setSaveAddress] = useState(true);
 
   /** "choose" shows the order-type picker; "single" shows the one-off order builder below. */
   const [step, setStep] = useState<"choose" | "single">("choose");
@@ -180,6 +185,21 @@ export default function NewOrderPage() {
     try {
       const result = await createOrder(payload);
       setConfirmedOrderId(result?.data?.id ?? null);
+
+      // Keep the address for next time. The order is already placed, so a failure here is silent.
+      if (saveAddress && !hasRegisteredAddress && user) {
+        updateProfile({
+          name: user.name,
+          email: user.email,
+          street: address.street,
+          number: address.number,
+          complement: address.complement || undefined,
+          neighborhood: address.neighborhood || undefined,
+          city: address.city,
+          state: address.state,
+          zipcode: address.zipcode.replace(/\D/g, ""),
+        }).catch(() => undefined);
+      }
     } catch {
       setSubmitError(t("error_submit"));
     }
@@ -306,15 +326,23 @@ export default function NewOrderPage() {
               <span className="text-sm">{t("loading_pets")}</span>
             </div>
           ) : !pets || pets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-xl gap-3 text-muted-foreground text-center">
-              <Dog className="w-10 h-10 opacity-30" />
-              <p className="text-sm">{tPets("no_pets")}</p>
-              <Link href="/pets">
-                <Button variant="outline" size="sm">{t("register_pet")}</Button>
-              </Link>
-            </div>
+            <JourneyEmptyState
+              icon={<Dog className="h-8 w-8" />}
+              title={tPets("no_pets")}
+              description={tOnboarding("orders_need_pet")}
+              fallbackAction={{ href: "/pets/new", label: t("register_pet") }}
+            />
           ) : (
-            pets.map((pet) => {
+            <>
+            {pets.every((pet) => (pet.recipes ?? []).filter((r) => !r.is_template).length === 0) && (
+              <div role="status" className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200 sm:flex-row sm:items-center">
+                <span className="flex-1">{tOnboarding("orders_need_recipe")}</span>
+                <Link href={`/recipes/new?pet_id=${pets[0].id}`}>
+                  <Button size="sm">{tOnboarding("create_recipe_for_pet", { name: pets[0].name })}</Button>
+                </Link>
+              </div>
+            )}
+            {pets.map((pet) => {
               const PetIcon = pet.type === "cat" ? Cat : Dog;
               const isExpanded = expandedPets.includes(pet.id);
               const petRecipes = (pet.recipes ?? []).filter((r) => !r.is_template);
@@ -359,9 +387,12 @@ export default function NewOrderPage() {
                   {isExpanded && (
                     <div className="border-t divide-y divide-border/50">
                       {petRecipes.length === 0 ? (
-                        <p className="px-4 py-4 text-sm text-muted-foreground text-center">
-                          {t("no_recipes_for_pet", { name: pet.name })}
-                        </p>
+                        <div className="flex flex-col items-center gap-3 px-4 py-5 text-center">
+                          <p className="text-sm text-muted-foreground">{t("no_recipes_for_pet", { name: pet.name })}</p>
+                          <Link href={`/recipes/new?pet_id=${pet.id}`}>
+                            <Button size="sm" variant="outline">{tOnboarding("create_recipe_for_pet", { name: pet.name })}</Button>
+                          </Link>
+                        </div>
                       ) : (
                         petRecipes.map((recipe) => {
                           const sel = isSelected(pet.id, recipe.id);
@@ -439,7 +470,8 @@ export default function NewOrderPage() {
                   )}
                 </div>
               );
-            })
+            })}
+            </>
           )}
         </div>
 
@@ -520,6 +552,17 @@ export default function NewOrderPage() {
                   setErrors((previous) => ({ ...previous, ...Object.fromEntries(Object.keys(patch).map((key) => [key, ""])) }));
                 }}
               />
+              {!hasRegisteredAddress && (
+                <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={saveAddress}
+                    onChange={(e) => setSaveAddress(e.target.checked)}
+                    className="h-4 w-4 rounded border-input accent-primary"
+                  />
+                  {t("save_address_to_account")}
+                </label>
+              )}
             </div>
           </div>
 

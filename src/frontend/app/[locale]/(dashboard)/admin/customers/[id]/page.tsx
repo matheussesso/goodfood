@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
-import { Link } from "@/i18n/routing";
+import { Link } from "@/i18n/navigation";
 import { useCustomer } from "@/hooks/useCustomers";
 import { getRoleMeta } from "@/lib/user-roles";
 import { Pet } from "@/hooks/usePets";
