@@ -350,8 +350,8 @@ gerado automaticamente pela Actions — não precisa criar secret para isso.
    docker compose logs -f backend
    ```
 5. Acesse `https://app.seudominio.com` e `https://api.seudominio.com/api`
-   — o Caddy do container `backend` emite os certificados TLS
-   automaticamente no primeiro acesso (pode levar alguns segundos).
+   — o Caddy do container `backend` serve o certificado Origin CA da
+   Cloudflare (montado em `/etc/caddy/certs`); não há emissão ACME.
 
 ## Operação do dia a dia
 
@@ -366,6 +366,8 @@ IMAGE_TAG=<sha-anterior> docker compose up -d
 # Parar tudo (mantém volumes/dados)
 docker compose stop
 ```
+
+O `entrypoint.sh` também recria o symlink `public/storage` (`php artisan storage:link --force`) a cada subida — sem ele, fotos e documentos de pets retornam 404.
 
 Migrations rodam automaticamente na subida do container `backend` (ver
 [`docker/prod/backend/entrypoint.sh`](../docker/prod/backend/entrypoint.sh)),

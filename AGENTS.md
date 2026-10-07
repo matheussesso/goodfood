@@ -11,13 +11,13 @@
 - **Backend**: Laravel **13** · PHP **8.4** (container `php:8.4-fpm`) · Sanctum · Pest 4.
 - **Frontend**: Next.js **16** (App Router) · React **19** · TypeScript strict · Tailwind CSS **4** · TanStack Query 5 · next-intl 4 · Zustand (somente sessão de auth).
 - **Banco**: PostgreSQL 16 (dev) · SQLite em memória (testes).
-- ⚠️ Next.js 16 tem breaking changes vs. versões do seu treinamento — consulte `src/frontend/node_modules/next/dist/docs/` antes de usar APIs do framework (ex.: `unstable_retry` em `error.tsx`, `preload` no lugar de `priority`, `globalNotFound`).
+- ⚠️ Next.js 16 tem breaking changes vs. versões do seu treinamento — consulte `src/frontend/node_modules/next/dist/docs/` antes de usar APIs do framework (ex.: `unstable_retry` em `error.tsx`, `preload` no lugar de `priority`, `globalNotFound` — não habilitar: quebra o middleware do next-intl).
 
 ## Ambiente e comandos (quirks importantes)
 
 - **Testes do backend rodam via Docker** (PHP do host pode não ter drivers PDO):
   ```bash
-  docker compose run --rm --no-deps backend ./vendor/bin/pest
+  docker compose -f docker-compose.dev.yml run --rm --no-deps backend ./vendor/bin/pest
   ```
 - **Build do frontend exige `NODE_ENV=production`** (bug do Next 16 em `/_global-error`; o script `npm run build` já define — não remova).
 - Bind mounts do Docker podem deixar `node_modules`/`.next`/arquivos do backend com dono `root` no host (falhas `EACCES` em npm/git/build). Solução: `sudo chown -R $USER:$USER ...` ou rodar o comando dentro do container. Detalhes em [docs/configuracao.md](docs/configuracao.md#troubleshooting).
@@ -87,7 +87,7 @@ Padrões **já implementados** — siga-os:
 - **HTTP** exclusivamente via `apiClient` (`lib/api-client.ts`, `API_BASE_URL` único, `withCredentials` + CSRF automático). APIs externas ganham wrapper em `lib/` (ex.: `lib/viacep.ts`). Nada de `fetch` solto para a API própria.
 - **Auth**: cookie httpOnly gerenciado pelo backend — **nunca** armazenar credenciais em `localStorage`. Sessão restaurada pelo `AuthSessionProvider` (`GET /me`); estado espelhado no Zustand (`hooks/useAuth.ts`, com `isSessionResolved` para guards).
 - **Estado de servidor**: TanStack Query (hooks em `hooks/`). **Estado de cliente**: Zustand apenas para sessão.
-- **Boundaries**: `error.tsx` (com `unstable_retry`) e `loading.tsx` por route group. 404/erros globais: `app/global-not-found.tsx` + `app/global-error.tsx` (fora da árvore de locale — texto estático em inglês, exceção documentada).
+- **Boundaries**: `error.tsx` (com `unstable_retry`) e `loading.tsx` por route group. 404/erros globais: `app/[locale]/[...rest]` + `not-found.tsx` (localizados) e `app/global-error.tsx` (fora da árvore de locale — texto estático em inglês, exceção documentada).
 - **Imagens**: sempre `next/image` (nunca `<img>`); `remotePatterns` já configurado a partir de `NEXT_PUBLIC_API_URL`.
 - Todo o app vive sob `app/[locale]/` com route groups `(auth)` e `(dashboard)`.
 
@@ -138,7 +138,7 @@ export function OrderSummaryCard({ order, onRetry }: OrderSummaryCardProps) {
 3. Chaves semânticas agrupadas por namespace (`Common`, `Auth`, `Navigation`, `Catalog`, `Recipes`, `Pets`, `Orders`, `Subscriptions`, `Profile`, `Production`, `Dashboard`, `admin`, `Metadata`, `NotFound`). **Nunca duplicar chave que já existe em `Common`.**
 4. Interpolações (`{name}`, `{count}`) dentro da chave, nunca concatenadas.
 
-Exceções permitidas: formatação de locale (moeda/data), dados da API (nomes próprios), e os arquivos `global-not-found.tsx`/`global-error.tsx` (fora da árvore de locale).
+Exceções permitidas: formatação de locale (moeda/data), dados da API (nomes próprios), e o arquivo `global-error.tsx` (fora da árvore de locale).
 
 Ao detectar string hardcoded em código existente: reportar como code smell e corrigir no mesmo PR.
 

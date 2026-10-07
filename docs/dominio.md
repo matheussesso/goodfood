@@ -70,11 +70,12 @@ erDiagram
 
 ### User
 - Campos principais: `name`, `email`, `password`, `phone`, endereço desmembrado (`street`, `number`, `complement`, `neighborhood`, `city`, `state`, `zipcode`), `whatsapp_notifications`.
-- **`role`**: `customer` (padrão) | `admin` | `producer` | `delivery`. O campo **não é mass assignable** — é atribuído explicitamente no código (registro público sempre cria `customer`).
+- **`role`**: `customer` (padrão) | `admin` | `producer` | `delivery` | `vet` | `petshop`. O campo **não é mass assignable** — é atribuído explicitamente no código (registro público sempre cria `customer`).
 - Helpers: `isAdmin()`, `isCustomer()`.
 
 ### Pet
-- Pertence a um `User`. Campos: `name`, `type` (`dog`|`cat`), `breed`, `weight` (kg), `age` (meses), `birth_date`, `restrictions`, `allergies`, `special_needs`, `photo_url`.
+- Pertence a um `User`. Campos: `name`, `type` (`dog`|`cat`), `sex`, `neutered`, `microchip_number`, `vet_name`, `vet_phone`, `breed`, `weight` (kg), `age` (meses), `birth_date`, `restrictions`, `allergies`, `special_needs`, `photo_url`.
+- Relações de saúde: `vaccines` (`PetVaccine`) e `documents` (`PetDocument`). `Pet::orders` vem de `order_items.pet_id` (não da coluna legada `orders.pet_id`).
 - Foto enviada via `POST /api/pets/upload-photo` (armazenada em `storage/app/public/pets`).
 
 ### Ingredient

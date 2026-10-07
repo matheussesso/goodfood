@@ -7,7 +7,7 @@ Plataforma de alimentação natural para pets por assinatura: tutores cadastram 
 | Camada | Tecnologia |
 | --- | --- |
 | Frontend | Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS 4 · TanStack Query · next-intl (pt/en/es) |
-| Backend | Laravel 13 · PHP 8.4 · Sanctum (API tokens) · Pest |
+| Backend | Laravel 13 · PHP 8.4 · Sanctum (SPA stateful, cookie httpOnly) · Pest |
 | Banco | PostgreSQL 16 (SQLite em memória nos testes) |
 | Infra | Docker (dev/prod separados) · GitHub Actions CI/CD · GHCR · VPS + Cloudflare |
 
@@ -61,11 +61,10 @@ Toda a documentação técnica vive em [`docs/`](docs/README.md):
 **Para a empresa (admin)**
 - Catálogo de ingredientes e receitas-modelo com parâmetros globais de precificação.
 - Gestão de clientes, pets, pedidos (fluxo de status até a entrega) e assinaturas.
-- Geração automática diária de pedidos de reposição para assinaturas vencidas (scheduler).
 - Painel de produção.
 
 **Transversal**
-- Autenticação Sanctum com controle de acesso por papel (customer/admin) via Policies.
+- Autenticação Sanctum com controle de acesso por papel (customer/admin/producer/delivery/vet/petshop) via Policies.
 - Interface 100% internacionalizada (Português, Inglês e Espanhol).
 - API com contrato de resposta único `{success, message, data, errors?}` e tratamento centralizado de erros.
 
@@ -78,8 +77,7 @@ Toda a documentação técnica vive em [`docs/`](docs/README.md):
 │   │   │   ├── Http/       # Controllers, FormRequests, Middleware
 │   │   │   ├── Models/     # Eloquent models
 │   │   │   ├── Policies/   # Autorização por recurso
-│   │   │   ├── Services/   # Regras de negócio (custo, assinaturas)
-│   │   │   └── Console/    # Comandos agendados
+│   │   │   └── Services/   # Regras de negócio (custo de receitas)
 │   │   ├── database/       # Migrations, factories e seeders
 │   │   ├── routes/         # api.php
 │   │   └── tests/          # Suíte Pest (Feature/Unit)

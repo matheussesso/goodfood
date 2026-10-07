@@ -10,13 +10,13 @@ A suíte usa **Pest** com `RefreshDatabase` sobre SQLite em memória (configurad
 
 ```bash
 # Suíte completa
-docker compose run --rm --no-deps backend ./vendor/bin/pest
+docker compose -f docker-compose.dev.yml run --rm --no-deps backend ./vendor/bin/pest
 
 # Um arquivo específico
-docker compose run --rm --no-deps backend ./vendor/bin/pest tests/Feature/OwnershipTest.php
+docker compose -f docker-compose.dev.yml run --rm --no-deps backend ./vendor/bin/pest tests/Feature/OwnershipTest.php
 
 # Com filtro por nome de teste
-docker compose run --rm --no-deps backend ./vendor/bin/pest --filter="cannot transfer"
+docker compose -f docker-compose.dev.yml run --rm --no-deps backend ./vendor/bin/pest --filter="cannot transfer"
 ```
 
 Com os containers já de pé, também funciona:
@@ -29,10 +29,12 @@ docker exec -it goodfood_backend php artisan test
 
 | Arquivo | Cobre |
 | --- | --- |
-| `tests/Feature/AuthTest.php` | Registro (incl. tentativa de injetar `role=admin`), política de senha, login/logout, revogação de tokens, contrato de erro 401/422, bloqueio de rotas admin para clientes |
+| `tests/Feature/AuthTest.php` | Registro (incl. tentativa de injetar `role=admin`), política de senha, login/logout, revogação de tokens legados, contrato de erro 401/422, bloqueio de rotas admin para clientes |
 | `tests/Feature/OwnershipTest.php` | IDOR/ownership: pets, receitas, pedidos e ingredientes de outros usuários; regressões de transferência de propriedade via `user_id`; regras de template |
 | `tests/Feature/SubscriptionTest.php` | Criação do plano (1 receita por semana), validação de `duration_days` e da contagem exata de `recipe_ids`, pausa/cancelamento, atualização atômica de duração+receitas, `estimated_price` (custo ao vivo, ciclo de 7 dias) e `current_cycle_index` |
 | `tests/Feature/OrderTest.php` | Criação, listagem e detalhe de pedido; preço do item sempre calculado ao vivo a partir do custo atual dos ingredientes |
+| `tests/Feature/CustomerControllerTest.php` | Gestão admin de usuários: filtro/criação/troca de `role`, bloqueio para não-admins |
+| `tests/Feature/PetVaccineTest.php` / `PetDocumentTest.php` | CRUD de vacinas e documentos do pet, validação e ownership |
 | `tests/Feature/RecipePricingTest.php` | Custo de receita retornado pela API reflete o preço atual dos ingredientes, mesmo sem resalvar a receita |
 
 ### Convenções
@@ -74,4 +76,4 @@ npx eslint app hooks lib features
 npm run build         # build de produção (requer NODE_ENV=production, já no script)
 ```
 
-> Se o host tiver `node_modules`/`.next` com dono root (efeito do bind mount do Docker), rode o build dentro do container: `docker compose run --rm --no-deps frontend npm run build`. Ver [configuracao.md](configuracao.md#troubleshooting).
+> Se o host tiver `node_modules`/`.next` com dono root (efeito do bind mount do Docker), rode o build dentro do container: `docker compose -f docker-compose.dev.yml run --rm --no-deps frontend npm run build`. Ver [configuracao.md](configuracao.md#troubleshooting).

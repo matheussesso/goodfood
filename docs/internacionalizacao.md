@@ -44,7 +44,7 @@ Em Server Components/páginas async, usar `getTranslations()` de `next-intl/serv
 
 - Valores monetários/datas formatados por locale (formatação, não tradução).
 - Nomes próprios e dados vindos da API (nome do pet, do cliente).
-- **`app/global-not-found.tsx` e `app/global-error.tsx`**: renderizam fora da árvore `[locale]` (substituem o root layout), então não têm acesso ao next-intl — o texto é estático em inglês, por definição da plataforma.
+- **`app/global-error.tsx`**: renderiza fora da árvore `[locale]` (substitui o root layout), então não tem acesso ao next-intl — o texto é estático em inglês, por definição da plataforma.
 
 ## Verificação de paridade
 

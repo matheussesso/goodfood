@@ -55,10 +55,10 @@ Erros:
 
 | Método | Rota | Descrição |
 | --- | --- | --- |
-| POST | `/register` | Cria conta `customer` e retorna token. Campos de endereço opcionais |
-| POST | `/login` | Autentica e retorna token |
+| POST | `/register` | Cria conta `customer` e inicia a sessão (cookie). Campos de endereço opcionais. Throttle: 10 req/min por IP |
+| POST | `/login` | Autentica e inicia a sessão (cookie). Throttle: 10 req/min por IP |
 | GET | `/me` | Usuário autenticado |
-| POST | `/logout` | Revoga token atual |
+| POST | `/logout` | Encerra a sessão atual |
 | PUT | `/profile` | Atualiza dados/endereço do próprio usuário |
 | PUT | `/profile/password` | Troca senha (exige `current_password`) |
 
@@ -72,6 +72,16 @@ Erros:
 | PUT | `/pets/{id}` | Atualiza (dono/admin). `user_id` só surte efeito para admin |
 | DELETE | `/pets/{id}` | Remove (dono/admin) |
 | POST | `/pets/upload-photo` | Upload de foto (`photo`: jpeg/png/jpg/webp, máx. 5 MB). Retorna `data.photo_url` |
+
+### Saúde do pet (autenticado; dono ou admin)
+
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| POST | `/pets/{pet}/vaccines` | Registra vacina (`name`, `application_date`, `next_due_date?` ≥ aplicação) |
+| PUT | `/pets/{pet}/vaccines/{vaccine}` | Atualiza vacina |
+| DELETE | `/pets/{pet}/vaccines/{vaccine}` | Remove vacina |
+| POST | `/pets/{pet}/documents` | Anexa documento (`category`: exam/prescription/report/other, `name`, `file` pdf/jpg/png ≤ 10 MB) |
+| DELETE | `/pets/{pet}/documents/{document}` | Remove documento e arquivo |
 
 ### Ingredients (autenticado; mutações admin)
 
@@ -97,7 +107,7 @@ Erros:
 | Método | Rota | Descrição |
 | --- | --- | --- |
 | GET | `/orders` | Admin: todos; cliente: os seus (com itens, receitas, invoice) |
-| POST | `/orders` | Cria pedido com `items[]` (`{recipe_id, pet_id?}`) e `delivery_address?`. Valida posse dos pets; `unit_price`/`total_price` são sempre calculados ao vivo a partir do custo atual dos ingredientes (nunca de uma coluna cacheada); gera `Invoice` automática |
+| POST | `/orders` | Cria pedido com `items[]` (`{recipe_id, pet_id?}`) e `delivery_address?`. Valida posse dos pets e visibilidade das receitas (receita privada de outro cliente → `403`); cria pedido, fatura e itens em transação; `unit_price`/`total_price` são sempre calculados ao vivo a partir do custo atual dos ingredientes (nunca de uma coluna cacheada); gera `Invoice` automática |
 | GET | `/orders/{id}` | Detalhe (dono/admin) |
 | PUT | `/orders/{id}` | Cliente: `delivery_address`, `delivery_date`. Admin: também `status` e `scheduled_reposicao_date` |
 
@@ -121,10 +131,10 @@ Campos calculados na resposta (sempre ao vivo, nunca cacheados): `total_cycles` 
 
 | Método | Rota | Descrição |
 | --- | --- | --- |
-| GET | `/customers` | Lista clientes com contagem de pets/pedidos; filtro `?search=` |
-| POST | `/customers` | Cria cliente (role sempre `customer`) |
+| GET | `/customers` | Lista usuários com contagem de pets/pedidos; filtros `?search=` e `?role=` |
+| POST | `/customers` | Cria usuário de qualquer papel (`role`: customer, admin, producer, delivery, vet, petshop; padrão `customer`) |
 | GET | `/customers/{id}` | Detalhe completo (pets, pedidos, assinaturas, receitas) |
-| PUT | `/customers/{id}` | Atualiza dados do cliente |
+| PUT | `/customers/{id}` | Atualiza dados do usuário, inclusive `role` |
 | GET | `/settings` | Parâmetros globais de precificação |
 | PUT | `/settings` | Atualiza parâmetros |
 
