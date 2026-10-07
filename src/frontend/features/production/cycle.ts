@@ -153,21 +153,3 @@ export const PHASE_STYLE: Record<Phase, {
     dotColor: "bg-emerald-500",
   },
 };
-
-// ─── Status config ────────────────────────────────────────────────────────────
-
-/** Per-status badge/dot Tailwind styling. */
-export const STATUS_STYLE: Record<string, { badge: string; dot: string }> = {
-  pending_payment:  { badge: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400", dot: "bg-orange-400" },
-  pending:          { badge: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400",    dot: "bg-amber-400" },
-  in_production:    { badge: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400",         dot: "bg-blue-400" },
-  ready:            { badge: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400", dot: "bg-violet-400" },
-  out_for_delivery: { badge: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400",              dot: "bg-sky-400" },
-  delivered:        { badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400", dot: "bg-emerald-500" },
-  cancelled:        { badge: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400",              dot: "bg-red-400" },
-};
-
-/** Every order status accepted by the admin status selector. */
-export const STATUS_VALUES = [
-  "pending_payment", "pending", "in_production", "ready", "out_for_delivery", "delivered", "cancelled",
-] as const;
