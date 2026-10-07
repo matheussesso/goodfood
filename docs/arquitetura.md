@@ -4,7 +4,6 @@ O GoodFood System separa responsabilidades entre um frontend web (Next.js) e uma
 
 ```text
 Browser ──► Frontend (Next.js :3000) ──► Backend (Laravel/FrankenPHP :8000) ──► PostgreSQL (:5432)
-                                                              └── Scheduler (cron diário)
 ```
 
 ```mermaid
@@ -12,7 +11,6 @@ flowchart LR
     Browser(["Browser"]) -->|HTTPS| FE["Frontend<br/>Next.js 16 App Router<br/>:3000"]
     FE -->|"Axios · cookie httpOnly + XSRF-TOKEN"| BE["Backend API<br/>Laravel 13 / FrankenPHP<br/>:8000"]
     BE -->|Eloquent| DB[("PostgreSQL 16<br/>:5432")]
-    SCH["Scheduler<br/>php artisan schedule:work"] -.->|hoje: no-op| DB
 
     subgraph camadas["Camadas do Backend (por request)"]
         direction LR
@@ -50,7 +48,7 @@ Detalhes de endpoints em [api.md](api.md); entidades e regras em [dominio.md](do
 
 ### Agendamento
 
-Nenhum comando agendado está registrado em `bootstrap/app.php` no momento — assinaturas não geram pedidos automaticamente (ver [dominio.md](dominio.md#subscription)). O serviço `scheduler` do Docker Compose continua de pé (roda `php artisan schedule:work`), pronto para o dia em que algum job recorrente for necessário; hoje é um no-op inofensivo.
+Nenhum comando agendado existe hoje — assinaturas não geram pedidos automaticamente (ver [dominio.md](dominio.md#subscription)) e não há serviço `scheduler` nos composes. Quando um job recorrente for necessário, adicione o comando em `routes/console.php` e um serviço `php artisan schedule:work` (mesma imagem do backend).
 
 ### Evoluções planejadas
 
@@ -70,6 +68,7 @@ Local: `src/frontend`. **Next.js 16 (App Router)** com **React 19** e **TypeScri
 - **HTTP**: instância única do Axios em `lib/api-client.ts` (`API_BASE_URL`, `withCredentials`, CSRF automático via `ensureCsrfCookie()` antes de mutações). Única exceção de `fetch` direto: API externa ViaCEP, encapsulada em `lib/viacep.ts`.
 - **Formulários**: React Hook Form + **Zod** (`@hookform/resolvers`), schemas em `lib/validations/`.
 - **Páginas decompostas**: componentes de feature em `features/<feature>/components` (ex.: `features/admin-customers/`).
+- **Peças compartilhadas**: `lib/order-status.ts` (status/estilos de pedido e assinatura), `features/orders/components` (badge, timeline, itens), `features/recipes` (simulação de custo debounced, seletor de ingredientes e painel de custo), `components/address/AddressFields` (endereço com ViaCEP), `components/layout/nav-links.ts` (menu por papel) e `lib/masks.ts` (CEP/e-mail/telefone).
 - **Boundaries**: `error.tsx` e `loading.tsx` por route group, com `unstable_retry` (Next 16).
 - **UI**: Tailwind CSS 4 + componentes em `components/ui/` (padrão shadcn sobre Base UI/cmdk), `clsx`/`tailwind-merge` via `lib/utils.ts`, ícones lucide-react, temas com next-themes.
 - **Imagens**: `next/image` com `remotePatterns` derivado de `NEXT_PUBLIC_API_URL` (fotos servidas pelo backend em `/storage`).
@@ -111,7 +110,6 @@ docker/
 | --- | --- | --- | --- |
 | `db` | `postgres:16-alpine` | 5432 | Banco de dados |
 | `backend` | `dunglas/frankenphp:1-php8.4` (custom) | 8000 | Servidor web/API (FrankenPHP) com `pdo_pgsql`, `gd`, `bcmath` etc. |
-| `scheduler` | mesma do backend | — | Laravel Scheduler (jobs recorrentes) |
 | `frontend` | `node:24-slim` | 3000 | `npm run dev` com hot reload |
 
 Código montado por bind mount (`./src/backend` e `./src/frontend`) — editar no host reflete imediato nos containers. Rotas/config do FrankenPHP em `docker/dev/backend/Caddyfile`.
@@ -123,7 +121,6 @@ flowchart TB
     subgraph net["goodfood_network (bridge) — docker-compose.dev.yml"]
         FE["frontend<br/>node:24-slim<br/>npm run dev · :3000"]
         BE["backend<br/>dunglas/frankenphp:1-php8.4<br/>Caddy dev · :8000→80"]
-        SCH["scheduler<br/>mesma imagem do backend<br/>schedule:work"]
         DB[("db<br/>postgres:16-alpine<br/>:5432")]
     end
 
@@ -132,7 +129,6 @@ flowchart TB
     Dev -->|":5432 (opcional)"| DB
     FE -->|"/api"| BE
     BE --> DB
-    SCH --> DB
 
     BM1(["./src/frontend"]) -.->|bind mount| FE
     BM2(["./src/backend"]) -.->|bind mount| BE
@@ -146,7 +142,6 @@ Não builda nada localmente — sobe imagens **já publicadas no GHCR** pelo pip
 
 - **`backend`**: imagem multi-stage (`composer install --no-dev`, autoload otimizado). `docker/prod/backend/entrypoint.sh` roda `config:cache`/`route:cache`/`view:cache` e `migrate --force` no start (não no build — dependem de env runtime). Caddy do FrankenPHP é o **ingress único do VPS**: serve a API direto e faz `reverse_proxy` pro serviço `frontend` (dois domínios, um container, ver [implantacao_vps.md](implantacao_vps.md)). TLS via certificado **Cloudflare Origin CA** (Cloudflare em modo Full strict na frente), não Let's Encrypt.
 - **`frontend`**: imagem multi-stage Next.js com `output: "standalone"` — runtime final só copia `.next/standalone` + `.next/static`, sem `node_modules` completo.
-- **`scheduler`**: mesma imagem do backend, roda só `php artisan schedule:work` (entrypoint pula o `migrate` pra não disputar com o `backend` na subida).
 
 ```mermaid
 flowchart TB
@@ -157,7 +152,6 @@ flowchart TB
             BEC["backend container<br/>FrankenPHP + Caddy<br/>ingress único · :80/:443"]
             FEC["frontend container<br/>Next.js standalone · :3000"]
             DBC[("db<br/>postgres:16-alpine<br/>127.0.0.1:5432")]
-            SCHC["scheduler<br/>schedule:work"]
         end
         CERT[["certs/cloudflare-origin.{pem,key}<br/>montado no backend"]]
     end
@@ -167,7 +161,6 @@ flowchart TB
     BEC -->|"Laravel API"| BEC
     BEC -->|"reverse_proxy"| FEC
     BEC --> DBC
-    SCHC --> DBC
     CERT -.-> BEC
 
     GHCR[("GHCR<br/>goodfood-backend / goodfood-frontend")] -.->|"docker compose pull"| BEC

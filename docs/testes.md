@@ -35,6 +35,10 @@ docker exec -it goodfood_backend php artisan test
 | `tests/Feature/OrderTest.php` | Criação, listagem e detalhe de pedido; preço do item sempre calculado ao vivo a partir do custo atual dos ingredientes |
 | `tests/Feature/CustomerControllerTest.php` | Gestão admin de usuários: filtro/criação/troca de `role`, bloqueio para não-admins |
 | `tests/Feature/PetVaccineTest.php` / `PetDocumentTest.php` | CRUD de vacinas e documentos do pet, validação e ownership |
+| `tests/Feature/SettingsTest.php` | Parâmetros de precificação: leitura/atualização admin, validação, bloqueio de clientes e reflexo imediato no preço |
+| `tests/Feature/IngredientTest.php` | Listagem por papel, CRUD admin, validação e autorização |
+| `tests/Feature/PetTest.php` | CRUD de pets, escopo por dono, criação por admin, upload de foto |
+| `tests/Feature/RecipeTest.php` | Criação/edição/listagem/exclusão, peso mínimo, `calculate-cost` e **número constante de queries** na listagem (anti N+1) |
 | `tests/Feature/RecipePricingTest.php` | Custo de receita retornado pela API reflete o preço atual dos ingredientes, mesmo sem resalvar a receita |
 
 ### Convenções
@@ -62,6 +66,10 @@ npm run test:watch    # modo watch
 | `lib/viacep.test.ts` | Wrapper ViaCEP: mapeamento de campos, CEP inexistente, falha de rede |
 | `hooks/useAuth.test.ts` | Store de sessão: setAuth/restore/logout (incl. falha da API), flags de resolução |
 | `features/admin-customers/components/PetFormModal.test.tsx` | RTL: seed do formulário em criar vs. editar (com providers intl + react-query) |
+| `hooks/use*.test.tsx` | Hooks de dados (pedidos, receitas, pets, assinaturas, clientes, ingredientes, settings, perfil, vacinas, documentos, custo por ciclo): URLs, payloads e invalidação de cache |
+| `lib/*.test.ts` | `api-client` (CSRF), `api-error`, `format`, `masks`, `order-status`, `recipe-weight`, `user-roles` |
+| `components/address`, `components/layout/nav-links`, `components/ui/view-mode-toggle` | Endereço com ViaCEP, menu por papel, alternador de visualização |
+| `features/orders`, `features/recipes`, `features/subscriptions` | Badge/timeline de status, seletor de ingredientes, painel e hook de custo, stepper e utilitários de assinatura |
 
 ### Convenções
 

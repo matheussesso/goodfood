@@ -210,7 +210,7 @@ API_DOMAIN=api.seudominio.com
 APP_DOMAIN=app.seudominio.com
 EOF
 
-# Variáveis do Laravel (lidas via env_file pelos serviços backend/scheduler)
+# Variáveis do Laravel (lidas via env_file pelos serviço backend)
 cp src/backend/.env.example src/backend/.env
 ```
 

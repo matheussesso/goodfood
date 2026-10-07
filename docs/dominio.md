@@ -86,7 +86,9 @@ erDiagram
 - Pode ser **template** (`is_template = true`, criada por admin, visível a todos) ou **receita de cliente** (vinculada a `user_id` e opcionalmente a pets).
 - Campos: `name`, `description`, `pet_type` (`dog`|`cat`|`all`), `duration_days`, `daily_portions`, `instructions`, `base_cost`, `ingredient_cost`, `is_active`.
 - Ingredientes via pivot com `quantity` e `unit`. `base_cost`/`ingredient_cost` são colunas cacheadas, recalculadas por `updateBaseCost()` a cada `store`/`update` — mas **nunca são a fonte de verdade para exibição**: `RecipeResource` sempre recalcula ao vivo (`calculateCostResult()`) a partir dos ingredientes carregados, então uma mudança no preço de um ingrediente reflete imediatamente em qualquer receita, pedido ou assinatura que a usa, sem precisar resalvar nada.
-- Visibilidade para clientes: templates + receitas próprias + receitas vinculadas a seus pets (ver `RecipePolicy`).
+- Visibilidade para clientes: templates + receitas próprias + receitas vinculadas a seus pets (ver `RecipePolicy`). Pedidos e assinaturas só aceitam receitas visíveis ao usuário.
+- Peso mínimo: receitas de cliente precisam somar ≥ 1,5 kg de ingredientes na duração inteira (`ValidatesMinimumRecipeWeight`); admin é isento.
+- Cálculo: `RecipeCostCalculatorService` recebe os ingredientes já carregados (sem N+1) e o `GeneralSetting` é lido uma vez por request (binding *scoped*, invalidado no `saved`).
 
 ### Order / OrderItem / Invoice
 - `Order`: `user_id`, `total_price`, `status`, `delivery_address`, `delivery_date`, `scheduled_reposicao_date`. **Sem relação com `Subscription`.**

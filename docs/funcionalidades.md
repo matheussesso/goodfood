@@ -12,7 +12,7 @@ Cadastro dos pets do cliente — base para receitas, pedidos e assinaturas (tudo
 
 - **Cliente**: `/pets` (listagem em cards ou tabela), `/pets/new` e `/pets/[id]/edit` (páginas dedicadas, não modal), `/pets/[id]` (perfil completo).
 - **Campos**: nome, espécie (`dog`/`cat`), sexo, raça, peso, idade, castrado, foto (upload), microchip, veterinário responsável (nome/telefone), restrições/alergias/necessidades especiais.
-- **Saúde**: vacinas (nome, data de aplicação, próxima dose) e documentos anexados (exame, receita, laudo, outro — PDF/imagem).
+- **Saúde**: vacinas (nome, data de aplicação, próxima dose) e documentos anexados (exame, receita, laudo, outro — PDF/imagem). Os documentos ficam em disco privado e só abrem para o dono do pet ou admin, via rota autenticada.
 - Sexo, castrado, raça, peso e idade são **obrigatórios** no formulário do cliente (validação só no frontend — o backend aceita esses campos como opcionais para não quebrar o modal de admin, que ainda não tem todos esses campos).
 - **Admin**: gerencia pets de qualquer cliente via modal dentro do detalhe do cliente (`/admin/customers/[id]`) — tela separada da do cliente, propositalmente mais simples.
 
@@ -33,6 +33,7 @@ Composição de ingredientes que define o que um pet come — pode ser criada pe
 - **Cliente**: `/recipes` (listagem com composição em accordion), `/recipes/new`, `/recipes/[id]/edit`, `/recipes/[id]` (detalhe).
 - **Campos**: nome, descrição, espécie (`dog`/`cat`/`all`), duração em dias, porções por dia, instruções, ingredientes (com quantidade/unidade cada).
 - **Custo**: nunca é um valor fixo digitado — é sempre calculado a partir dos ingredientes selecionados, da duração e das porções diárias, usando os parâmetros do catálogo. Ver "Preço sempre atual" abaixo.
+- **Peso mínimo**: receita de cliente precisa de ao menos 1,5 kg de ingredientes no total (peso diário × duração); a tela avisa e o backend também valida.
 - **Visibilidade**: um cliente vê templates + suas próprias receitas + receitas vinculadas aos seus pets. Não pode editar template (só admin).
 
 ### Preço sempre atual (custo ao vivo)

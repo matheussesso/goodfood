@@ -80,7 +80,8 @@ Erros:
 | POST | `/pets/{pet}/vaccines` | Registra vacina (`name`, `application_date`, `next_due_date?` ≥ aplicação) |
 | PUT | `/pets/{pet}/vaccines/{vaccine}` | Atualiza vacina |
 | DELETE | `/pets/{pet}/vaccines/{vaccine}` | Remove vacina |
-| POST | `/pets/{pet}/documents` | Anexa documento (`category`: exam/prescription/report/other, `name`, `file` pdf/jpg/png ≤ 10 MB) |
+| POST | `/pets/{pet}/documents` | Anexa documento (`category`: exam/prescription/report/other, `name`, `file` pdf/jpg/png ≤ 10 MB). Arquivo vai para o disco **privado** |
+| GET | `/pets/{pet}/documents/{document}/download` | Entrega o arquivo (dono ou admin; `file_url` da resposta aponta para esta rota) |
 | DELETE | `/pets/{pet}/documents/{document}` | Remove documento e arquivo |
 
 ### Ingredients (autenticado; mutações admin)
@@ -96,7 +97,7 @@ Erros:
 | Método | Rota | Descrição |
 | --- | --- | --- |
 | GET | `/recipes` | Admin: todas; cliente: templates + próprias + vinculadas aos seus pets |
-| POST | `/recipes` | Cria receita com `ingredients[]` (`{id, quantity, unit}`) e `pet_ids[]`. Cliente nunca cria template |
+| POST | `/recipes` | Cria receita com `ingredients[]` (`{id, quantity, unit}`) e `pet_ids[]`. Cliente nunca cria template e precisa de **≥ 1,5 kg de ingredientes no total** (peso diário × `duration_days`; g/ml ÷ 1000, kg/l, unit = 0,1 kg) — senão `422` em `ingredients`. Admin é isento |
 | GET | `/recipes/{id}` | Detalhe (ver visibilidade acima) |
 | PUT | `/recipes/{id}` | Atualiza e re-sincroniza ingredientes/pets; recalcula custo. Cliente não altera template |
 | DELETE | `/recipes/{id}` | Dono/admin |
