@@ -73,7 +73,10 @@
     "validation_email": "Invalid email address.",
     "validation_password_min": "Minimum 8 characters.",
     "validation_password_match": "Passwords do not match.",
-    "validation_phone": "Please enter a valid phone number."
+    "validation_phone": "Please enter a valid phone number.",
+    "saving": "Saving...",
+    "confirm_delete_pet": "Are you sure you want to remove this pet?",
+    "validation_positive_number": "Must be a positive number."
   },
   "Catalog": {
     "title": "Catalog",
@@ -174,7 +177,8 @@
     "unit_g": "Gram (g)",
     "unit_l": "Liter (L)",
     "unit_ml": "Milliliter (ml)",
-    "unit_un": "Unit (un)"
+    "unit_un": "Unit (un)",
+    "invalid": "Invalid"
   },
   "Recipes": {
     "title": "New Recipe",
@@ -248,7 +252,8 @@
     "base_cost": "Base Cost",
     "recipe_confirmed_title": "Recipe Saved!",
     "recipe_confirmed_desc": "Your recipe was created successfully.",
-    "recipe_confirmed_redirect": "Redirecting to your recipes..."
+    "recipe_confirmed_redirect": "Redirecting to your recipes...",
+    "name": "Name"
   },
   "Pets": {
     "title": "My Pets",
@@ -705,6 +710,8 @@
     "no_active_subscriptions": "You have no active subscriptions.",
     "welcome_back": "Welcome back, {name}!",
     "manage_pets_desc": "Manage your pets and their diets.",
-    "view_subscriptions_desc": "View your subscriptions."
+    "view_subscriptions_desc": "View your subscriptions.",
+    "pets_count": "{count, plural, =0 {You have no pets registered.} one {You have # pet registered.} other {You have # pets registered.}}",
+    "active_subscriptions_count": "{count, plural, =0 {You have no active subscriptions.} one {You have # active subscription.} other {You have # active subscriptions.}}"
   }
 }
