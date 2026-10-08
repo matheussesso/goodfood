@@ -83,7 +83,8 @@
     "validation_positive_number": "Debe ser un número positivo.",
     "close": "Cerrar",
     "country_code": "Código de país",
-    "phone_placeholder": "número"
+    "phone_placeholder": "número",
+    "back_to_site": "Volver al sitio"
   },
   "Catalog": {
     "title": "Catálogo",

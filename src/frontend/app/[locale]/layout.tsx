@@ -19,6 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 import { getTranslations } from "next-intl/server";
+import { company } from "@/lib/company";
 
 export async function generateMetadata({
   params,
@@ -28,6 +29,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Metadata" });
   return {
+    metadataBase: new URL(company.siteUrl),
     title: "GoodFood System",
     description: t("description"),
   };

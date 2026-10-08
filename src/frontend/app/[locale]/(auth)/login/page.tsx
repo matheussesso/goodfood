@@ -15,6 +15,7 @@ import Image from "next/image";
 
 export default function LoginPage() {
   const t = useTranslations("Auth");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const setAuth = useAuth((state) => state.setAuth);
   
@@ -59,7 +60,9 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <div className="w-full max-w-md space-y-8 rounded-xl bg-card p-8 shadow-lg border border-border">
         <div className="text-center flex flex-col items-center">
-          <Image src="/goodfood-logo.png" alt="GoodFood" width={200} height={46} className="h-10 w-auto object-contain mb-2" priority />
+          <Link href="/" aria-label={tCommon("back_to_site")}>
+            <Image src="/goodfood-logo.png" alt="GoodFood" width={200} height={46} className="h-10 w-auto object-contain mb-2" priority />
+          </Link>
           <p className="mt-2 text-sm text-muted-foreground">
             {t("login_subtitle")}
           </p>

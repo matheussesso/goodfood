@@ -30,6 +30,14 @@
 
   /* Border radius standard (slightly rounded) */
   --radius: 0.5rem;
+
+  /* Brand palette (landing page) — fixed regardless of the app theme */
+  --color-gf-red: #e4002b;
+  --color-gf-red-dark: #b80023;
+  --color-gf-ink: #0a0a0a;
+  --color-gf-paper: #ffffff;
+  --color-gf-cream: #fff7f5;
+  --color-gf-rose: #ffe4e8;
 }
 
 :root {
@@ -186,4 +194,62 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+/* Landing page: smooth anchor scrolling, friendly type and decorative paw patterns. */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.landing) {
+    scroll-behavior: smooth;
+  }
+}
+
+.landing {
+  font-family: var(--font-poppins), var(--font-sans);
+}
+
+.gf-display {
+  font-family: var(--font-poppins), var(--font-sans);
+  letter-spacing: -0.02em;
+}
+
+/*
+ * Paw patterns are painted by a pseudo-element so they can sit on top of any
+ * background (solid or gradient) without replacing it: white print for red/dark
+ * panels (`gf-paws`), red print for light backgrounds (`gf-paws-soft`).
+ */
+.gf-paws,
+.gf-paws-soft {
+  position: relative;
+  isolation: isolate;
+}
+
+.gf-paws::before,
+.gf-paws-soft::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background-size: 96px 96px;
+}
+
+.gf-paws::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 24 24' fill='white' fill-opacity='0.09'%3E%3Cellipse cx='12' cy='15.5' rx='4.2' ry='3.4'/%3E%3Cellipse cx='6.2' cy='10.2' rx='1.7' ry='2.3'/%3E%3Cellipse cx='10' cy='6.6' rx='1.7' ry='2.4'/%3E%3Cellipse cx='14.2' cy='6.6' rx='1.7' ry='2.4'/%3E%3Cellipse cx='18' cy='10.2' rx='1.7' ry='2.3'/%3E%3C/svg%3E");
+}
+
+.gf-paws-soft::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 24 24' fill='%23e4002b' fill-opacity='0.05'%3E%3Cellipse cx='12' cy='15.5' rx='4.2' ry='3.4'/%3E%3Cellipse cx='6.2' cy='10.2' rx='1.7' ry='2.3'/%3E%3Cellipse cx='10' cy='6.6' rx='1.7' ry='2.4'/%3E%3Cellipse cx='14.2' cy='6.6' rx='1.7' ry='2.4'/%3E%3Cellipse cx='18' cy='10.2' rx='1.7' ry='2.3'/%3E%3C/svg%3E");
+}
+
+@keyframes gf-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.gf-float {
+  animation: gf-float 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gf-float { animation: none; }
 }

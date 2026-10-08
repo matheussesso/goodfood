@@ -83,7 +83,8 @@
     "validation_positive_number": "Deve ser um número positivo.",
     "close": "Fechar",
     "country_code": "Código do país",
-    "phone_placeholder": "número"
+    "phone_placeholder": "número",
+    "back_to_site": "Voltar ao site"
   },
   "Catalog": {
     "title": "Catálogo",
@@ -833,5 +834,211 @@
     "a6": "Sim. Receitas próprias podem ser editadas a qualquer momento; os pedidos já feitos mantêm o preço da época.",
     "ready_title": "Pronto para começar?",
     "ready_desc": "Continue de onde você parou."
+  },
+  "Landing": {
+    "meta": {
+      "title": "Good Food Pet | Alimentação natural completa e balanceada para cães e gatos",
+      "description": "Refeições naturais, completas e balanceadas para o seu pet, com ingredientes frescos e entrega congelada em Brasília-DF. Crie sua conta, monte a receita e veja o valor na hora.",
+      "og_alt": "Good Food Pet — comida de verdade para o seu melhor amigo"
+    },
+    "a11y": {
+      "skip": "Pular para o conteúdo",
+      "menu_open": "Abrir menu",
+      "menu_close": "Fechar menu",
+      "main_nav": "Navegação principal",
+      "logo_alt": "Good Food Pet",
+      "whatsapp_fab": "Falar com a Good Food Pet no WhatsApp"
+    },
+    "nav": {
+      "how": "Como funciona",
+      "system": "Funcionalidades",
+      "about": "Sobre",
+      "faq": "Dúvidas"
+    },
+    "cta": {
+      "login": "Entrar",
+      "register": "Criar conta",
+      "register_free": "Criar minha conta",
+      "have_account": "Já tenho conta",
+      "dashboard": "Ir para meu painel",
+      "whatsapp": "Falar no WhatsApp",
+      "instagram": "Ver no Instagram"
+    },
+    "hero": {
+      "eyebrow": "Alimentação natural para pets · Brasília-DF",
+      "title": "<hl>Comida de verdade</hl> para o seu pet, em poucos cliques",
+      "subtitle": "Cadastre seu pet, monte a receita e faça o pedido. O sistema calcula o valor na hora e a Good Food entrega congelada na sua casa.",
+      "badge_vets": "Orientação veterinária",
+      "badge_fresh": "Ingredientes frescos",
+      "badge_delivery": "Entrega em Brasília-DF",
+      "card_title": "Receita do seu pet",
+      "card_hint": "Valor calculado automaticamente"
+    },
+    "process": {
+      "steps": {
+        "select": {
+          "title": "Seleção dos ingredientes"
+        },
+        "prepare": {
+          "title": "Higienização e preparo"
+        },
+        "supplement": {
+          "title": "Suplementação"
+        },
+        "portion": {
+          "title": "Porcionamento e armazenamento"
+        },
+        "delivery": {
+          "title": "Entrega"
+        }
+      }
+    },
+    "how": {
+      "eyebrow": "Como funciona",
+      "title": "Peça a receita do seu pet em 4 passos",
+      "subtitle": "Crie sua conta e o sistema guia você em cada etapa.",
+      "steps": {
+        "pet": {
+          "title": "Cadastre seu pet",
+          "desc": "Nome, espécie, peso, idade e restrições alimentares."
+        },
+        "recipe": {
+          "title": "Monte a receita",
+          "desc": "Escolha os ingredientes ou parta de um modelo pronto. O valor aparece na hora."
+        },
+        "link": {
+          "title": "Vincule ao seu pet",
+          "desc": "Associe a receita ao pet que vai comer."
+        },
+        "order": {
+          "title": "Faça seu pedido",
+          "desc": "Pedido avulso ou assinatura, com acompanhamento até a entrega."
+        }
+      }
+    },
+    "system": {
+      "eyebrow": "Funcionalidades",
+      "title": "Tudo o que você precisa, em um só lugar",
+      "subtitle": "Sem planilha nem troca de mensagens.",
+      "features": {
+        "pet": {
+          "title": "Perfil completo do pet",
+          "desc": "Dados, vacinas e documentos organizados, com aviso quando uma vacina vence.",
+          "mock_name": "Thor",
+          "mock_meta": "Cão · 12 kg · 4 anos",
+          "mock_vaccine": "V10 em dia",
+          "mock_restriction": "Sem frango"
+        },
+        "recipe": {
+          "title": "Receitas com valor ao vivo",
+          "desc": "Ajuste os ingredientes e veja o valor mudar na hora. O sistema calcula tudo.",
+          "mock_title": "Receita da semana",
+          "mock_total": "Total calculado automaticamente"
+        },
+        "order": {
+          "title": "Pedidos acompanhados",
+          "desc": "Acompanhe cada etapa, do pagamento à entrega.",
+          "mock_title": "Pedido em andamento",
+          "mock_steps": {
+            "payment": "Pagamento",
+            "production": "Produção",
+            "delivery": "Entrega",
+            "done": "Entregue"
+          }
+        },
+        "alerts": {
+          "title": "Avisos que ajudam",
+          "desc": "Fatura pendente, vacina vencida ou perfil incompleto aparecem na sua página inicial.",
+          "mock_title": "Início",
+          "mock_items": {
+            "invoice": "1 fatura aguardando pagamento",
+            "vaccine": "Thor: vacina V10 vence em breve",
+            "incomplete": "Thor: faltam raça e idade"
+          }
+        }
+      }
+    },
+    "plans": {
+      "eyebrow": "Formas de pedir",
+      "title": "Peça do seu jeito",
+      "subtitle": "Avulso ou por assinatura.",
+      "single": {
+        "title": "Pedido avulso",
+        "desc": "Peça quando precisar, sem compromisso.",
+        "points": {
+          "a": "Escolha as receitas de cada pet",
+          "b": "Pague e acompanhe a produção",
+          "c": "Receba em casa"
+        }
+      },
+      "subscription": {
+        "badge": "Recorrente",
+        "title": "Assinatura",
+        "desc": "Rotina garantida, sem precisar lembrar de pedir.",
+        "points": {
+          "a": "Plano em semanas, com uma receita por semana",
+          "b": "Mais variedade no cardápio do pet",
+          "c": "Pause ou cancele quando quiser"
+        }
+      }
+    },
+    "broth": {
+      "title": "Caldo de ossos",
+      "desc": "Também temos caldo de ossos para o seu pet. Peça pelo WhatsApp."
+    },
+    "about": {
+      "eyebrow": "Sobre a Good Food Pet",
+      "title": "Alimentação natural completa e balanceada",
+      "p1": "A Good Food Pet é uma empresa de Brasília-DF que produz refeições naturais, completas e balanceadas para cães e gatos.",
+      "p2": "Nossas receitas usam ingredientes frescos e selecionados, com orientação de médicos veterinários especializados em nutrologia. Cada refeição é porcionada, congelada e entregue na casa do tutor.",
+      "values": {
+        "natural": "Alimentação natural",
+        "vets": "Orientação veterinária",
+        "care": "Feito com carinho"
+      },
+      "process_title": "Do ingrediente à sua casa"
+    },
+    "faq": {
+      "eyebrow": "Dúvidas",
+      "title": "Perguntas frequentes",
+      "items": {
+        "q1": {
+          "q": "O que é alimentação natural?",
+          "a": "É oferecer ao pet refeições preparadas com ingredientes frescos, em vez de ração industrializada, seguindo uma dieta completa e balanceada."
+        },
+        "q2": {
+          "q": "A alimentação é balanceada?",
+          "a": "Sim. Tudo começa com uma dieta balanceada e prescrita para atender às necessidades do seu pet, com orientação de médicos veterinários especializados em nutrologia."
+        },
+        "q3": {
+          "q": "Como faço meu pedido?",
+          "a": "Você já pode criar sua conta, cadastrar seu pet e montar receitas no sistema. Por enquanto, os pedidos são confirmados pelo WhatsApp (61) 98142-5385. Em breve, todo o processo será feito pelo sistema, com integração ao WhatsApp."
+        },
+        "q4": {
+          "q": "Quanto custa?",
+          "a": "O valor é calculado automaticamente pelo sistema a partir da receita do seu pet. Você vê o total antes de fechar o pedido."
+        },
+        "q5": {
+          "q": "Como é a entrega?",
+          "a": "O pedido chega fresco e congelado, direto na sua casa. Em um primeiro momento, atendemos apenas Brasília-DF."
+        },
+        "q6": {
+          "q": "Posso cadastrar mais de um pet?",
+          "a": "Pode. Cada pet tem o seu perfil e as suas receitas, e você pode pedir para todos no mesmo pedido."
+        }
+      }
+    },
+    "final": {
+      "title": "Seu pet merece comida de verdade",
+      "subtitle": "Crie sua conta em poucos minutos e monte a primeira receita."
+    },
+    "footer": {
+      "tagline": "Alimentação natural completa e balanceada para cães e gatos.",
+      "contact": "Contato",
+      "explore": "Explore",
+      "location": "Brasília - DF",
+      "rights": "© {year} Good Food Pet. Todos os direitos reservados."
+    },
+    "whatsapp_message": "Olá! Vim pelo site da Good Food Pet e gostaria de saber mais."
   }
 }
