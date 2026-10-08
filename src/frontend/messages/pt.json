@@ -689,7 +689,7 @@
     "back_home": "Voltar ao início"
   },
   "Dashboard": {
-    "welcome_back": "Bem-vindo de volta, {name}!",
+    "welcome_back": "Bem-vindo, {name}!",
     "manage_pets_desc": "Gerencie seus pets e suas dietas.",
     "view_subscriptions_desc": "Visualize suas assinaturas.",
     "pets_count": "{count, plural, =0 {Você não possui pets cadastrados.} one {Você possui # pet cadastrado.} other {Você possui # pets cadastrados.}}",

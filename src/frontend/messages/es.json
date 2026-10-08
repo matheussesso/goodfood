@@ -689,7 +689,7 @@
     "back_home": "Volver al inicio"
   },
   "Dashboard": {
-    "welcome_back": "¡Bienvenido de nuevo, {name}!",
+    "welcome_back": "¡Bienvenido, {name}!",
     "manage_pets_desc": "Gestiona tus mascotas y sus dietas.",
     "view_subscriptions_desc": "Visualiza tus suscripciones.",
     "pets_count": "{count, plural, =0 {No tienes mascotas registradas.} one {Tienes # mascota registrada.} other {Tienes # mascotas registradas.}}",
