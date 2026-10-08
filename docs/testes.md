@@ -63,7 +63,8 @@ npm run test:watch    # modo watch
 
 | Arquivo | Cobre |
 | --- | --- |
-| `features/production/cycle.test.ts` | Regras do ciclo de produção: reposição por dia da semana, override do admin, grade do calendário, dias destacados |
+| `features/production/cycle.test.ts` | Regras do ciclo de produção: reposição por dia da semana, override do admin, grade do calendário, dias destacados, seleção múltipla de fases, entradas por fase/dia e cálculo do reagendamento |
+| `features/production/components/production-components.test.tsx` | Filtro de fases, calendário com várias fases (tiles, seleção de dia, navegação, arrastar e soltar), painel do dia e lista |
 | `lib/validations/recipe.test.ts` | Schemas Zod de receita (create/edit) e de settings de precificação |
 | `lib/viacep.test.ts` | Wrapper ViaCEP: mapeamento de campos, CEP inexistente, falha de rede |
 | `hooks/useAuth.test.ts` | Store de sessão: setAuth/restore/logout (incl. falha da API), flags de resolução |

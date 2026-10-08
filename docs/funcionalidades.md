@@ -93,6 +93,18 @@ Compra avulsa de uma ou mais receitas para um ou mais pets.
 - **Status** (só admin altera): `pending_payment` → `pending` → `in_production` → `ready` → `out_for_delivery` → `delivered` (ou `cancelled` a qualquer momento).
 - **Detalhe**: `/orders/[id]` (cliente) e `/admin/orders/[id]` (admin, com troca de status).
 
+### Produção (admin e produção)
+
+Tela `/production` com os pedidos posicionados no ciclo semanal, em **calendário** ou **lista**.
+
+- **Fases do ciclo** (multisseleção): Pedido realizado, Reposição de estoque, Em produção e Entrega. Dá para marcar **uma ou mais** fases, ou "Todas as fases" — sempre fica ao menos uma marcada. Cada chip mostra quantos pedidos a fase soma no mês.
+- **Datas**: reposição na segunda seguinte ao pedido (ajustável), produção no dia seguinte e entrega 7 dias depois da reposição.
+- **Calendário com várias fases**: cada pedido aparece uma vez em cada fase marcada, com a cor e o ícone da fase, número, cliente e total. Em telas largas, dias cheios mostram 3 pedidos e "+N mais"; em telas pequenas cada pedido vira um ponto colorido.
+- **Dia selecionado**: clicar no número do dia abre a lista completa dos pedidos daquele dia (fase, cliente, status e total) e daí o detalhe do pedido.
+- **Reagendar**: arrastar um pedido de reposição, produção ou entrega para outro dia move o ciclo todo (`scheduled_reposicao_date`); o que vale é a fase do próprio pedido arrastado. "Pedido realizado" não é arrastável.
+- **Filtros**: busca (número, cliente, e-mail, receita) e status continuam valendo junto com as fases.
+- **Código**: `features/production/cycle.ts` (regras e helpers puros), `components/PhaseFilter`, `ProductionCalendar`, `DayOrdersPanel`, `ProductionList` e `OrderDetailPanel`.
+
 ### Assinatura recorrente
 
 Plano alimentar semanal de duração fixa para um pet — pensado para quem já sabe o que vai alimentar nas próximas semanas e quer deixar isso salvo, sem repetir a escolha toda vez.
