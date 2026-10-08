@@ -330,6 +330,8 @@ segredo, mas varia por ambiente):
 | Variable | Valor | Uso |
 | --- | --- | --- |
 | `NEXT_PUBLIC_API_URL` | `https://api.seudominio.com/api` | build-arg da imagem do frontend (embutido no bundle) |
+| `NEXT_PUBLIC_SITE_URL` | `https://seudominio.com` | build-arg: origem pública do site (canonical, sitemap, Open Graph da landing). Sem barra final |
+| `NEXT_PUBLIC_WHATSAPP_NUMBER` | `5561981425385` | build-arg opcional: WhatsApp da landing (DDI+DDD+número, só dígitos). Padrão: número da Good Food |
 
 O `GITHUB_TOKEN` usado para `docker/login-action` no job **Build** já é
 gerado automaticamente pela Actions — não precisa criar secret para isso.

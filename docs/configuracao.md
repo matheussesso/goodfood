@@ -73,6 +73,19 @@ docker exec -it goodfood_frontend npm install
 
 ---
 
+## Variáveis da landing (frontend)
+
+Opcionais; todas têm padrão e são embutidas no bundle em build (`NEXT_PUBLIC_*`). Em produção entram como build-args (ver [implantacao_vps.md](implantacao_vps.md)).
+
+| Variável | Padrão | Uso |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | Origem pública (canonical, sitemap, robots, Open Graph, JSON-LD). Sem barra final |
+| `NEXT_PUBLIC_WHATSAPP_NUMBER` | `5561981425385` | WhatsApp dos botões (DDI+DDD+número, só dígitos) |
+| `NEXT_PUBLIC_INSTAGRAM_HANDLE` | `goodfood.pet` | Perfil do Instagram |
+| `NEXT_PUBLIC_LINKTREE_URL` | `https://linktr.ee/goodfood.pet` | Link do Linktree |
+
+Os valores são lidos em `src/frontend/lib/company.ts`.
+
 ## Comandos do dia a dia
 
 ```bash

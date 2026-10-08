@@ -69,6 +69,7 @@ npm run test:watch    # modo watch
 | `hooks/useAuth.test.ts` | Store de sessão: setAuth/restore/logout (incl. falha da API), flags de resolução |
 | `features/admin-customers/components/PetFormModal.test.tsx` | RTL: seed do formulário em criar vs. editar (com providers intl + react-query) |
 | `hooks/use*.test.tsx` | Hooks de dados (pedidos, receitas, pets, assinaturas, clientes, ingredientes, settings, perfil, vacinas, documentos, custo por ciclo): URLs, payloads e invalidação de cache |
+| `features/landing/landing.test.tsx`, `lib/company.test.ts` | Landing: integridade do conteúdo (cada item renderizado tem texto em `pt.json`), âncoras do menu, hero/CTAs, botão que muda com a sessão, FAQ, rodapé, menu mobile, JSON-LD, sitemap e robots |
 | `i18n/pathnames.test.ts` | URLs traduzidas: ida e volta canônica ↔ localizada, rotas dinâmicas, query/hash, prioridade estática sobre dinâmica |
 | `lib/*.test.ts` | `api-client` (CSRF), `api-error`, `format`, `masks`, `order-status`, `recipe-weight`, `user-roles` |
 | `components/address`, `components/layout/nav-links`, `components/ui/view-mode-toggle` | Endereço com ViaCEP, menu por papel, alternador de visualização |

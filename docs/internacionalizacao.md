@@ -2,6 +2,14 @@
 
 O frontend usa **next-intl** com três locales: `pt` (padrão), `en` e `es`. Toda a interface roda sob o segmento `app/[locale]/`, com roteamento resolvido pelo middleware (`src/frontend/middleware.ts` + `i18n/routing.ts`; navegação em `i18n/navigation.tsx`).
 
+## Landing page: somente português
+
+A landing (`app/[locale]/page.tsx`, namespace `Landing`) é escrita **só em português** — a operação é exclusivamente em pt. Por isso `Landing` existe apenas em `pt.json` (única exceção à paridade entre os três arquivos) e as páginas carregam o texto com `getTranslations({ locale: "pt", namespace: "Landing..." })`, qualquer que seja o prefixo da URL.
+
+- `/en` e `/es` mostram a mesma landing em pt, com `canonical` apontando para `/` e `noindex`.
+- Ilhas client (`LandingHeader`, `AuthCtas`) recebem os textos por props, para não depender do bundle de mensagens do locale.
+- Ao rodar o script/checagem de paridade, ignore `Landing.*` como "ausente em en/es".
+
 ## URLs traduzidas
 
 As pastas do App Router e todos os `href` do código usam a rota **canônica em inglês** (`/recipes/new`). Cada locale pode renomear os segmentos estáticos: em português a URL pública é `/receitas/criar`; `en` e `es` mantêm a rota canônica.
