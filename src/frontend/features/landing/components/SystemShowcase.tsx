@@ -1,14 +1,15 @@
-import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 import { SYSTEM_FEATURES } from "@/features/landing/content";
+import { FeatureTabs, type FeatureTabItem } from "./FeatureTabs";
 import { AlertsMock, OrderMock, PetMock, RecipeMock } from "./mockups";
 import { SectionHeading } from "./SectionHeading";
 
-/** Highlights what the system does, each feature next to an illustrative mock screen. */
+/** Dark section where each system feature is paired with an illustrative screen. */
 export async function SystemShowcase() {
   const t = await getTranslations({ locale: "pt", namespace: "Landing.system" });
+  const tA11y = await getTranslations({ locale: "pt", namespace: "Landing.a11y" });
 
-  const mocks: Record<string, ReactNode> = {
+  const panels = {
     pet: (
       <PetMock
         title={t("features.pet.title")}
@@ -41,31 +42,19 @@ export async function SystemShowcase() {
     ),
   };
 
-  return (
-    <section id="sistema" aria-labelledby="system-title" className="gf-paws-soft scroll-mt-24 bg-gf-cream py-16 sm:py-24">
-      <div className="mx-auto max-w-6xl space-y-12 px-4 sm:px-6">
-        <SectionHeading id="system-title" eyebrow={t("eyebrow")} title={t("title")} subtitle={t("subtitle")} />
+  const items: FeatureTabItem[] = SYSTEM_FEATURES.map(({ id, icon: Icon }) => ({
+    id,
+    icon: <Icon className="h-6 w-6 shrink-0" />,
+    title: t(`features.${id}.title`),
+    description: t(`features.${id}.desc`),
+    panel: panels[id],
+  }));
 
-        <div className="grid gap-5 md:grid-cols-2">
-          {SYSTEM_FEATURES.map(({ id, icon: Icon }) => (
-            <article key={id} className="flex flex-col gap-5 rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-gf-red/10 motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:p-7">
-              <div className="flex items-start gap-4">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gf-red text-white shadow-lg shadow-gf-red/30">
-                  <Icon className="h-6 w-6" aria-hidden="true" />
-                </span>
-                <div>
-                  <h3 className="gf-display text-xl font-extrabold text-gf-ink">{t(`features.${id}.title`)}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-gf-ink/65">{t(`features.${id}.desc`)}</p>
-                </div>
-              </div>
-              {mocks[id] && (
-                <div className="mt-auto rounded-3xl bg-gf-cream p-4" aria-hidden="true">
-                  {mocks[id]}
-                </div>
-              )}
-            </article>
-          ))}
-        </div>
+  return (
+    <section id="sistema" aria-labelledby="system-title" className="scroll-mt-16 bg-gf-ink py-20 text-white sm:py-28">
+      <div className="mx-auto max-w-6xl space-y-14 px-4 sm:px-6">
+        <SectionHeading id="system-title" invert title={t("title")} subtitle={t("subtitle")} />
+        <FeatureTabs items={items} label={tA11y("features_tabs")} />
       </div>
     </section>
   );

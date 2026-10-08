@@ -1,53 +1,46 @@
 import { getTranslations } from "next-intl/server";
-import { Heart, Leaf, Stethoscope } from "lucide-react";
-import { PROCESS_STEPS } from "@/features/landing/content";
+import { PROCESS_STEP_IDS } from "@/features/landing/content";
 import { SectionHeading } from "./SectionHeading";
 
-const VALUES = [
-  { id: "natural", icon: Leaf },
-  { id: "vets", icon: Stethoscope },
-  { id: "care", icon: Heart },
-] as const;
+const FACT_IDS = ["where", "what", "who", "care"] as const;
 
-/** Institutional section: who the company is, its values and how every meal is made. */
+/** Institutional section: who the company is, the key facts and how every meal is made. */
 export async function About() {
   const t = await getTranslations({ locale: "pt", namespace: "Landing.about" });
   const tSteps = await getTranslations({ locale: "pt", namespace: "Landing.process.steps" });
 
   return (
-    <section id="sobre" aria-labelledby="about-title" className="scroll-mt-24 px-3 py-4 sm:px-6">
-      <div className="gf-paws mx-auto max-w-6xl space-y-12 rounded-[2.5rem] bg-linear-to-br from-gf-red to-gf-red-dark px-5 py-14 text-white sm:px-10 sm:py-20">
-        <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
-          <div className="space-y-5">
-            <SectionHeading id="about-title" invert align="left" eyebrow={t("eyebrow")} title={t("title")} />
-            <p className="max-w-xl text-base leading-relaxed text-white/90 sm:text-lg">{t("p1")}</p>
-            <p className="max-w-xl text-base leading-relaxed text-white/80">{t("p2")}</p>
+    <section id="sobre" aria-labelledby="about-title" className="scroll-mt-16 bg-gf-blush py-20 sm:py-28">
+      <div className="mx-auto max-w-6xl space-y-16 px-4 sm:px-6">
+        <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
+          <div>
+            <SectionHeading id="about-title" title={t("title")} />
+            <p className="mt-6 max-w-xl text-xl font-medium leading-snug text-gf-ink sm:text-2xl">{t("p1")}</p>
+            <p className="mt-4 max-w-xl text-lg text-gf-ink/65">{t("p2")}</p>
           </div>
 
-          <ul className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            {VALUES.map(({ id, icon: Icon }) => (
-              <li key={id} className="flex items-center gap-3 rounded-2xl bg-white/12 px-4 py-3.5 text-base font-semibold ring-1 ring-white/20">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-gf-red">
-                  <Icon className="h-5 w-5" aria-hidden="true" />
-                </span>
-                {t(`values.${id}`)}
-              </li>
+          <dl className="self-end">
+            {FACT_IDS.map((id) => (
+              <div key={id} className="grid gap-1 border-t border-gf-ink/15 py-5 sm:grid-cols-[10rem_1fr] sm:gap-6">
+                <dt className="text-sm font-bold text-gf-red">{t(`facts.${id}.label`)}</dt>
+                <dd className="text-lg leading-snug text-gf-ink">{t(`facts.${id}.value`)}</dd>
+              </div>
             ))}
-          </ul>
+          </dl>
         </div>
 
-        <div className="space-y-5 border-t border-white/20 pt-8">
-          <h3 className="text-center text-sm font-semibold text-white/85">{t("process_title")}</h3>
-          <ol className="grid gap-3 sm:grid-cols-5">
-            {PROCESS_STEPS.map(({ id, icon: Icon }, index) => (
-              <li key={id} className="flex items-center gap-3 rounded-2xl bg-white p-3.5 text-gf-ink sm:flex-col sm:text-center">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gf-rose text-gf-red">
-                  <Icon className="h-5 w-5" aria-hidden="true" />
+        <div>
+          <h3 className="text-xl font-bold text-gf-ink">{t("process_title")}</h3>
+          <ol className="mt-6 grid gap-x-6 gap-y-5 sm:grid-cols-5">
+            {PROCESS_STEP_IDS.map((id, index) => (
+              <li key={id} className="border-t-2 border-gf-ink pt-4">
+                <span className="gf-display block text-3xl font-extrabold leading-none text-gf-red" aria-hidden="true">
+                  {index + 1}
                 </span>
-                <span className="text-sm font-semibold leading-snug">
+                <p className="mt-3 font-semibold leading-snug text-gf-ink">
                   <span className="sr-only">{index + 1}. </span>
                   {tSteps(`${id}.title`)}
-                </span>
+                </p>
               </li>
             ))}
           </ol>

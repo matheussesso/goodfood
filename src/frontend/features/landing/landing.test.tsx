@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider, createTranslator } from "next-intl";
 import messages from "@/messages/pt.json";
 import { useAuth, type User } from "@/hooks/useAuth";
-import { FAQ_IDS, HOW_STEPS, NAV_ITEMS, PROCESS_STEPS, SYSTEM_FEATURES } from "./content";
+import { FAQ_IDS, HOW_STEP_IDS, LABEL_INGREDIENTS, NAV_ITEMS, PROCESS_STEP_IDS, SYSTEM_FEATURES } from "./content";
 import { buildFaqJsonLd, buildOrganizationJsonLd, serializeJsonLd } from "./json-ld";
 import { About } from "./components/About";
 import { AuthCtas } from "./components/AuthCtas";
@@ -42,9 +42,10 @@ describe("landing content integrity", () => {
   const section = (obj: Record<string, unknown>, id: string) => obj[id] as Record<string, string> | undefined;
 
   it("has copy for every item the page renders", () => {
-    PROCESS_STEPS.forEach(({ id }) => expect(section(L.process.steps, id)?.title, `process.${id}`).toBeTruthy());
-    HOW_STEPS.forEach(({ id }) => expect(section(L.how.steps, id)?.title, `how.${id}`).toBeTruthy());
+    PROCESS_STEP_IDS.forEach((id) => expect(section(L.process.steps, id)?.title, `process.${id}`).toBeTruthy());
+    HOW_STEP_IDS.forEach((id) => expect(section(L.how.steps, id)?.title, `how.${id}`).toBeTruthy());
     SYSTEM_FEATURES.forEach(({ id }) => expect(section(L.system.features, id)?.desc, `system.${id}`).toBeTruthy());
+    LABEL_INGREDIENTS.forEach(({ id }) => expect((L.hero.label.ingredients as Record<string, string>)[id], `label.${id}`).toBeTruthy());
     NAV_ITEMS.forEach(({ labelKey }) => expect((L.nav as Record<string, string>)[labelKey], `nav.${labelKey}`).toBeTruthy());
     FAQ_IDS.forEach((id) => {
       const item = section(L.faq.items, id);
@@ -68,7 +69,7 @@ describe("Hero", () => {
   it("sells the promise and offers sign-up, sign-in and WhatsApp", async () => {
     await renderServer(Hero({ ctaLabels: labels }));
 
-    expect(screen.getByRole("heading", { level: 1, name: L.hero.title.replace(/<\/?hl>/g, "") })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: L.hero.title })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: new RegExp(L.cta.register_free) })).toHaveAttribute("href", "/register");
     expect(screen.getByRole("link", { name: L.cta.login })).toHaveAttribute("href", "/login");
     expect(screen.getByRole("link", { name: new RegExp(L.cta.whatsapp) }).getAttribute("href")).toMatch(/^https:\/\/wa\.me\/5561981425385\?text=/);
@@ -98,8 +99,8 @@ describe("sections", () => {
     expect(screen.getByText(L.about.p1)).toBeInTheDocument();
     expect(screen.queryByText(/Pretinha/)).not.toBeInTheDocument();
 
-    const items = screen.getAllByRole("listitem").filter((li) => PROCESS_STEPS.some(({ id }) => li.textContent?.includes(L.process.steps[id as keyof typeof L.process.steps].title)));
-    expect(items).toHaveLength(PROCESS_STEPS.length);
+    const items = screen.getAllByRole("listitem").filter((li) => PROCESS_STEP_IDS.some((id) => li.textContent?.includes(L.process.steps[id].title)));
+    expect(items).toHaveLength(PROCESS_STEP_IDS.length);
   });
 
   it("renders every FAQ entry as an expandable detail", async () => {
@@ -115,11 +116,12 @@ describe("sections", () => {
     expect(screen.getByRole("link", { name: new RegExp(L.cta.whatsapp) }).getAttribute("href")).toContain("wa.me/5561981425385");
   });
 
-  it("shows the system features with their illustrative mocks", async () => {
+  it("shows every system feature as a tab, with the first one selected", async () => {
     await renderServer(SystemShowcase());
-    SYSTEM_FEATURES.forEach(({ id }) => {
-      expect(screen.getByRole("heading", { name: (L.system.features as Record<string, { title: string }>)[id].title })).toBeInTheDocument();
-    });
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs).toHaveLength(SYSTEM_FEATURES.length);
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tabpanel")).toBeInTheDocument();
   });
 
   it("footer exposes contacts and the section links", async () => {

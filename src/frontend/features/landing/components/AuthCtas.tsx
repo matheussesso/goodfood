@@ -1,6 +1,5 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { landingButton, type LandingButtonVariant } from "@/features/landing/button-styles";
@@ -42,7 +41,7 @@ export function AuthCtas({ labels, primaryVariant = "primary", secondaryVariant 
     return (
       <div className={className}>
         <Link href="/dashboard" className={landingButton(primaryVariant, large)}>
-          {labels.dashboard} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          {labels.dashboard}
         </Link>
       </div>
     );
@@ -51,7 +50,7 @@ export function AuthCtas({ labels, primaryVariant = "primary", secondaryVariant 
   return (
     <div className={className}>
       <Link href="/register" className={landingButton(primaryVariant, large)}>
-        {labels.register} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        {labels.register}
       </Link>
       {!hideSecondary && (
         <Link href="/login" className={landingButton(secondaryVariant, large)}>

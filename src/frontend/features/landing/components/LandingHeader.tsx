@@ -32,52 +32,50 @@ export function LandingHeader({ links, ctaLabels, logoAlt, menuOpenLabel, menuCl
   const user = useAuth((state) => state.user);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-40 px-3 pt-3 sm:px-6">
-      <div className="mx-auto max-w-6xl rounded-full bg-white/85 shadow-lg shadow-black/5 ring-1 ring-black/5 backdrop-blur-md">
-        <div className="flex h-14 items-center justify-between gap-4 pl-5 pr-2 sm:h-16">
-          <Link href="/" className="flex shrink-0 items-center" aria-label={logoAlt}>
-            <Image src="/goodfood-logo.png" alt={logoAlt} width={864} height={209} priority className="h-8 w-auto" />
-          </Link>
+    <header className="sticky top-0 z-40 border-b border-gf-ink/10 bg-white/90 backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center" aria-label={logoAlt}>
+          <Image src="/goodfood-logo.png" alt={logoAlt} width={864} height={209} priority className="h-8 w-auto" />
+        </Link>
 
-          <nav aria-label={navLabel} className="hidden items-center gap-1 lg:flex">
-            {links.map((link) => (
-              <a key={link.anchor} href={`#${link.anchor}`} className="rounded-full px-4 py-2 text-sm font-medium text-gf-ink/75 transition-colors hover:bg-gf-rose hover:text-gf-red">
-                {link.label}
-              </a>
-            ))}
-          </nav>
+        <nav aria-label={navLabel} className="hidden items-center gap-8 lg:flex">
+          {links.map((link) => (
+            <a key={link.anchor} href={`#${link.anchor}`} className="text-sm font-semibold text-gf-ink/70 transition-colors hover:text-gf-red">
+              {link.label}
+            </a>
+          ))}
+        </nav>
 
-          <div className="flex items-center gap-2">
-            <AuthCtas labels={ctaLabels} hideSecondary={!!user} className="hidden items-center gap-2 sm:flex [&>a]:min-h-10 [&>a]:px-5 [&>a]:py-2" />
-            <button
-              type="button"
-              onClick={() => setOpen((value) => !value)}
-              aria-expanded={open}
-              aria-controls="landing-mobile-menu"
-              aria-label={open ? menuCloseLabel : menuOpenLabel}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-gf-rose text-gf-red transition-colors hover:bg-gf-red hover:text-white lg:hidden"
-            >
-              {open ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          <AuthCtas labels={ctaLabels} hideSecondary={!!user} className="hidden items-center gap-2 sm:flex [&>a]:min-h-10 [&>a]:px-5 [&>a]:py-2" />
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            aria-controls="landing-mobile-menu"
+            aria-label={open ? menuCloseLabel : menuOpenLabel}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-gf-ink transition-colors hover:bg-gf-blush hover:text-gf-red lg:hidden"
+          >
+            {open ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
+          </button>
         </div>
       </div>
 
       {open && (
-        <div id="landing-mobile-menu" className="mx-auto mt-2 max-w-6xl rounded-3xl bg-white p-4 shadow-xl shadow-black/10 ring-1 ring-black/5 lg:hidden">
-          <nav aria-label={navLabel} className="flex flex-col">
+        <div id="landing-mobile-menu" className="border-t border-gf-ink/10 bg-white px-4 pb-5 pt-2 lg:hidden">
+          <nav aria-label={navLabel} className="mx-auto flex max-w-6xl flex-col">
             {links.map((link) => (
               <a
                 key={link.anchor}
                 href={`#${link.anchor}`}
                 onClick={() => setOpen(false)}
-                className="flex min-h-12 items-center rounded-2xl px-4 text-base font-semibold text-gf-ink hover:bg-gf-rose hover:text-gf-red"
+                className="flex min-h-12 items-center border-b border-gf-ink/10 text-lg font-semibold text-gf-ink"
               >
                 {link.label}
               </a>
             ))}
           </nav>
-          <AuthCtas labels={ctaLabels} className="mt-3 flex flex-col gap-3 sm:hidden [&>a]:w-full" />
+          <AuthCtas labels={ctaLabels} className="mx-auto mt-4 flex max-w-6xl flex-col gap-3 sm:hidden [&>a]:w-full" />
         </div>
       )}
     </header>

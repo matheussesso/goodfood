@@ -10,13 +10,13 @@ Dois perfis de usuário: **cliente** (tutor do pet) e **admin** (equipe GoodFood
 
 Página pública em `/` que apresenta a Good Food Pet e leva o visitante ao sistema. Conteúdo **somente em português** (ver [internacionalizacao.md](internacionalizacao.md)).
 
-- **Seções (enxutas, foco em funcionalidades e facilidade de pedir):** hero com CTAs (Criar conta / Entrar / WhatsApp), **Como funciona** (os 4 passos do sistema: pet → receita → vínculo → pedido), **Funcionalidades** (perfil do pet, avisos, receitas com valor ao vivo e pedidos acompanhados — com miniaturas ilustrativas em código, dados fictícios e sem preços), **Peça do seu jeito** (avulso × assinatura + caldo de ossos via WhatsApp), **Sobre** (institucional: quem somos, valores e o processo de produção em 5 etapas), FAQ com 6 perguntas e CTA final.
+- **Seções (enxutas, foco em funcionalidades e facilidade de pedir):** hero com etiqueta interativa e CTAs (Criar conta / Entrar / link do WhatsApp), **Como funciona** (os 4 passos do sistema: pet → receita → vínculo → pedido), **Funcionalidades** (perfil do pet, avisos, receitas com valor ao vivo e pedidos acompanhados — com miniaturas ilustrativas em código, dados fictícios e sem preços), **Peça do seu jeito** (avulso × assinatura + caldo de ossos via WhatsApp), **Sobre** (institucional: quem somos, valores e o processo de produção em 5 etapas), FAQ com 6 perguntas e CTA final.
 - **Sessão:** visitante logado vê "Ir para meu painel" no lugar de "Criar conta/Entrar".
 - **Contato:** botão flutuante e links para o WhatsApp (61) 98142-5385, Instagram @goodfood.pet e Linktree, configuráveis por `NEXT_PUBLIC_*` (ver [configuracao.md](configuracao.md)).
 - **Pedidos hoje:** confirmados por WhatsApp; a landing já convida a criar conta e montar receitas, e o FAQ informa que o processo todo passará para o sistema (com integração ao WhatsApp). Entrega: Brasília-DF.
 - **SEO:** metadata e Open Graph (`public/og-image.png`), JSON-LD (`Organization` e `FAQPage`), `sitemap.xml`, `robots.txt` (áreas autenticadas bloqueadas), `/en` e `/es` com `noindex`.
 - **Acessibilidade/desempenho:** Server Components, FAQ com `<details>`, skip link, foco visível, alvos ≥ 44px, `prefers-reduced-motion` respeitado, sem libs novas.
-- **Visual:** estilo moderno e amigável — fonte Poppins, cantos bem arredondados, sombras suaves, botões em pílula, painéis vermelho/preto com patinhas e cartões flutuantes; paleta da marca (vermelho `#e4002b`, preto, branco) com tons suaves (`gf-rose`, `gf-cream`).
+- **Visual:** vermelho da marca em blocos grandes sobre branco e preto, sem texturas nem estampas; títulos em Bricolage Grotesque e texto em Figtree. O destaque é uma **etiqueta de receita interativa** no hero (o visitante liga/desliga ingredientes e vê o total em gramas, com dados fictícios e sem preços); as funcionalidades aparecem em abas com telas ilustrativas.
 - **Código:** `app/[locale]/page.tsx`, `features/landing/` (componentes por seção, `content.ts`, `json-ld.ts`), `lib/company.ts`, paleta `gf-*` em `globals.css`.
 
 ---

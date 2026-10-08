@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { company } from "@/lib/company";
-import { poppins } from "@/features/landing/fonts";
+import { bricolage, figtree } from "@/features/landing/fonts";
 import { NAV_ITEMS } from "@/features/landing/content";
 import { buildFaqJsonLd, buildOrganizationJsonLd, serializeJsonLd } from "@/features/landing/json-ld";
 import { About } from "@/features/landing/components/About";
@@ -56,7 +56,7 @@ export default async function LandingPage() {
   const links = NAV_ITEMS.map((item) => ({ anchor: item.anchor, label: t(`nav.${item.labelKey}`) }));
 
   return (
-    <div lang="pt-BR" className={`landing ${poppins.variable} min-h-screen bg-white text-gf-ink antialiased`}>
+    <div lang="pt-BR" className={`landing ${bricolage.variable} ${figtree.variable} min-h-screen bg-white text-gf-ink antialiased`}>
       <a
         href="#conteudo"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-white focus:px-5 focus:py-2.5 focus:font-semibold focus:shadow-xl focus:ring-2 focus:ring-gf-red"

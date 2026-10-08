@@ -17,7 +17,7 @@ export async function Footer() {
   ];
 
   return (
-    <footer className="rounded-t-[2.5rem] bg-gf-ink text-white">
+    <footer className="bg-gf-ink text-white">
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:px-8 md:grid-cols-[1.3fr_1fr_1fr]">
         <div className="space-y-4">
           <Image src="/goodfood-logo.png" alt={t("a11y.logo_alt")} width={864} height={209} className="h-10 w-auto" />

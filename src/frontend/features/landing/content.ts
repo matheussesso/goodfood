@@ -1,24 +1,4 @@
-import {
-  BellRing,
-  Calculator,
-  Dog,
-  Droplets,
-  Link2,
-  PackageCheck,
-  Pill,
-  Scale,
-  ShoppingBag,
-  ShoppingBasket,
-  Truck,
-  UtensilsCrossed,
-  type LucideIcon,
-} from "lucide-react";
-
-/** An item whose copy lives under `Landing.<section>.<id>` in the messages. */
-export interface IconItem<Id extends string = string> {
-  id: Id;
-  icon: LucideIcon;
-}
+import { BellRing, Calculator, Dog, PackageCheck, type LucideIcon } from "lucide-react";
 
 /** Anchors of the page sections, in page order, with the matching nav label key. */
 export const NAV_ITEMS = [
@@ -28,28 +8,39 @@ export const NAV_ITEMS = [
   { anchor: "duvidas", labelKey: "faq" },
 ] as const;
 
-/** Production steps shown as a compact strip in the About section. */
-export const PROCESS_STEPS: IconItem[] = [
-  { id: "select", icon: ShoppingBasket },
-  { id: "prepare", icon: Droplets },
-  { id: "supplement", icon: Pill },
-  { id: "portion", icon: Scale },
-  { id: "delivery", icon: Truck },
-];
+/** Ids of the production steps (`Landing.process.steps.<id>`), in order. */
+export const PROCESS_STEP_IDS = ["select", "prepare", "supplement", "portion", "delivery"] as const;
 
-export const HOW_STEPS: IconItem[] = [
-  { id: "pet", icon: Dog },
-  { id: "recipe", icon: UtensilsCrossed },
-  { id: "link", icon: Link2 },
-  { id: "order", icon: ShoppingBag },
-];
+/** Ids of the ordering steps (`Landing.how.steps.<id>`), in order. */
+export const HOW_STEP_IDS = ["pet", "recipe", "link", "order"] as const;
 
-export const SYSTEM_FEATURES: IconItem[] = [
-  { id: "pet", icon: Dog },
-  { id: "alerts", icon: BellRing },
+/** A system feature shown in the tabbed showcase (`Landing.system.features.<id>`). */
+export interface SystemFeature {
+  id: "pet" | "alerts" | "recipe" | "order";
+  icon: LucideIcon;
+}
+
+export const SYSTEM_FEATURES: SystemFeature[] = [
   { id: "recipe", icon: Calculator },
+  { id: "pet", icon: Dog },
   { id: "order", icon: PackageCheck },
+  { id: "alerts", icon: BellRing },
 ];
 
 /** Ids of the FAQ entries (`Landing.faq.items.<id>`), in display order. */
 export const FAQ_IDS = ["q1", "q2", "q3", "q4", "q5", "q6"] as const;
+
+/** Ingredients of the interactive hero label (`Landing.hero.label.ingredients.<id>`) with grams per meal. */
+export const LABEL_INGREDIENTS = [
+  { id: "chicken", grams: 180 },
+  { id: "pumpkin", grams: 90 },
+  { id: "rice", grams: 70 },
+  { id: "liver", grams: 30 },
+  { id: "carrot", grams: 50 },
+  { id: "spinach", grams: 25 },
+] as const;
+
+export type LabelIngredientId = (typeof LABEL_INGREDIENTS)[number]["id"];
+
+/** Ingredients selected when the page loads. */
+export const DEFAULT_LABEL_SELECTION: LabelIngredientId[] = ["chicken", "pumpkin", "rice", "liver"];

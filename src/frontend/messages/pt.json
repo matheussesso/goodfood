@@ -847,7 +847,8 @@
       "menu_close": "Fechar menu",
       "main_nav": "Navegação principal",
       "logo_alt": "Good Food Pet",
-      "whatsapp_fab": "Falar com a Good Food Pet no WhatsApp"
+      "whatsapp_fab": "Falar com a Good Food Pet no WhatsApp",
+      "features_tabs": "Funcionalidades do sistema"
     },
     "nav": {
       "how": "Como funciona",
@@ -865,14 +866,27 @@
       "instagram": "Ver no Instagram"
     },
     "hero": {
-      "eyebrow": "Alimentação natural para pets · Brasília-DF",
-      "title": "<hl>Comida de verdade</hl> para o seu pet, em poucos cliques",
+      "title": "Comida de verdade para o seu pet, em poucos cliques",
       "subtitle": "Cadastre seu pet, monte a receita e faça o pedido. O sistema calcula o valor na hora e a Good Food entrega congelada na sua casa.",
       "badge_vets": "Orientação veterinária",
       "badge_fresh": "Ingredientes frescos",
       "badge_delivery": "Entrega em Brasília-DF",
-      "card_title": "Receita do seu pet",
-      "card_hint": "Valor calculado automaticamente"
+      "label": {
+        "title": "Receita do Thor",
+        "meta": "Cão · 12 kg",
+        "hint": "Toque nos ingredientes para montar a receita",
+        "total": "Total por refeição",
+        "note": "O valor é calculado automaticamente pelo sistema.",
+        "empty": "Escolha ao menos um ingrediente.",
+        "ingredients": {
+          "chicken": "Peito de frango",
+          "pumpkin": "Abóbora",
+          "rice": "Arroz integral",
+          "liver": "Fígado bovino",
+          "carrot": "Cenoura",
+          "spinach": "Espinafre"
+        }
+      }
     },
     "process": {
       "steps": {
@@ -894,7 +908,6 @@
       }
     },
     "how": {
-      "eyebrow": "Como funciona",
       "title": "Peça a receita do seu pet em 4 passos",
       "subtitle": "Crie sua conta e o sistema guia você em cada etapa.",
       "steps": {
@@ -917,7 +930,6 @@
       }
     },
     "system": {
-      "eyebrow": "Funcionalidades",
       "title": "Tudo o que você precisa, em um só lugar",
       "subtitle": "Sem planilha nem troca de mensagens.",
       "features": {
@@ -956,10 +968,10 @@
             "incomplete": "Thor: faltam raça e idade"
           }
         }
-      }
+      },
+      "pick": "Escolha uma funcionalidade"
     },
     "plans": {
-      "eyebrow": "Formas de pedir",
       "title": "Peça do seu jeito",
       "subtitle": "Avulso ou por assinatura.",
       "single": {
@@ -987,19 +999,30 @@
       "desc": "Também temos caldo de ossos para o seu pet. Peça pelo WhatsApp."
     },
     "about": {
-      "eyebrow": "Sobre a Good Food Pet",
       "title": "Alimentação natural completa e balanceada",
       "p1": "A Good Food Pet é uma empresa de Brasília-DF que produz refeições naturais, completas e balanceadas para cães e gatos.",
-      "p2": "Nossas receitas usam ingredientes frescos e selecionados, com orientação de médicos veterinários especializados em nutrologia. Cada refeição é porcionada, congelada e entregue na casa do tutor.",
-      "values": {
-        "natural": "Alimentação natural",
-        "vets": "Orientação veterinária",
-        "care": "Feito com carinho"
-      },
-      "process_title": "Do ingrediente à sua casa"
+      "p2": "Cada refeição é porcionada, congelada e entregue na casa do tutor.",
+      "process_title": "Do ingrediente à sua casa",
+      "facts": {
+        "where": {
+          "label": "Onde estamos",
+          "value": "Brasília-DF, com entrega em casa."
+        },
+        "what": {
+          "label": "O que fazemos",
+          "value": "Refeições naturais, completas e balanceadas."
+        },
+        "who": {
+          "label": "Para quem",
+          "value": "Cães e gatos."
+        },
+        "care": {
+          "label": "Como cuidamos",
+          "value": "Ingredientes frescos e orientação de médicos veterinários especializados em nutrologia."
+        }
+      }
     },
     "faq": {
-      "eyebrow": "Dúvidas",
       "title": "Perguntas frequentes",
       "items": {
         "q1": {
