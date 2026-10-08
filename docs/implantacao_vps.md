@@ -251,6 +251,9 @@ cliente real (`request()->ip()`, `url()->secure()` etc.).
 
 ### 1.8 Autenticar o Docker do VPS no GHCR
 
+> **Desde a v2 do pipeline o login é automático:** o job de deploy faz `docker login ghcr.io` no VPS com o `GITHUB_TOKEN` da própria execução (`permissions: packages: read`), então um PAT expirado não derruba mais o deploy. O passo manual abaixo vira **fallback** (pulls/rollbacks feitos à mão no servidor). Atenção: o login do pipeline sobrescreve a credencial salva em `~/.docker/config.json` por um token que expira ao fim do job; para operar manualmente depois, refaça o `docker login` com o PAT.
+> Se o deploy falhar com `error from registry: denied`, confira em **Packages → goodfood-backend/frontend → Package settings** se o repositório tem acesso (*Manage Actions access*, papel Read) e se o pacote está vinculado ao repo.
+
 Necessário porque `docker compose pull` roda localmente no VPS (não só
 dentro do job de CI). Repo privado → os pacotes publicados no GHCR
 nascem **privados** por padrão, então PAT com só `read:packages` não
