@@ -678,7 +678,16 @@
     "customer": "Customer",
     "show_more": "more",
     "show_less": "Collapse",
-    "drag_to_reschedule": "Drag to reschedule"
+    "drag_to_reschedule": "Drag to reschedule",
+    "all_phases": "All phases",
+    "phases_hint": "Select one or more phases to show on the calendar.",
+    "day_orders_title": "Orders on {date}",
+    "no_orders_day": "No orders on this day.",
+    "select_day_hint": "Tap a day to see its orders.",
+    "prev_month": "Previous month",
+    "next_month": "Next month",
+    "phase_count": "{count, plural, =0 {none} one {# order} other {# orders}}",
+    "day_cell_label": "{day} — {count, plural, =0 {no orders} one {# order} other {# orders}}"
   },
   "Metadata": {
     "description": "Natural pet food management system"

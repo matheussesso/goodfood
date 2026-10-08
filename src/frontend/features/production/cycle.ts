@@ -153,3 +153,100 @@ export const PHASE_STYLE: Record<Phase, {
     dotColor: "bg-emerald-500",
   },
 };
+
+// ─── Multi-phase calendar helpers ─────────────────────────────────────────────
+
+/** Translation key (namespace `Production`) of each phase's label. */
+export const PHASE_LABEL_KEYS: Record<Phase, string> = {
+  order_placed: "phase_order_placed",
+  reposicao: "phase_reposicao",
+  producao: "phase_producao",
+  entrega: "phase_entrega",
+};
+
+/** One order positioned on the calendar under one cycle phase. */
+export interface PhaseEntry {
+  order: Order;
+  phase: Phase;
+  /** Calendar day (midnight, local time) the order falls on for `phase`. */
+  date: Date;
+}
+
+/**
+ * Toggles a phase in the selection. At least one phase always stays selected,
+ * so removing the last one is a no-op. The result is kept in cycle order.
+ *
+ * @param selected - Currently selected phases.
+ * @param phase - Phase the user clicked.
+ */
+export function togglePhase(selected: Phase[], phase: Phase): Phase[] {
+  const next = selected.includes(phase) ? selected.filter((p) => p !== phase) : [...selected, phase];
+  if (next.length === 0) return selected;
+  return PHASES.filter((p) => next.includes(p));
+}
+
+/** Whether every cycle phase is selected. */
+export function areAllPhasesSelected(selected: Phase[]): boolean {
+  return PHASES.every((p) => selected.includes(p));
+}
+
+/**
+ * Expands orders into one entry per order and selected phase, so an order
+ * appears once on each phase's date when several phases are shown together.
+ *
+ * @param orders - Orders to place on the calendar.
+ * @param phases - Selected phases.
+ */
+export function buildPhaseEntries(orders: Order[], phases: Phase[]): PhaseEntry[] {
+  return orders.flatMap((order) => phases.map((phase) => ({ order, phase, date: getPhaseDate(order, phase) })));
+}
+
+/** Keeps only the entries that fall in the given month. */
+export function entriesInMonth(entries: PhaseEntry[], year: number, month: number): PhaseEntry[] {
+  return entries.filter(({ date }) => date.getFullYear() === year && date.getMonth() === month);
+}
+
+/**
+ * Groups a month's entries by day of month. Inside a day, entries follow the
+ * cycle order (placed → reposição → produção → entrega) and then the order id.
+ */
+export function groupEntriesByDay(entries: PhaseEntry[]): Record<number, PhaseEntry[]> {
+  const byDay: Record<number, PhaseEntry[]> = {};
+  for (const entry of entries) {
+    const day = entry.date.getDate();
+    (byDay[day] ??= []).push(entry);
+  }
+  for (const list of Object.values(byDay)) {
+    list.sort((a, b) => PHASES.indexOf(a.phase) - PHASES.indexOf(b.phase) || a.order.id - b.order.id);
+  }
+  return byDay;
+}
+
+/** Counts entries per phase (every phase present, zero when empty). */
+export function countByPhase(entries: PhaseEntry[]): Record<Phase, number> {
+  const counts: Record<Phase, number> = { order_placed: 0, reposicao: 0, producao: 0, entrega: 0 };
+  for (const { phase } of entries) counts[phase] += 1;
+  return counts;
+}
+
+/** Whether tiles of this phase can be dragged to reschedule (the order date is fixed). */
+export function isPhaseDraggable(phase: Phase): boolean {
+  return phase !== "order_placed";
+}
+
+/**
+ * Converts the day an order tile was dropped on into the new reposição date,
+ * according to the phase the dragged tile belongs to:
+ * reposição → same day, produção → day − 1, entrega → day − 7.
+ *
+ * @param phase - Phase of the dragged tile.
+ * @param droppedDate - Calendar day it was dropped on.
+ * @returns The new reposição date, or `null` when the phase cannot be rescheduled.
+ */
+export function getRescheduleAnchor(phase: Phase, droppedDate: Date): Date | null {
+  if (!isPhaseDraggable(phase)) return null;
+  const offset = phase === "reposicao" ? 0 : phase === "producao" ? 1 : 7;
+  const anchor = new Date(droppedDate);
+  anchor.setDate(droppedDate.getDate() - offset);
+  return anchor;
+}

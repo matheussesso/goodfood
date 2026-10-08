@@ -678,7 +678,16 @@
     "customer": "Cliente",
     "show_more": "mais",
     "show_less": "Recolher",
-    "drag_to_reschedule": "Arraste para reagendar"
+    "drag_to_reschedule": "Arraste para reagendar",
+    "all_phases": "Todas as fases",
+    "phases_hint": "Selecione uma ou mais fases para ver no calendário.",
+    "day_orders_title": "Pedidos de {date}",
+    "no_orders_day": "Nenhum pedido neste dia.",
+    "select_day_hint": "Toque em um dia para ver os pedidos dele.",
+    "prev_month": "Mês anterior",
+    "next_month": "Próximo mês",
+    "phase_count": "{count, plural, =0 {nenhum} one {# pedido} other {# pedidos}}",
+    "day_cell_label": "{day} — {count, plural, =0 {sem pedidos} one {# pedido} other {# pedidos}}"
   },
   "Metadata": {
     "description": "Sistema de gestão de alimentação natural para pets"

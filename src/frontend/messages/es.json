@@ -678,7 +678,16 @@
     "customer": "Cliente",
     "show_more": "más",
     "show_less": "Contraer",
-    "drag_to_reschedule": "Arrastrar para reprogramar"
+    "drag_to_reschedule": "Arrastrar para reprogramar",
+    "all_phases": "Todas las fases",
+    "phases_hint": "Selecciona una o más fases para ver en el calendario.",
+    "day_orders_title": "Pedidos del {date}",
+    "no_orders_day": "Ningún pedido este día.",
+    "select_day_hint": "Toca un día para ver sus pedidos.",
+    "prev_month": "Mes anterior",
+    "next_month": "Mes siguiente",
+    "phase_count": "{count, plural, =0 {ninguno} one {# pedido} other {# pedidos}}",
+    "day_cell_label": "{day} — {count, plural, =0 {sin pedidos} one {# pedido} other {# pedidos}}"
   },
   "Metadata": {
     "description": "Sistema de gestión de alimentación natural para mascotas"
