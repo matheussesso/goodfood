@@ -229,7 +229,10 @@ jobs:
           envs: GHCR_USER,GHCR_TOKEN
           script: |
             set -e
-            # Authenticate against GHCR with this run's token (valid for this job only).
+            # Authenticate against GHCR with this run's token (valid for this job only)
+            # and always drop the stored credential when the script ends, so nothing
+            # lingers unencrypted in ~/.docker/config.json after the deploy.
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
             # Sync server working tree with the latest main commit.
