@@ -14,6 +14,11 @@ COPY src/frontend/. .
 # must be passed as a build arg (see docker-compose.yml / ci-cd.yml).
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# Public site origin (canonical/sitemap/OG) and landing WhatsApp number.
+ARG NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+ARG NEXT_PUBLIC_WHATSAPP_NUMBER
+ENV NEXT_PUBLIC_WHATSAPP_NUMBER=${NEXT_PUBLIC_WHATSAPP_NUMBER}
 ENV NODE_ENV=production
 
 RUN npm run build

@@ -195,6 +195,8 @@ jobs:
           push: true
           build-args: |
             NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
+            NEXT_PUBLIC_WHATSAPP_NUMBER=${{ vars.NEXT_PUBLIC_WHATSAPP_NUMBER }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ needs.prepare.outputs.sha_short }}
