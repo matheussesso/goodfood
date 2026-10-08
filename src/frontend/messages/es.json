@@ -92,7 +92,7 @@
     "general": "General",
     "no_ingredients_found": "Ningún ingrediente encontrado",
     "description": "Gestiona ingredientes y crea plantillas de recetas.",
-    "ingredients": "ingredientes",
+    "ingredients": "Ingredientes",
     "recipes": "Plantillas de Recetas",
     "settings": "Configuraciones",
     "settings_warning": "El coste base se calcula automáticamente a partir de los ingredientes. Ajuste los ingredientes para cambiar el coste.",

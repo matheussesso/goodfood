@@ -92,7 +92,7 @@
     "general": "Geral",
     "no_ingredients_found": "Nenhum ingrediente encontrado",
     "description": "Gerencie ingredientes e crie modelos de receitas.",
-    "ingredients": "ingredientes",
+    "ingredients": "Ingredientes",
     "recipes": "Receitas Modelos",
     "settings": "Configurações",
     "settings_warning": "O custo base é calculado automaticamente a partir dos ingredientes. Ajuste os ingredientes para alterar o custo.",
