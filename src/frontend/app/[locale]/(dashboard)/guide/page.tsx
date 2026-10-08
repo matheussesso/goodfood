@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ArrowRight, ChevronDown, Dog, Lightbulb, Link2, ShoppingBag, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { ArrowRight, ChevronDown, CircleHelp, Dog, Lightbulb, Link2, ShoppingBag, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,7 +29,10 @@ export default function GuidePage() {
   return (
     <div className="mx-auto space-y-8">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("title")}</h1>
+        <h1 className="flex items-center gap-3 text-2xl font-bold tracking-tight text-foreground">
+          <CircleHelp className="mb-1 h-7 w-7 text-primary" aria-hidden="true" />
+          {t("title")}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
       </header>
 
