@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Plus } from "lucide-react";
+import { LayoutDashboard, Plus } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboard } from "@/hooks/useDashboard";
@@ -59,7 +59,10 @@ export default function DashboardPage() {
 
   const header = (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("dashboard")}</h1>
+      <h1 className="flex items-center gap-3 text-2xl font-bold tracking-tight text-foreground">
+        <LayoutDashboard className="mb-1 h-7 w-7 text-primary" aria-hidden="true" />
+        {t("dashboard")}
+      </h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {data && data.progress.next_step === "complete" ? tDash("greeting_active") : tDash("welcome_back", { name: user?.name ?? "" })}
       </p>
