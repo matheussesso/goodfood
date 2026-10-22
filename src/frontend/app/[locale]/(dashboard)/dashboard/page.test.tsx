@@ -17,18 +17,15 @@ const data = (overrides: Partial<DashboardData> = {}, progress: Partial<Dashboar
   progress: {
     has_address: false,
     pets_count: 0,
-    own_recipes_count: 0,
-    linked_recipes_count: 0,
-    first_unlinked_recipe_id: null,
+    pets_with_recipe_count: 0,
+    first_pet_without_recipe_id: null,
     orders_count: 0,
-    subscriptions_count: 0,
     next_step: "add_pet",
     ...progress,
   },
   onboarding_dismissed: false,
   alerts: { pending_invoices: [], overdue_vaccines: [], incomplete_pets: [] },
   current_order: null,
-  active_subscription: null,
   pets: [],
   recent_orders: [],
   ...overrides,
@@ -68,7 +65,7 @@ describe("DashboardPage", () => {
           pets: [{ id: 3, name: "Rex", type: "dog", recipes: [{ id: 1, name: "Frango" }] }],
           recent_orders: [{ id: 8, status: "pending", total_price: "90.00", items_count: 1, invoice_status: null, created_at: "2026-10-01T10:00:00Z" }],
         },
-        { has_address: true, pets_count: 1, own_recipes_count: 1, linked_recipes_count: 1, orders_count: 1, next_step: "complete" }
+        { has_address: true, pets_count: 1, pets_with_recipe_count: 1, orders_count: 1, next_step: "complete" }
       )
     );
     renderWithProviders(<DashboardPage />);

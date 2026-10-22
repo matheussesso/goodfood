@@ -5,13 +5,13 @@ import { SectionHeading } from "./SectionHeading";
 
 const POINT_IDS = ["a", "b", "c"] as const;
 
-/** One-off orders next to subscriptions as two halves of one panel, plus a line for the bone broth. */
+/** One-off orders next to multi-recipe meal plans as two halves of one panel, plus a line for the bone broth. */
 export async function Plans() {
   const t = await getTranslations({ locale: "pt", namespace: "Landing" });
 
   const options = [
     { id: "single", tone: "bg-gf-blush text-gf-ink", check: "text-gf-red", desc: "text-gf-ink/65" },
-    { id: "subscription", tone: "bg-gf-red text-white", check: "text-white", desc: "text-white/85" },
+    { id: "meal_plan", tone: "bg-gf-red text-white", check: "text-white", desc: "text-white/85" },
   ] as const;
 
   return (
@@ -24,8 +24,8 @@ export async function Plans() {
             <article key={id} className={`p-8 sm:p-10 ${tone}`}>
               <div className="flex flex-wrap items-center gap-3">
                 <h3 className="gf-display text-3xl font-extrabold">{t(`plans.${id}.title`)}</h3>
-                {id === "subscription" && (
-                  <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-gf-red">{t("plans.subscription.badge")}</span>
+                {id === "meal_plan" && (
+                  <span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-gf-red">{t("plans.meal_plan.badge")}</span>
                 )}
               </div>
               <p className={`mt-2 text-lg ${desc}`}>{t(`plans.${id}.desc`)}</p>

@@ -85,7 +85,7 @@ describe("useOrders", () => {
     vi.mocked(apiClient.post).mockResolvedValue(axiosResponse({ success: true, data: order }));
     const queryClient = createTestQueryClient();
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
-    const payload = { items: [{ recipe_id: 2, pet_id: 3 }], delivery_address: "Street 1" };
+    const payload = { items: [{ recipe_id: 2, pet_id: 3, duration_days: 15 }], delivery_address: "Street 1" };
 
     const { result } = renderHook(() => useOrders(), { wrapper: createWrapper(queryClient) });
     await waitFor(() => expect(result.current.orders).toBeDefined());

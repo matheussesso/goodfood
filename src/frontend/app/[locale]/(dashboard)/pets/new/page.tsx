@@ -6,7 +6,9 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
-import { usePets } from "@/hooks/usePets";
+import { usePets, type NewPetRecipe } from "@/hooks/usePets";
+import { useAuth } from "@/hooks/useAuth";
+import { NewPetRecipeStep } from "@/features/pets/components/NewPetRecipeStep";
 import { apiClient } from "@/lib/api-client";
 import { petFormSchema, PetFormData } from "@/lib/validations/pet";
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -15,12 +17,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, PawPrint, UtensilsCrossed, Info, Stethoscope, Camera, Loader2, Dog, Cat, PartyPopper } from "lucide-react";
+import { ArrowLeft, ArrowRight, PawPrint, ShoppingBag, Info, Stethoscope, Camera, Loader2, Dog, Cat, PartyPopper } from "lucide-react";
 
 /**
- * Dedicated page for registering a new pet. Health-record features
- * (vaccines, documents) require an existing pet id, so after a successful
- * save the user is redirected straight to the edit page to continue there.
+ * Pet registration in two steps: the pet's details, then its first recipe
+ * (mandatory — every pet has at least one). Both are saved together. Health
+ * records (vaccines, documents) need an existing pet, so the success screen
+ * offers to complete the profile afterwards.
  */
 export default function NewPetPage() {
   const t = useTranslations("Pets");
@@ -28,6 +31,9 @@ export default function NewPetPage() {
   const tCat = useTranslations("Catalog");
   const router = useRouter();
   const { createPet, isCreating } = usePets();
+  const user = useAuth((state) => state.user);
+  const [step, setStep] = useState<"details" | "recipe">("details");
+  const [petData, setPetData] = useState<PetFormData | null>(null);
 
   const [photoUrl, setPhotoUrl] = useState("");
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -64,13 +70,21 @@ export default function NewPetPage() {
     }
   }
 
-  const onSubmit = async (data: PetFormData) => {
+  // Step 1 only collects the details; nothing is saved until the recipe is chosen.
+  const onSubmit = (data: PetFormData) => {
+    setSubmitError(null);
+    setPetData(data);
+    setStep("recipe");
+  };
+
+  const savePetWithRecipe = async (recipe: NewPetRecipe) => {
+    if (!petData) return;
     setSubmitError(null);
     try {
-      const result = await createPet(data);
+      const result = await createPet({ ...petData, recipe });
       const created = result?.data;
       if (created?.id) {
-        setConfirmedPet({ id: created.id, name: created.name ?? data.name });
+        setConfirmedPet({ id: created.id, name: created.name ?? petData.name });
       } else {
         router.push("/pets");
       }
@@ -90,10 +104,10 @@ export default function NewPetPage() {
           <p className="text-muted-foreground max-w-sm mx-auto">{t("next_step_hint", { name: confirmedPet.name })}</p>
         </div>
         <div className="flex flex-col items-center gap-3 sm:flex-row">
-          <Link href={`/recipes/new?pet_id=${confirmedPet.id}`}>
+          <Link href="/orders/new">
             <Button size="lg" className="gap-2">
-              <UtensilsCrossed className="w-5 h-5" />
-              {t("create_recipe_for_pet", { name: confirmedPet.name })}
+              <ShoppingBag className="w-5 h-5" />
+              {t("make_order_for_pet", { name: confirmedPet.name })}
             </Button>
           </Link>
           <Link href={`/pets/${confirmedPet.id}/edit`}>
@@ -124,6 +138,33 @@ export default function NewPetPage() {
           <p className="text-sm text-muted-foreground mt-0.5">{t("new_pet_desc")}</p>
         </div>
       </div>
+
+      <ol aria-label={t("new_pet_steps")} className="flex flex-wrap items-center gap-2 text-sm font-medium">
+        {(["details", "recipe"] as const).map((id, index) => (
+          <li
+            key={id}
+            aria-current={step === id ? "step" : undefined}
+            className={cn(
+              "flex items-center gap-2 rounded-full border px-3 py-1.5",
+              step === id ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground"
+            )}
+          >
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-current/10 text-xs font-bold">{index + 1}</span>
+            {t(id === "details" ? "step_pet_details" : "step_pet_recipe")}
+          </li>
+        ))}
+      </ol>
+
+      {step === "recipe" && petData ? (
+        <NewPetRecipeStep
+          petName={petData.name}
+          enforceMinimumWeight={user?.role !== "admin"}
+          onSubmit={savePetWithRecipe}
+          onBack={() => setStep("details")}
+          isSubmitting={isCreating}
+          submitError={submitError}
+        />
+      ) : (
 
       <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 space-y-3">
@@ -368,12 +409,13 @@ export default function NewPetPage() {
             </p>
           )}
 
-          <Button type="submit" className="w-full gap-2" size="lg" disabled={isCreating || isUploadingPhoto}>
-            {isCreating && <Loader2 className="w-4 h-4 animate-spin" />}
-            {isCreating ? t("creating") : t("create_pet_cta")}
+          <Button type="submit" className="w-full gap-2" size="lg" disabled={isUploadingPhoto}>
+            {t("next_recipe_step")}
+            <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
       </form>
+      )}
     </div>
   );
 }

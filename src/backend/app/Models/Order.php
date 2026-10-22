@@ -63,10 +63,14 @@ class Order extends Model
         return $this->belongsTo(Recipe::class);
     }
 
-    /** @return HasMany<OrderItem, $this> */
+    /**
+     * The order's meal plan lines, grouped by pet and in plan sequence.
+     *
+     * @return HasMany<OrderItem, $this>
+     */
     public function items(): HasMany
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasMany(OrderItem::class)->orderBy('pet_id')->orderBy('position')->orderBy('id');
     }
 
     /** @return HasOne<Invoice, $this> */

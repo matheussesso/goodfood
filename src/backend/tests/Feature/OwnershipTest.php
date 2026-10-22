@@ -171,7 +171,7 @@ test('a customer cannot order for a pet they do not own', function () {
 
     $this->actingAs($customer)->postJson('/api/orders', [
         'items' => [
-            ['recipe_id' => $recipe->id, 'pet_id' => $foreignPet->id],
+            ['recipe_id' => $recipe->id, 'pet_id' => $foreignPet->id, 'duration_days' => 15],
         ],
     ])->assertStatus(403)
         ->assertJsonPath('success', false);
@@ -182,11 +182,13 @@ test('a customer cannot order another customer\'s private recipe', function () {
     $other = User::factory()->create();
     $pet = createPetFor($customer);
     $private = createRecipeOwnedBy($other);
+    $private->update(['pet_id' => createPetFor($other, 'Other')->id]);
 
+    // The recipe is not one of the item's pet recipes, so the order is rejected.
     $this->actingAs($customer)->postJson('/api/orders', [
-        'items' => [['recipe_id' => $private->id, 'pet_id' => $pet->id]],
-    ])->assertStatus(403)
-        ->assertJsonPath('success', false);
+        'items' => [['recipe_id' => $private->id, 'pet_id' => $pet->id, 'duration_days' => 15]],
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors('items.0.recipe_id');
 
     expect(Order::count())->toBe(0);
 });
@@ -194,12 +196,13 @@ test('a customer cannot order another customer\'s private recipe', function () {
 test('a pet exposes the orders that contain items for it exactly once', function () {
     $customer = User::factory()->create();
     $pet = createPetFor($customer);
-    $template = createRecipeOwnedBy(null, isTemplate: true);
+    $recipe = createRecipeOwnedBy($customer);
+    $recipe->update(['pet_id' => $pet->id]);
 
     $this->actingAs($customer)->postJson('/api/orders', [
         'items' => [
-            ['recipe_id' => $template->id, 'pet_id' => $pet->id],
-            ['recipe_id' => $template->id, 'pet_id' => $pet->id],
+            ['recipe_id' => $recipe->id, 'pet_id' => $pet->id, 'duration_days' => 15],
+            ['recipe_id' => $recipe->id, 'pet_id' => $pet->id, 'duration_days' => 15],
         ],
     ])->assertStatus(201);
 

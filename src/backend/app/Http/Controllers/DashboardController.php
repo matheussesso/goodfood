@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 class DashboardController extends Controller
 {
     /**
-     * Return onboarding progress, alerts and in-flight orders/subscription.
+     * Return onboarding progress, alerts and the order in flight.
      */
     public function show(Request $request, DashboardService $dashboard): JsonResponse
     {

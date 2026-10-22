@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { computeCycleDates, Phase } from "@/features/production/cycle";
 import { ORDER_STATUSES } from "@/lib/order-status";
 import { OrderStatusBadge } from "@/features/orders/components/OrderStatusBadge";
+import { orderItemDayRanges, orderItemRecipeHref } from "@/features/orders/order-items";
 
 /**
  * Slide-in detail panel shown when an order is selected.
@@ -52,6 +53,7 @@ export function OrderDetailPanel({
   placed.setHours(0, 0, 0, 0);
   const { reposicao, producao, entrega } = computeCycleDates(order);
   const hasItems = !!(order.items?.length);
+  const dayRanges = orderItemDayRanges(order.items ?? []);
 
   const fmt = (d: Date) =>
     d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -184,6 +186,8 @@ export function OrderDetailPanel({
                   </p>
                   {order.items!.map((item) => {
                     const PetIcon = item.pet?.type === "cat" ? Cat : Dog;
+                    const range = dayRanges[item.id];
+                    const href = orderItemRecipeHref(item, "admin");
                     return (
                       <div
                         key={item.id}
@@ -204,11 +208,10 @@ export function OrderDetailPanel({
                             )}
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center flex-wrap gap-x-2">
-                            {item.recipe?.duration_days && (
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {item.recipe.duration_days} {tCat("days")}
-                              </span>
-                            )}
+                            <span className="flex items-center gap-1 font-medium text-foreground">
+                              <Clock className="w-3 h-3" /> {t("days_value", { count: item.duration_days })}
+                            </span>
+                            {range && <span>{t("plan_days_range", { start: range.startDay, end: range.endDay })}</span>}
                             {item.recipe?.daily_portions && (
                               <span className="flex items-center gap-1">
                                 <Salad className="w-3 h-3" /> {item.recipe.daily_portions} {tCat("daily_portions").toLowerCase()}
@@ -219,11 +222,13 @@ export function OrderDetailPanel({
                             </span>
                           </p>
                         </div>
-                        <Link href={`/recipes/${item.recipe_id}`} className="shrink-0">
-                          <Button variant="outline" size="sm" className="h-7 text-xs gap-1 px-2">
-                            {tProd("view_recipe_btn")} <ExternalLink className="w-3 h-3" />
-                          </Button>
-                        </Link>
+                        {href && (
+                          <Link href={href} className="shrink-0">
+                            <Button variant="outline" size="sm" className="h-7 text-xs gap-1 px-2">
+                              {tProd("view_recipe_btn")} <ExternalLink className="w-3 h-3" />
+                            </Button>
+                          </Link>
+                        )}
                       </div>
                     );
                   })}

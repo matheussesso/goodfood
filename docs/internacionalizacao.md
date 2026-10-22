@@ -12,15 +12,15 @@ A landing (`app/[locale]/page.tsx`, namespace `Landing`) é escrita **só em por
 
 ## URLs traduzidas
 
-As pastas do App Router e todos os `href` do código usam a rota **canônica em inglês** (`/recipes/new`). Cada locale pode renomear os segmentos estáticos: em português a URL pública é `/receitas/criar`; `en` e `es` mantêm a rota canônica.
+As pastas do App Router e todos os `href` do código usam a rota **canônica em inglês** (`/pets/[id]/recipes/new`). Cada locale pode renomear os segmentos estáticos: em português a URL pública é `/pets/12/receitas/criar`; `en` e `es` mantêm a rota canônica.
 
 - Dicionário e lista de rotas: `src/frontend/i18n/pathnames.ts` (`SEGMENT_TRANSLATIONS`, `CANONICAL_ROUTES`). Rota nova = adicionar em `CANONICAL_ROUTES` (e traduzir os segmentos novos, se houver).
-- O middleware (`pathnames` em `i18n/routing.ts`) reescreve a URL traduzida para a pasta real e redireciona a URL canônica para a traduzida (`/recipes/new` → `/receitas/criar`).
+- O middleware (`pathnames` em `i18n/routing.ts`) reescreve a URL traduzida para a pasta real e redireciona a URL canônica para a traduzida (`/pets/12/recipes/new` → `/pets/12/receitas/criar`).
 - No código, use **sempre** `Link`, `useRouter` e `usePathname` de `@/i18n/navigation` (nunca `next/link`/`next/navigation` para navegar): eles recebem a rota canônica e traduzem para o locale ativo. `usePathname` devolve a rota canônica, então comparações como `startsWith("/orders")` independem do idioma.
 - `useParams`/`useSearchParams` de `next/navigation` continuam valendo (params vêm da pasta real).
 - Traduzir outro locale (ex.: `es`) = adicionar um bloco em `SEGMENT_TRANSLATIONS`.
 
-Mapa em português: `dashboard→inicio`, `login→entrar`, `register→cadastro`, `guide→guia`, `profile→perfil`, `recipes→receitas`, `orders→pedidos`, `subscriptions→assinaturas`, `production→producao`, `catalog→catalogo`, `customers→clientes`, `new→criar`, `edit→editar`.
+Mapa em português: `dashboard→inicio`, `login→entrar`, `register→cadastro`, `guide→guia`, `profile→perfil`, `recipes→receitas`, `orders→pedidos`, `production→producao`, `catalog→catalogo`, `customers→clientes`, `new→criar`, `edit→editar`.
 
 ## Regra de ouro
 
@@ -53,7 +53,7 @@ Em Server Components/páginas async, usar `getTranslations()` de `next-intl/serv
 | --- | --- |
 | `Common` | Rótulos universais: `save`, `cancel`, `loading`, `try_again`, `something_went_wrong`, validações… **Nunca duplicar uma chave que já existe aqui** |
 | `Auth`, `Navigation`, `Dashboard` | Áreas transversais |
-| `Pets`, `Recipes`, `Orders`, `Subscriptions`, `Catalog`, `Profile`, `Production` | Texto específico de cada feature |
+| `Pets`, `Recipes`, `Orders`, `Catalog`, `Profile`, `Production` | Texto específico de cada feature |
 | `admin` | Telas administrativas |
 | `Metadata`, `NotFound` | Metadados de página e 404 localizado |
 

@@ -52,7 +52,7 @@ export function DashboardPetCard({ pet }: { pet: DashboardPet }) {
             </Button>
           </Link>
         ) : (
-          <Link href={`/recipes/new?pet_id=${pet.id}`} className="flex-1">
+          <Link href={`/pets/${pet.id}/recipes/new`} className="flex-1">
             <Button size="sm" className="w-full">
               {tOnboarding("create_recipe_for_pet", { name: pet.name })}
             </Button>

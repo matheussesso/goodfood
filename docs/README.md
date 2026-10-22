@@ -7,8 +7,8 @@
 | [configuracao.md](configuracao.md) | Pré-requisitos, subida do ambiente Docker, comandos do dia a dia e **troubleshooting** |
 | [implantacao_vps.md](implantacao_vps.md) | Deploy em VPS: Docker de produção, pipeline CI/CD e configuração de SSH/Secrets |
 | [arquitetura.md](arquitetura.md) | Arquitetura do sistema: camadas do backend, padrões do frontend, infraestrutura |
-| [dominio.md](dominio.md) | Modelo de domínio: entidades, relacionamentos e regras de negócio (assinaturas, custo de receitas) |
-| [funcionalidades.md](funcionalidades.md) | Documentação funcional das telas e fluxos: pets, catálogo, receitas, pedidos, assinaturas, administração |
+| [dominio.md](dominio.md) | Modelo de domínio: entidades, relacionamentos e regras de negócio (receitas por pet, pedido como plano alimentar, custo de receitas) |
+| [funcionalidades.md](funcionalidades.md) | Documentação funcional das telas e fluxos: pets, catálogo, receitas, pedidos (plano alimentar), administração |
 | [api.md](api.md) | Referência da API REST: autenticação, contrato de resposta, endpoints e autorização |
 | [testes.md](testes.md) | Como rodar e escrever testes (Pest), o que a suíte cobre |
 | [internacionalizacao.md](internacionalizacao.md) | Fluxo obrigatório de internacionalização do frontend (pt/en/es) |

@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { Pet } from "./usePets";
 import { Order } from "./useOrders";
-import { Subscription } from "./useSubscriptions";
 
 import { Recipe } from "./useRecipes";
 
@@ -27,7 +26,6 @@ export interface Customer {
   orders_count?: number;
   pets?: Pet[];
   orders?: Order[];
-  subscriptions?: Subscription[];
   recipes?: Recipe[];
 }
 

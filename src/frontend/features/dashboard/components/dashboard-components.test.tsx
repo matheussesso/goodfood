@@ -9,11 +9,9 @@ import { RecentOrders } from "./RecentOrders";
 const progress: DashboardProgress = {
   has_address: true,
   pets_count: 1,
-  own_recipes_count: 0,
-  linked_recipes_count: 0,
-  first_unlinked_recipe_id: null,
+  pets_with_recipe_count: 0,
+  first_pet_without_recipe_id: null,
   orders_count: 0,
-  subscriptions_count: 0,
   next_step: "create_recipe",
 };
 
@@ -61,7 +59,7 @@ describe("DashboardPetCard", () => {
   it("suggests creating a recipe for a pet that has none", () => {
     renderWithProviders(<ul><DashboardPetCard pet={pet()} /></ul>);
 
-    expect(screen.getByRole("link", { name: "Criar receita para Mel" })).toHaveAttribute("href", "/recipes/new?pet_id=5");
+    expect(screen.getByRole("link", { name: "Criar receita para Mel" })).toHaveAttribute("href", "/pets/5/recipes/new");
     expect(screen.queryByRole("link", { name: messages.Dashboard.order_for_pet })).not.toBeInTheDocument();
   });
 

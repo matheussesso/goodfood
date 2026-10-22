@@ -44,7 +44,7 @@ describe("useRecipes", () => {
     vi.mocked(apiClient.post).mockResolvedValue(axiosResponse({ success: true, data: recipe }));
     const queryClient = createTestQueryClient();
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
-    const payload = { name: "New", ingredients: [{ id: 1, quantity: 200, unit: "g" }], pet_ids: [3] };
+    const payload = { name: "New", ingredients: [{ id: 1, quantity: 200, unit: "g" }], pet_id: 3 };
 
     const { result } = renderHook(() => useRecipes(), { wrapper: createWrapper(queryClient) });
     await waitFor(() => expect(result.current.recipes).toBeDefined());

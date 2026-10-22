@@ -73,11 +73,6 @@ class Pet extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function subscriptions()
-    {
-        return $this->hasMany(Subscription::class);
-    }
-
     /**
      * Orders that contain at least one item for this pet. The pet is stored on
      * `order_items.pet_id` (not on the legacy `orders.pet_id` column), so an
@@ -88,9 +83,14 @@ class Pet extends Model
         return $this->belongsToMany(Order::class, 'order_items')->distinct();
     }
 
+    /**
+     * The pet's own recipes. Every pet is created with at least one.
+     *
+     * @return HasMany<Recipe, $this>
+     */
     public function recipes()
     {
-        return $this->belongsToMany(Recipe::class)->withTimestamps();
+        return $this->hasMany(Recipe::class)->orderBy('id');
     }
 
     /** @return HasMany<PetVaccine, $this> */

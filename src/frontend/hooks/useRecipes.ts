@@ -12,7 +12,8 @@ export interface Recipe {
   id: number;
   name: string;
   description?: string;
-  pet_id?: number;
+  /** Pet the recipe belongs to; catalog templates have none. */
+  pet_id?: number | null;
   pet_type?: string;
   duration_days?: number;
   daily_portions?: number;
@@ -24,10 +25,25 @@ export interface Recipe {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  pets?: { id: number; name: string; photo_url?: string }[];
+  pet?: { id: number; name: string; type?: "dog" | "cat"; user_id?: number } | null;
   ingredients: (Ingredient & { pivot: { quantity: string; unit: string } })[];
 }
 
+/**
+ * Fields accepted when creating a recipe. Customer recipes need the `pet_id`
+ * they belong to; only admin catalog templates (`is_template`) go without one.
+ */
+export type CreateRecipeInput = Omit<Partial<Recipe>, "ingredients" | "pet" | "pet_id"> & { pet_id?: number; ingredients?: RecipeIngredient[] };
+
+/** Fields accepted when updating a recipe (a recipe never changes pet). */
+export type UpdateRecipeInput = Omit<Partial<Recipe>, "ingredients" | "pet" | "pet_id"> & { id: number; ingredients?: RecipeIngredient[] };
+
+/**
+ * Recipes visible to the user (templates + recipes of their pets) or, with
+ * `petId`, only that pet's recipes; plus create/update/delete mutations.
+ *
+ * @param petId - Optional pet to scope the list to.
+ */
 export function useRecipes(petId?: string) {
   const queryClient = useQueryClient();
 
@@ -41,22 +57,27 @@ export function useRecipes(petId?: string) {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: Omit<Partial<Recipe>, 'ingredients'|'pets'> & { ingredients?: RecipeIngredient[], pet_ids?: number[] }) => {
-      const response = await apiClient.post("/recipes", data);
-      return response.data;
+    mutationFn: async (data: CreateRecipeInput) => {
+      const response = await apiClient.post<{ success: boolean; data: Recipe }>("/recipes", data);
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["pets"] });
+      queryClient.invalidateQueries({ queryKey: ["pet"] });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...data }: Omit<Partial<Recipe>, 'ingredients'|'pets'> & { id: number; ingredients?: RecipeIngredient[], pet_ids?: number[] }) => {
-      const response = await apiClient.put(`/recipes/${id}`, data);
-      return response.data;
+    mutationFn: async ({ id, ...data }: UpdateRecipeInput) => {
+      const response = await apiClient.put<{ success: boolean; data: Recipe }>(`/recipes/${id}`, data);
+      return response.data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["recipe"] });
+      queryClient.invalidateQueries({ queryKey: ["pets"] });
+      queryClient.invalidateQueries({ queryKey: ["pet"] });
     },
   });
 
@@ -67,6 +88,8 @@ export function useRecipes(petId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["pets"] });
+      queryClient.invalidateQueries({ queryKey: ["pet"] });
     },
   });
 
@@ -83,6 +106,28 @@ export function useRecipes(petId?: string) {
   };
 }
 
+/**
+ * Active catalog templates (recipes prepared by the admin to start from).
+ *
+ * @returns The templates and a loading flag.
+ */
+export function useRecipeTemplates() {
+  const { data: templates, isLoading } = useQuery({
+    queryKey: ["recipes", { templates: true }],
+    queryFn: async () => {
+      const response = await apiClient.get<{ success: boolean; data: Recipe[] }>("/recipes?templates=1");
+      return response.data.data;
+    },
+  });
+
+  return { templates, isLoading };
+}
+
+/**
+ * One recipe with its ingredients and pet.
+ *
+ * @param id - Recipe id (the query is skipped while empty).
+ */
 export function useRecipe(id: string) {
   const { data: recipe, isLoading, error } = useQuery({
     queryKey: ["recipe", id],
@@ -100,18 +145,17 @@ export function useRecipe(id: string) {
   };
 }
 
-/** Payload for cloning a recipe (usually a catalog template). */
+/** Payload for copying a recipe (usually a catalog template) into a pet. */
 export interface CloneRecipePayload {
   id: number;
+  /** Pet (own) that receives the copy. */
+  pet_id: number;
   /** Optional name for the copy; defaults to the original's. */
   name?: string;
-  /** Pets (own) to link the copy to. */
-  pet_ids?: number[];
 }
 
 /**
- * Copies a recipe into the user's own private recipes, optionally linking the
- * copy to their pets in the same request.
+ * Copies a recipe into one of the user's pets as a private recipe.
  *
  * @returns A mutation resolving to the newly created recipe.
  */
@@ -126,6 +170,7 @@ export function useCloneRecipe() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
       queryClient.invalidateQueries({ queryKey: ["pets"] });
+      queryClient.invalidateQueries({ queryKey: ["pet"] });
     },
   });
 }

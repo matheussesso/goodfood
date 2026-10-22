@@ -43,7 +43,6 @@ class DashboardResource extends JsonResource
                 'incomplete_pets' => $alerts['incomplete_pets'],
             ],
             'current_order' => $summary['current_order'] ? OrderResource::make($summary['current_order']) : null,
-            'active_subscription' => $summary['active_subscription'] ? SubscriptionResource::make($summary['active_subscription']) : null,
             'pets' => $summary['pets']->map(fn (Pet $pet) => [
                 'id' => $pet->id,
                 'name' => $pet->name,

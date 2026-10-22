@@ -9,8 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * API representation of a Pet. Includes the belongsToMany pivot when the pet
- * is nested under a recipe, matching the previous model serialization.
+ * API representation of a Pet with (when loaded) its recipes, orders, health
+ * records and owner.
  *
  * @mixin Pet
  */
@@ -46,10 +46,8 @@ class PetResource extends JsonResource
             'user' => UserResource::make($this->whenLoaded('user')),
             'recipes' => RecipeResource::collection($this->whenLoaded('recipes')),
             'orders' => OrderResource::collection($this->whenLoaded('orders')),
-            'subscriptions' => SubscriptionResource::collection($this->whenLoaded('subscriptions')),
             'vaccines' => PetVaccineResource::collection($this->whenLoaded('vaccines')),
             'documents' => PetDocumentResource::collection($this->whenLoaded('documents')),
-            'pivot' => $this->when($this->resource->pivot !== null, fn () => $this->resource->pivot),
         ];
     }
 }

@@ -14,7 +14,6 @@ import {
   UtensilsCrossed,
   Package,
   Calendar,
-  Eye,
   Edit2,
   Plus,
   ShoppingBag,
@@ -310,8 +309,8 @@ export default function AdminPetProfilePage() {
         {activeTab === "recipes" && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card p-4 rounded-xl border shadow-sm">
-              <p className="text-sm text-muted-foreground">{t("linked_recipes_count", { count: pet.recipes?.length ?? 0 })}</p>
-              <Link href={`/recipes/new?user_id=${customerId}`}>
+              <p className="text-sm text-muted-foreground">{t("recipes_count", { count: pet.recipes?.length ?? 0 })}</p>
+              <Link href={`/pets/${pet.id}/recipes/new`}>
                 <Button size="sm" className="gap-1.5">
                   <Plus className="w-3.5 h-3.5" /> {t("new_recipe")}
                 </Button>
@@ -328,7 +327,7 @@ export default function AdminPetProfilePage() {
                     <div className="p-4 pb-3 border-b border-border/50 bg-muted/20">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <Link href={`/recipes/${recipe.id}`} className="hover:text-primary transition-colors">
+                          <Link href={`/pets/${pet.id}/recipes/${recipe.id}/edit`} className="hover:text-primary transition-colors">
                             <h4 className="font-semibold text-base line-clamp-1">{recipe.name}</h4>
                           </Link>
                           <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 min-h-[2.5rem]">
@@ -359,9 +358,9 @@ export default function AdminPetProfilePage() {
                       </div>
                     </div>
                     <div className="flex gap-2 p-3 mt-auto">
-                      <Link href={`/recipes/${recipe.id}`} className="flex-1">
+                      <Link href={`/pets/${pet.id}/recipes/${recipe.id}/edit`} className="flex-1">
                         <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
-                          <Eye className="w-3.5 h-3.5" /> {tCommon("view")}
+                          <Edit2 className="w-3.5 h-3.5" /> {tCommon("edit")}
                         </Button>
                       </Link>
                     </div>

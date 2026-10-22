@@ -32,7 +32,7 @@ Local: `src/backend`. **Laravel 13** sobre **PHP 8.4** (imagem `dunglas/frankenp
 | **FormRequests** | `app/Http/Requests/<Feature>/` | Validação de entrada e autorização de requisição (delegando às Policies). Campos sensíveis (`user_id`, `is_template`) são descartados para não-admins no `validated()` |
 | **Controllers** | `app/Http/Controllers/` | Finos: recebem o FormRequest validado, orquestram Models/Services e respondem via trait `ApiResponses` |
 | **Policies** | `app/Policies/` | Autorização por recurso (dono ou admin; admin tem bypass via `before()`). Auto-descobertas por convenção `Models\X → Policies\XPolicy` |
-| **Services** | `app/Services/` | Regras de negócio: `RecipeCostCalculatorService` (precificação de receitas, sempre calculada ao vivo — nunca cacheada) |
+| **Services** | `app/Services/` | Regras de negócio: `RecipeCostCalculatorService` (precificação de receitas, sempre calculada ao vivo — nunca cacheada), `RecipeService` (criação/cópia de receitas de pet, sincronização de ingredientes e bloqueio de exclusão), `OrderService` (cria pedido, fatura e itens do plano alimentar numa transação) e `DashboardService` (resumo e jornada do cliente) |
 | **Resources** | `app/Http/Resources/` | Serialização das respostas (JsonResource por model, com `whenLoaded`/`whenCounted` para relações) |
 | **Models** | `app/Models/` | Relacionamentos, casts e accessors. Mass assignment restrito (ex.: `role` de `User` fora do fillable) |
 | **Middleware** | `app/Http/Middleware/AdminMiddleware.php` | Gate adicional das rotas administrativas |
@@ -48,7 +48,7 @@ Detalhes de endpoints em [api.md](api.md); entidades e regras em [dominio.md](do
 
 ### Agendamento
 
-Nenhum comando agendado existe hoje — assinaturas não geram pedidos automaticamente (ver [dominio.md](dominio.md#subscription)) e não há serviço `scheduler` nos composes. Quando um job recorrente for necessário, adicione o comando em `routes/console.php` e um serviço `php artisan schedule:work` (mesma imagem do backend).
+Nenhum comando agendado existe hoje — pedidos só nascem de uma requisição `POST /orders` (não há geração automática) e não há serviço `scheduler` nos composes. Quando um job recorrente for necessário, adicione o comando em `routes/console.php` e um serviço `php artisan schedule:work` (mesma imagem do backend).
 
 ### Evoluções planejadas
 
@@ -68,8 +68,8 @@ Local: `src/frontend`. **Next.js 16 (App Router)** com **React 19** e **TypeScri
 - **HTTP**: instância única do Axios em `lib/api-client.ts` (`API_BASE_URL`, `withCredentials`, CSRF automático via `ensureCsrfCookie()` antes de mutações). Única exceção de `fetch` direto: API externa ViaCEP, encapsulada em `lib/viacep.ts`.
 - **Formulários**: React Hook Form + **Zod** (`@hookform/resolvers`), schemas em `lib/validations/`.
 - **Páginas decompostas**: componentes de feature em `features/<feature>/components` (ex.: `features/admin-customers/`).
-- **Peças compartilhadas**: `lib/order-status.ts` (status/estilos de pedido e assinatura), `features/orders/components` (badge, timeline, itens), `features/recipes` (simulação de custo debounced, seletor de ingredientes e painel de custo), `components/address/AddressFields` (endereço com ViaCEP), `components/layout/nav-links.ts` (menu por papel) e `lib/masks.ts` (CEP/e-mail/telefone).
-- **Dashboard e onboarding**: `GET /dashboard` (`DashboardService`) devolve todo o resumo do cliente e o `next_step` da jornada pet → receita → vínculo → pedido. No frontend, `hooks/useDashboard.ts` consome o endpoint; `features/onboarding/journey.ts` deriva o status de cada passo e `features/dashboard/components` compõe a tela. Um `MutationCache` global (`createAppQueryClient`) invalida `["dashboard"]` após qualquer mutação bem-sucedida, mantendo o resumo sempre fresco.
+- **Peças compartilhadas**: `lib/order-status.ts` (status/estilos de pedido), `features/orders` (badge, timeline, itens e o montador do plano alimentar: `meal-plan.ts`, `PetMealPlan`, `DurationStepper`, `MealPlanSummary`), `features/recipes` (formulário de receita reutilizável `RecipeForm`, escolha do ponto de partida `RecipeStartStep`/`TemplatePicker`, simulação de custo debounced, seletor de ingredientes e painel de custo), `hooks/useRecipeDurationCost.ts` (`useRecipeDurationCosts`: custo ao vivo de cada receita do plano para a duração escolhida), `components/address/AddressFields` (endereço com ViaCEP), `components/layout/nav-links.ts` (menu por papel) e `lib/masks.ts` (CEP/e-mail/telefone).
+- **Dashboard e onboarding**: `GET /dashboard` (`DashboardService`) devolve todo o resumo do cliente e o `next_step` da jornada pet → receita → pedido. No frontend, `hooks/useDashboard.ts` consome o endpoint; `features/onboarding/journey.ts` deriva o status de cada passo e `features/dashboard/components` compõe a tela. Um `MutationCache` global (`createAppQueryClient`) invalida `["dashboard"]` após qualquer mutação bem-sucedida, mantendo o resumo sempre fresco.
 - **Landing**: `app/[locale]/page.tsx` é Server Component (só pt, ver [internacionalizacao.md](internacionalizacao.md)); componentes por seção em `features/landing/components`, ilhas client mínimas (`LandingHeader`, `AuthCtas`), dados públicos da empresa em `lib/company.ts`, `sitemap.ts`/`robots.ts` na raiz de `app/`.
 - **Boundaries**: `error.tsx` e `loading.tsx` por route group, com `unstable_retry` (Next 16).
 - **UI**: Tailwind CSS 4 + componentes em `components/ui/` (padrão shadcn sobre Base UI/cmdk), `clsx`/`tailwind-merge` via `lib/utils.ts`, ícones lucide-react, temas com next-themes.

@@ -1,13 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Plus } from "lucide-react";
+import { LayoutDashboard, Plus } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useDashboard } from "@/hooks/useDashboard";
 import { Button } from "@/components/ui/button";
 import { getNavLinks } from "@/components/layout/nav-links";
-import { ActiveSubscriptionCard } from "@/features/dashboard/components/ActiveSubscriptionCard";
 import { AlertsBar } from "@/features/dashboard/components/AlertsBar";
 import { ContinueSetupBanner } from "@/features/dashboard/components/ContinueSetupBanner";
 import { CurrentOrderCard } from "@/features/dashboard/components/CurrentOrderCard";
@@ -59,7 +58,10 @@ export default function DashboardPage() {
 
   const header = (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("dashboard")}</h1>
+      <h1 className="flex items-center gap-3 text-2xl font-bold tracking-tight text-foreground">
+        <LayoutDashboard className="mb-1 h-7 w-7 text-primary" aria-hidden="true" />
+        {t("dashboard")}
+      </h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {data && data.progress.next_step === "complete" ? tDash("greeting_active") : tDash("welcome_back", { name: user?.name ?? "" })}
       </p>
@@ -100,7 +102,7 @@ export default function DashboardPage() {
 
   const { progress, alerts } = data;
   const journeyDone = progress.next_step === "complete";
-  const isFreshAccount = progress.pets_count === 0 && progress.orders_count === 0 && progress.subscriptions_count === 0;
+  const isFreshAccount = progress.pets_count === 0 && progress.orders_count === 0;
   const showGuide = !journeyDone && !data.onboarding_dismissed;
   // A brand-new account only needs the guide; the empty sections would be noise.
   const showSections = !(isFreshAccount && showGuide);
@@ -116,10 +118,7 @@ export default function DashboardPage() {
 
       {showSections && (
         <>
-          <div className="grid gap-4 md:grid-cols-2">
-            <CurrentOrderCard order={data.current_order} />
-            <ActiveSubscriptionCard subscription={data.active_subscription} />
-          </div>
+          <CurrentOrderCard order={data.current_order} />
 
           <section aria-labelledby="dashboard-pets" className="space-y-3">
             <div className="flex items-center justify-between">

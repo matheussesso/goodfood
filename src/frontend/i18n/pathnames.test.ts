@@ -3,16 +3,15 @@ import { CANONICAL_ROUTES, buildPathnames, delocalizePath, localizePath } from "
 
 describe("localizePath", () => {
   it("translates static segments to Portuguese", () => {
-    expect(localizePath("/recipes/new", "pt")).toBe("/receitas/criar");
+    expect(localizePath("/pets/3/recipes/new", "pt")).toBe("/pets/3/receitas/criar");
     expect(localizePath("/dashboard", "pt")).toBe("/inicio");
-    expect(localizePath("/orders/subscriptions/new", "pt")).toBe("/pedidos/assinaturas/criar");
+    expect(localizePath("/orders/new", "pt")).toBe("/pedidos/criar");
     expect(localizePath("/admin/customers", "pt")).toBe("/admin/clientes");
   });
 
   it("keeps dynamic values and translates the segments around them", () => {
-    expect(localizePath("/recipes/12/edit", "pt")).toBe("/receitas/12/editar");
+    expect(localizePath("/pets/3/recipes/12/edit", "pt")).toBe("/pets/3/receitas/12/editar");
     expect(localizePath("/admin/customers/4/pets/9", "pt")).toBe("/admin/clientes/4/pets/9");
-    expect(localizePath("/orders/subscriptions/7/edit", "pt")).toBe("/pedidos/assinaturas/7/editar");
   });
 
   it("prefers static routes over dynamic ones", () => {
@@ -21,14 +20,14 @@ describe("localizePath", () => {
   });
 
   it("preserves query string and hash", () => {
-    expect(localizePath("/recipes/new?pet_id=3", "pt")).toBe("/receitas/criar?pet_id=3");
+    expect(localizePath("/orders/new?pet_id=3", "pt")).toBe("/pedidos/criar?pet_id=3");
     expect(localizePath("/profile?section=address", "pt")).toBe("/perfil?section=address");
     expect(localizePath("/guide#faq", "pt")).toBe("/guia#faq");
   });
 
   it("leaves other locales and unknown or external paths untouched", () => {
-    expect(localizePath("/recipes/new", "en")).toBe("/recipes/new");
-    expect(localizePath("/recipes/new", "es")).toBe("/recipes/new");
+    expect(localizePath("/pets/3/recipes/new", "en")).toBe("/pets/3/recipes/new");
+    expect(localizePath("/pets/3/recipes/new", "es")).toBe("/pets/3/recipes/new");
     expect(localizePath("/unknown/page", "pt")).toBe("/unknown/page");
     expect(localizePath("https://example.com/orders", "pt")).toBe("https://example.com/orders");
   });
@@ -41,8 +40,8 @@ describe("localizePath", () => {
 
 describe("delocalizePath", () => {
   it("restores the canonical route", () => {
-    expect(delocalizePath("/receitas/criar", "pt")).toBe("/recipes/new");
-    expect(delocalizePath("/pedidos/assinaturas/7/editar", "pt")).toBe("/orders/subscriptions/7/edit");
+    expect(delocalizePath("/pets/3/receitas/criar", "pt")).toBe("/pets/3/recipes/new");
+    expect(delocalizePath("/pedidos/7", "pt")).toBe("/orders/7");
     expect(delocalizePath("/inicio", "pt")).toBe("/dashboard");
   });
 
@@ -62,10 +61,10 @@ describe("buildPathnames", () => {
   it("maps every canonical route to a URL for each locale", () => {
     const pathnames = buildPathnames(["pt", "en", "es"]);
     expect(Object.keys(pathnames)).toHaveLength(CANONICAL_ROUTES.length);
-    expect(pathnames["/recipes/[id]/edit"]).toEqual({
-      pt: "/receitas/[id]/editar",
-      en: "/recipes/[id]/edit",
-      es: "/recipes/[id]/edit",
+    expect(pathnames["/pets/[id]/recipes/[recipeId]/edit"]).toEqual({
+      pt: "/pets/[id]/receitas/[recipeId]/editar",
+      en: "/pets/[id]/recipes/[recipeId]/edit",
+      es: "/pets/[id]/recipes/[recipeId]/edit",
     });
   });
 

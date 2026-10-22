@@ -1,19 +1,16 @@
 # Modelo de Domínio
 
-O GoodFood System é uma plataforma de alimentação natural para pets por assinatura: tutores cadastram seus pets, recebem receitas personalizadas e fazem pedidos avulsos ou recorrentes. A empresa administra catálogo, produção e entregas.
+O GoodFood System é uma plataforma de alimentação natural para pets: tutores cadastram seus pets, cada um com as suas receitas personalizadas, e fazem pedidos que funcionam como planos alimentares (uma ou mais receitas em sequência por pet, cada uma com a sua duração). A empresa administra catálogo, produção e entregas.
 
 ## Entidades
 
 ```text
 User (tutor ou admin)
  ├── Pet (1:N)
- │    └── Recipe (N:M via pet_recipe — receitas vinculadas ao pet)
- ├── Recipe (1:N — receitas criadas pelo usuário; templates têm user_id null ou de admin)
- ├── Subscription (1:N — plano semanal fixo, independente de Order)
- │    ├── Pet (N:1)
- │    └── Recipe (N:M via subscription_recipes, ordenada por `position` — uma receita por semana)
- └── Order (1:N)
-      ├── OrderItem (1:N — cada item aponta para Recipe e opcionalmente Pet)
+ │    └── Recipe (1:N via recipes.pet_id — todo pet tem ao menos uma receita)
+ ├── Recipe (1:N via user_id — autor; templates do catálogo não têm pet)
+ └── Order (1:N — o plano alimentar)
+      ├── OrderItem (1:N — Pet + Recipe + duration_days + position)
       └── Invoice (1:1)
 
 Ingredient
@@ -22,7 +19,7 @@ Ingredient
 GeneralSetting (linha única — parâmetros globais de precificação)
 ```
 
-> `Subscription` e `Order` **não têm relação entre si** — não existe `subscription_id` em `orders`. Uma assinatura é um plano salvo, não gera pedidos sozinha (ver [Subscription](#subscription) abaixo).
+> O antigo módulo de assinaturas foi removido. As tabelas foram apenas renomeadas para `legacy_subscriptions` e `legacy_subscription_recipes` (migration `2026_10_22_000002_archive_subscriptions_tables`), preservando os dados para consulta direta no banco — nenhum model ou endpoint as usa.
 
 ### Diagrama ER
 
@@ -30,18 +27,15 @@ GeneralSetting (linha única — parâmetros globais de precificação)
 erDiagram
     USER ||--o{ PET : "possui"
     USER ||--o{ RECIPE : "cria (ou template se null)"
-    USER ||--o{ SUBSCRIPTION : "assina"
     USER ||--o{ ORDER : "faz"
     USER ||--o{ INVOICE : "recebe"
 
-    PET }o--o{ RECIPE : "pet_recipe"
-    PET ||--o{ SUBSCRIPTION : "alvo de"
+    PET ||--o{ RECIPE : "recipes.pet_id"
     PET ||--o{ PET_VACCINE : "possui"
     PET ||--o{ PET_DOCUMENT : "possui"
-    PET ||--o{ ORDER_ITEM : "opcional em"
+    PET ||--o{ ORDER_ITEM : "plano de"
 
     RECIPE }o--o{ INGREDIENT : "ingredient_recipe (quantity, unit)"
-    SUBSCRIPTION }o--o{ RECIPE : "subscription_recipes (position, ordenado)"
     ORDER_ITEM }o--|| RECIPE : "referencia"
 
     ORDER ||--o{ ORDER_ITEM : "contém"
@@ -52,11 +46,13 @@ erDiagram
     }
     RECIPE {
         bool is_template
+        int pet_id "null só em templates (e receitas antigas sem pet)"
         decimal base_cost "coluna cache — nunca fonte de verdade p/ exibição"
     }
-    SUBSCRIPTION {
-        int duration_days "múltiplo de 7, mínimo 14"
-        string status "active|paused|cancelled"
+    ORDER_ITEM {
+        int duration_days "7 a 90"
+        int position "ordem no plano do pet"
+        decimal unit_price "custo ao vivo para duration_days"
     }
     ORDER {
         string status "pending_payment..delivered|cancelled"
@@ -76,6 +72,7 @@ erDiagram
 
 ### Pet
 - Pertence a um `User`. Campos: `name`, `type` (`dog`|`cat`), `sex`, `neutered`, `microchip_number`, `vet_name`, `vet_phone`, `breed`, `weight` (kg), `age` (meses), `birth_date`, `restrictions`, `allergies`, `special_needs`, `photo_url`.
+- `recipes` (`hasMany`, via `recipes.pet_id`): as receitas do pet. Todo pet novo nasce com uma receita — `POST /pets` exige o objeto `recipe` (montada do zero ou copiada de um template) e cria pet + receita numa transação. Pets antigos, anteriores a essa regra, podem estar sem receita: o dashboard aponta para `first_pet_without_recipe_id`.
 - Relações de saúde: `vaccines` (`PetVaccine`) e `documents` (`PetDocument`). `Pet::orders` vem de `order_items.pet_id` (não da coluna legada `orders.pet_id`).
 - Foto enviada via `POST /api/pets/upload-photo` (armazenada em `storage/app/public/pets`).
 
@@ -84,27 +81,21 @@ erDiagram
 - Somente admins criam/editam/removem; clientes veem apenas os ativos.
 
 ### Recipe
-- Pode ser **template** (`is_template = true`, criada por admin, visível a todos) ou **receita de cliente** (vinculada a `user_id` e opcionalmente a pets).
+- Pode ser **template** (`is_template = true`, criada por admin, sem pet, visível a todos — ponto de partida para a receita do pet) ou **receita de pet** (`pet_id` de um único pet; um pet tem 1..N receitas). Uma receita nunca muda de pet; usar um template cria uma cópia privada para o pet (`RecipeService::copyToPet`).
+- Receitas de cliente sem pet só existem como legado da migração `2026_10_22_000001_make_recipes_belong_to_a_single_pet` (que converteu o antigo pivot `pet_recipe` em `recipes.pet_id`, copiando receitas compartilhadas entre pets); ficam ocultas na interface e não afetam o histórico de pedidos.
 - Campos: `name`, `description`, `pet_type` (`dog`|`cat`|`all`), `duration_days`, `daily_portions`, `instructions`, `base_cost`, `ingredient_cost`, `is_active`.
-- Ingredientes via pivot com `quantity` e `unit`. `base_cost`/`ingredient_cost` são colunas cacheadas, recalculadas por `updateBaseCost()` a cada `store`/`update` — mas **nunca são a fonte de verdade para exibição**: `RecipeResource` sempre recalcula ao vivo (`calculateCostResult()`) a partir dos ingredientes carregados, então uma mudança no preço de um ingrediente reflete imediatamente em qualquer receita, pedido ou assinatura que a usa, sem precisar resalvar nada.
-- Visibilidade para clientes: templates + receitas próprias + receitas vinculadas a seus pets (ver `RecipePolicy`). Pedidos e assinaturas só aceitam receitas visíveis ao usuário.
+- Ingredientes via pivot com `quantity` e `unit`. `base_cost`/`ingredient_cost` são colunas cacheadas, recalculadas por `updateBaseCost()` a cada `store`/`update` — mas **nunca são a fonte de verdade para exibição**: `RecipeResource` sempre recalcula ao vivo (`calculateCostResult()`) a partir dos ingredientes carregados, então uma mudança no preço de um ingrediente reflete imediatamente em qualquer receita ou pedido em montagem que a usa, sem precisar resalvar nada.
+- Visibilidade para clientes: templates + receitas dos seus pets (ver `RecipePolicy`). Um item de pedido só aceita uma receita do próprio pet do item.
+- Exclusão bloqueada (`422`, `RecipeService::deletionBlocker`) quando é a última receita do pet ou quando a receita já faz parte de algum pedido.
 - Peso mínimo: receitas de cliente precisam somar ≥ 1,5 kg de ingredientes na duração inteira (`ValidatesMinimumRecipeWeight`); admin é isento.
 - Cálculo: `RecipeCostCalculatorService` recebe os ingredientes já carregados (sem N+1) e o `GeneralSetting` é lido uma vez por request (binding *scoped*, invalidado no `saved`).
 
 ### Order / OrderItem / Invoice
-- `Order`: `user_id`, `total_price`, `status`, `delivery_address`, `delivery_date`, `scheduled_reposicao_date`. **Sem relação com `Subscription`.**
+- `Order`: `user_id`, `total_price`, `status`, `delivery_address`, `delivery_date`, `scheduled_reposicao_date`. Cada pedido é um **plano alimentar**: para cada pet, uma sequência de receitas, cada uma com a sua duração.
 - Status possíveis: `pending_payment`, `pending`, `in_production`, `ready`, `out_for_delivery`, `delivered`, `cancelled`. Somente admins alteram status.
-- `OrderItem`: um por receita selecionada, com `pet_id` opcional (a mesma receita pode aparecer em itens diferentes para pets diferentes) e `unit_price` **sempre calculado ao vivo** (`Recipe::calculateTotalCost()`) no momento da criação do pedido — nunca lido do `base_cost` cacheado.
+- `OrderItem`: uma etapa do plano de um pet — `pet_id`, `recipe_id` (receita daquele pet), `duration_days` (7 a 90 — `OrderItem::MIN_DURATION_DAYS`/`MAX_DURATION_DAYS`) e `position` (ordem no plano do pet, na sequência enviada). A mesma receita pode se repetir no plano. A duração precisa alimentar ao menos 1,5 kg de ingredientes (`OrderItem::minimumDurationDaysFor($recipe)`). O `unit_price` é **sempre calculado ao vivo** para a duração do item (`Recipe::calculateTotalCost($duration_days)`) no momento da criação do pedido — nunca lido do `base_cost` cacheado. `Order::items()` devolve os itens ordenados por pet e `position`.
+- Itens anteriores ao plano alimentar receberam, na migration `2026_10_22_000003_add_duration_and_position_to_order_items`, a duração da receita (ou 15 dias) e a ordem de inserção como `position`.
 - `Invoice`: criada junto com o pedido (`amount`, `status` inicial `pending`, `due_date` = hoje + 3 dias).
-
-### Subscription
-Plano alimentar semanal de duração fixa para um pet — **não gera pedidos automaticamente** (sem job/scheduler associado; ver [arquitetura.md](arquitetura.md#agendamento)).
-
-- `user_id`, `pet_id`, `duration_days` (duração total do plano em dias; mínimo 14, múltiplo de 7), `status` (`active`|`paused`|`cancelled`), `start_date`.
-- **Uma receita por semana**: `total_cycles = duration_days / 7` blocos de 7 dias, cada um com exatamente uma receita (pivot `subscription_recipes`, ordenado por `position` = índice da semana). O backend valida que `recipe_ids` tem exatamente esse tanto de itens ao criar/editar.
-- **Custo sempre ao vivo e sempre por ciclo de 7 dias**: `estimated_price` (appended) soma `Recipe::calculateTotalCost(7)` de cada receita do plano — 7 dias fixos, **não** a `duration_days` nativa da receita (uma receita cadastrada como "14 dias" no catálogo é cobrada como 1 semana dentro do plano) — e sempre a partir do preço atual dos ingredientes.
-- `total_cycles` e `current_cycle_index` (semana atual 0-indexed, ou `null` se o plano não começou/já terminou) também são appended, só para exibição — não disparam nenhum efeito.
-- Cancelamento é lógico (status `cancelled`) — histórico preservado, sem hard delete. Editar duração sempre exige reenviar `recipe_ids` junto (tamanho precisa bater com a nova duração).
 
 ### GeneralSetting
 - Registro singleton (`GeneralSetting::getInstance()`) com os parâmetros globais da fórmula de precificação: custos fixos e multiplicadores de produção, logística, reserva, marketing, fiscal, cobrança, agendamento e dificuldade.
@@ -114,13 +105,10 @@ Plano alimentar semanal de duração fixa para um pet — **não gera pedidos au
 ### Cálculo de custo de receita (`RecipeCostCalculatorService`)
 Calcula o custo estimado de uma receita a partir dos ingredientes selecionados (`quantity` × custo unitário × `loss_rate` × `difficulty_multiplier`), de uma duração em dias e porções diárias, aplicando os parâmetros do `GeneralSetting` (produção, logística, margens etc.). Retorna `estimatedCost`, `ingredientCost`, `costPerKg` e o `costBreakdown` detalhado.
 
-`Recipe::calculateTotalCost(?int $durationOverride = null)` é sempre a via de cálculo real (nunca uma coluna cacheada): sem argumento usa a `duration_days` nativa da receita (pedidos avulsos, catálogo); com `7` força o preço de um único ciclo semanal (usado por `Subscription::estimated_price`). Também exposto via `POST /api/recipes/calculate-cost` para simulação sem persistir — é o que o frontend usa para mostrar o custo de cada semana ao montar uma assinatura.
-
-### Assinaturas não geram pedidos
-Diferente de versões anteriores do sistema, `Subscription` **não tem nenhum job/scheduler associado** e nunca cria `Order`. É um plano salvo pelo cliente (pet + duração + uma receita por semana); o cliente pausa, retoma ou cancela manualmente, e usa o plano como referência para fazer pedidos avulsos quando quiser. Não existe `subscription_id` em `orders`.
+`Recipe::calculateTotalCost(?int $durationOverride = null)` é sempre a via de cálculo real (nunca uma coluna cacheada): sem argumento usa a `duration_days` nativa da receita (catálogo, perfil do pet); com uma duração, calcula o preço para aquele número de dias (usado por `OrderService` no preço de cada item do pedido). Também exposto via `POST /api/recipes/calculate-cost` para simulação sem persistir — é o que o frontend usa (`useRecipeDurationCosts`) para mostrar o custo de cada receita do plano para a duração escolhida antes de confirmar o pedido.
 
 ### Autorização (Policies)
-- `PetPolicy`, `OrderPolicy`, `SubscriptionPolicy`: dono ou admin (admin tem bypass via `before()`).
-- `RecipePolicy`: visualização inclui templates e receitas ligadas aos pets do usuário; clientes não modificam templates nem transferem propriedade.
+- `PetPolicy`, `OrderPolicy`: dono ou admin (admin tem bypass via `before()`). No `POST /orders`, todo `pet_id` dos itens precisa ser do usuário (`StoreOrderRequest::authorize()`, senão `403`).
+- `RecipePolicy`: visualização inclui templates e receitas dos pets do usuário; edição/exclusão só de receitas dos seus pets; clientes não modificam templates nem transferem propriedade.
 - `IngredientPolicy`: mutações somente admin.
 - Rotas `/customers` e `/settings` exigem `AdminMiddleware` além do Sanctum.

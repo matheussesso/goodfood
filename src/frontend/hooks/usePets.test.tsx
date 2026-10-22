@@ -38,10 +38,10 @@ describe("usePets", () => {
     await waitFor(() => expect(result.current.pets).toBeDefined());
 
     await act(async () => {
-      await result.current.createPet({ name: "Rex", type: "dog" });
+      await result.current.createPet({ name: "Rex", type: "dog", recipe: { template_id: 4 } });
     });
 
-    expect(apiClient.post).toHaveBeenCalledWith("/pets", { name: "Rex", type: "dog" });
+    expect(apiClient.post).toHaveBeenCalledWith("/pets", { name: "Rex", type: "dog", recipe: { template_id: 4 } });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["pets"] });
   });
 

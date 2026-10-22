@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ArrowRight, Dog, Link2, ShoppingBag, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { ArrowRight, Dog, ShoppingBag, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import type { JourneyStep, JourneyStepId } from "@/features/onboarding/journey";
@@ -9,7 +9,6 @@ import type { JourneyStep, JourneyStepId } from "@/features/onboarding/journey";
 const STEP_ICONS: Record<JourneyStepId, LucideIcon> = {
   pet: Dog,
   recipe: UtensilsCrossed,
-  link: Link2,
   order: ShoppingBag,
 };
 

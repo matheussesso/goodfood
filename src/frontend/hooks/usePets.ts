@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { Recipe } from "./useRecipes";
+import type { RecipePayload } from "@/features/recipes/draft";
 import { Order } from "./useOrders";
-import { Subscription } from "./useSubscriptions";
 import { PetVaccine } from "./usePetVaccines";
 import { PetDocument } from "./usePetDocuments";
 
@@ -32,10 +32,18 @@ export interface Pet {
   updated_at: string;
   recipes?: Recipe[];
   orders?: Order[];
-  subscriptions?: Subscription[];
   vaccines?: PetVaccine[];
   documents?: PetDocument[];
 }
+
+/**
+ * First recipe sent with a new pet: either built from ingredients or a catalog
+ * template used as it is (`template_id`).
+ */
+export type NewPetRecipe = RecipePayload | { template_id: number; name?: string };
+
+/** Payload for creating a pet; every pet is created together with a recipe. */
+export type NewPetPayload = Partial<Omit<Pet, "recipes">> & { recipe: NewPetRecipe };
 
 export function usePets() {
   const queryClient = useQueryClient();
@@ -49,7 +57,7 @@ export function usePets() {
   });
 
   const createPetMutation = useMutation({
-    mutationFn: async (newPet: Partial<Pet>) => {
+    mutationFn: async (newPet: NewPetPayload) => {
       const response = await apiClient.post("/pets", newPet);
       return response.data;
     },

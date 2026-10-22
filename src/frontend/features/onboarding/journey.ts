@@ -1,7 +1,7 @@
 import type { DashboardProgress } from "@/hooks/useDashboard";
 
-/** The four steps between signing up and the first order. */
-export type JourneyStepId = "pet" | "recipe" | "link" | "order";
+/** The steps between signing up and the first order. */
+export type JourneyStepId = "pet" | "recipe" | "order";
 
 /** Where a step stands for the current customer. */
 export type JourneyStepStatus = "done" | "current" | "upcoming";
@@ -14,22 +14,21 @@ export interface JourneyStep {
 }
 
 /** Steps in the order they must be completed. */
-export const JOURNEY_ORDER: readonly JourneyStepId[] = ["pet", "recipe", "link", "order"];
+export const JOURNEY_ORDER: readonly JourneyStepId[] = ["pet", "recipe", "order"];
 
 /**
  * Where a step sends the user.
  *
  * @param id - The step.
- * @param progress - The customer's progress (the "link" step jumps straight to the recipe to link, when there is one).
+ * @param progress - The customer's progress. New pets are registered with their
+ *   recipe; the "recipe" step only points elsewhere for an older pet without one.
  */
 export function getStepHref(id: JourneyStepId, progress: DashboardProgress): string {
   switch (id) {
     case "pet":
       return "/pets/new";
     case "recipe":
-      return "/recipes/new";
-    case "link":
-      return progress.first_unlinked_recipe_id ? `/recipes/${progress.first_unlinked_recipe_id}/edit` : "/recipes";
+      return progress.first_pet_without_recipe_id ? `/pets/${progress.first_pet_without_recipe_id}/recipes/new` : "/pets/new";
     case "order":
       return "/orders/new";
   }
@@ -40,14 +39,13 @@ export function getStepHref(id: JourneyStepId, progress: DashboardProgress): str
  * that is not done is "current"; the ones after it are "upcoming".
  *
  * @param progress - Dashboard progress counts.
- * @returns The four steps with their status and href.
+ * @returns The steps with their status and href.
  */
 export function getJourney(progress: DashboardProgress): JourneyStep[] {
   const done: Record<JourneyStepId, boolean> = {
     pet: progress.pets_count > 0,
-    recipe: progress.own_recipes_count > 0,
-    link: progress.linked_recipes_count > 0,
-    order: progress.orders_count + progress.subscriptions_count > 0,
+    recipe: progress.pets_with_recipe_count > 0,
+    order: progress.orders_count > 0,
   };
 
   let currentAssigned = false;

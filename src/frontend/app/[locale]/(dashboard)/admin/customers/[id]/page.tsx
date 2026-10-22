@@ -9,19 +9,13 @@ import { getRoleMeta } from "@/lib/user-roles";
 import { Pet } from "@/hooks/usePets";
 import { Recipe } from "@/hooks/useRecipes";
 import { Order, OrderItem } from "@/hooks/useOrders";
-import { Subscription } from "@/hooks/useSubscriptions";
 import { EditCustomerModal } from "@/features/admin-customers/components/EditCustomerModal";
 import { PetFormModal } from "@/features/admin-customers/components/PetFormModal";
 import { RecipeEditModal } from "@/features/admin-customers/components/RecipeEditModal";
 import { Button } from "@/components/ui/button";
-import {
-  ArrowLeft, User, Phone, Mail, Calendar, Package, CalendarDays, Edit2, Loader2, Plus,
-  Dog, Cat, UtensilsCrossed, MapPin, LayoutGrid, List as ListIcon, ChevronRight,
-  ShoppingBag, ChevronDown, ChevronUp, CalendarCheck,
-} from "lucide-react";
+import { ArrowLeft, User, Phone, Mail, Calendar, Package, CalendarDays, Edit2, Loader2, Plus, Dog, Cat, UtensilsCrossed, MapPin, LayoutGrid, List as ListIcon, ChevronRight, ShoppingBag, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getOrderStatusStyle, getSubscriptionStatusStyle } from "@/lib/order-status";
-import { sortRecipesByWeek } from "@/features/subscriptions/utils";
+import { getOrderStatusStyle } from "@/lib/order-status";
 
 /** Returns two uppercase initials from a full name. */
 function getInitials(name: string): string {
@@ -110,8 +104,8 @@ function AdminPetCard({ pet, customerId, onEdit, t, tPets, tCat }: {
 }
 
 /**
- * Compact recipe card matching the customer-facing `/recipes` card design —
- * stat strip, collapsed ingredient composition accordion, footer link.
+ * Compact recipe card: the pet it belongs to, stat strip, collapsed
+ * ingredient composition accordion and a footer link to edit it.
  */
 function AdminRecipeCard({ recipe, onEdit, tRec, tCat, tCommon }: {
   recipe: Recipe;
@@ -146,8 +140,8 @@ function AdminRecipeCard({ recipe, onEdit, tRec, tCat, tCommon }: {
 
         <div className="grid grid-cols-4 divide-x divide-border/50 bg-muted/30 rounded-lg">
           <div className="px-1.5 py-2 text-center min-w-0">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{tRec("pet_type")}</span>
-            <span className="font-medium text-xs truncate block">{recipe.pet_type === "cat" ? tCat("cat") : recipe.pet_type === "dog" ? tCat("dog") : tCommon("all")}</span>
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{tRec("pet_label")}</span>
+            <span className="font-medium text-xs truncate block">{recipe.pet?.name ?? "—"}</span>
           </div>
           <div className="px-1.5 py-2 text-center min-w-0">
             <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{tCat("duration")}</span>
@@ -188,13 +182,15 @@ function AdminRecipeCard({ recipe, onEdit, tRec, tCat, tCommon }: {
           </div>
         )}
 
-        <Link
-          href={`/recipes/${recipe.id}`}
-          className="flex items-center justify-center gap-1 text-xs font-medium text-primary hover:text-primary/80 pt-2.5 mt-auto border-t border-border/50"
-        >
-          {tCommon("view")}
-          <ChevronRight className="w-3.5 h-3.5" />
-        </Link>
+        {recipe.pet_id && (
+          <Link
+            href={`/pets/${recipe.pet_id}/recipes/${recipe.id}/edit`}
+            className="flex items-center justify-center gap-1 text-xs font-medium text-primary hover:text-primary/80 pt-2.5 mt-auto border-t border-border/50"
+          >
+            {tCommon("edit")}
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -286,89 +282,8 @@ function AdminOrderCard({ order, t }: { order: Order } & TabProps) {
 }
 
 /**
- * Compact subscription card matching the customer-facing `/subscriptions`
- * card design — duration/weeks/cost stat strip, weekly recipes accordion,
- * footer link to the subscription detail page.
- */
-function AdminSubscriptionCard({ subscription, t }: { subscription: Subscription } & TabProps) {
-  const [expanded, setExpanded] = useState(false);
-  const style = getSubscriptionStatusStyle(subscription.status);
-  const orderedRecipes = sortRecipesByWeek(subscription.recipes);
-
-  return (
-    <div className="bg-card border rounded-xl shadow-sm overflow-hidden hover:shadow-md hover:border-primary/30 transition-all flex flex-col">
-      <div className="p-4 flex-1 flex flex-col">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-              <CalendarCheck className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="font-semibold text-sm leading-tight truncate">{subscription.pet?.name ?? "—"}</h4>
-              <span className="text-[11px] text-muted-foreground truncate block">
-                {new Date(subscription.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
-              </span>
-            </div>
-          </div>
-          <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full border shrink-0", style.badge)}>
-            <span className={cn("w-1.5 h-1.5 rounded-full", style.dot)} />
-            {t(`status_${subscription.status}` as "status_active")}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-3 divide-x divide-border/50 bg-muted/30 rounded-lg">
-          <div className="px-1.5 py-2 text-center min-w-0">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("duration_days")}</span>
-            <span className="font-medium text-xs truncate block">{subscription.duration_days}d</span>
-          </div>
-          <div className="px-1.5 py-2 text-center min-w-0">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("total_cycles_label")}</span>
-            <span className="font-medium text-xs truncate block">{subscription.total_cycles ?? "—"}</span>
-          </div>
-          <div className="px-1.5 py-2 text-center min-w-0">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("estimated_price")}</span>
-            <span className="font-semibold text-xs text-amber-600 dark:text-amber-400 truncate block">
-              R$ {(subscription.estimated_price ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-2.5 pt-2 border-t border-border/50">
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="w-full flex items-center justify-between text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
-          >
-            <span>{t("select_recipes")} ({orderedRecipes.length})</span>
-            {expanded ? <ChevronUp className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
-          </button>
-          {expanded && (
-            <ul className="mt-2 space-y-1 max-h-32 overflow-y-auto pr-1">
-              {orderedRecipes.map((recipe, index) => (
-                <li key={`${recipe.id}-${index}`} className="flex items-center justify-between text-[11px] gap-2">
-                  <span className="text-muted-foreground shrink-0">{t("rotation_order", { n: String(index + 1) })}</span>
-                  <span className="text-foreground truncate flex-1 text-right">{recipe.name}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <Link
-          href={`/orders/subscriptions/${subscription.id}`}
-          className="flex items-center justify-center gap-1 text-xs font-medium text-primary hover:text-primary/80 pt-2.5 mt-auto border-t border-border/50"
-        >
-          {t("view_detail")}
-          <ChevronRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-/**
  * Admin user detail page: profile header (with role badge), and
- * overview/pets/recipes/orders/subscriptions tabs. Modals for editing the
+ * overview/pets/recipes/orders tabs. Modals for editing the
  * user, their pets and their recipes live in features/admin-customers/components.
  */
 export default function CustomerDetailPage() {
@@ -377,7 +292,6 @@ export default function CustomerDetailPage() {
 
   const t = useTranslations("admin");
   const tOrders = useTranslations("Orders");
-  const tSubs = useTranslations("Subscriptions");
   const tCat = useTranslations("Catalog");
   const tRec = useTranslations("Recipes");
   const tPets = useTranslations("Pets");
@@ -385,7 +299,7 @@ export default function CustomerDetailPage() {
 
   const { customer, isLoading } = useCustomer(id);
 
-  const [activeTab, setActiveTab] = useState<"overview" | "pets" | "recipes" | "orders" | "subscriptions">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "pets" | "recipes" | "orders">("overview");
   const [petsViewMode, setPetsViewMode] = useState<"grid" | "list">("grid");
   const [recipesViewMode, setRecipesViewMode] = useState<"grid" | "list">("grid");
 
@@ -476,10 +390,6 @@ export default function CustomerDetailPage() {
                 <span className="font-bold text-xl leading-none">{customer.orders?.length ?? customer.orders_count ?? 0}</span>
                 <span className="text-[10px] uppercase tracking-wider mt-0.5">{t("orders")}</span>
               </div>
-              <div className="flex flex-col items-center px-4 py-2 bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 rounded-xl">
-                <span className="font-bold text-xl leading-none">{customer.subscriptions?.length ?? 0}</span>
-                <span className="text-[10px] uppercase tracking-wider mt-0.5">{t("subscriptions")}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -487,18 +397,17 @@ export default function CustomerDetailPage() {
 
       {/* ── Tabs ────────────────────────────────────────────────────────── */}
       <div className="flex space-x-1 border-b overflow-x-auto">
-        {(["overview", "pets", "recipes", "orders", "subscriptions"] as const).map((tab) => {
+        {(["overview", "pets", "recipes", "orders"] as const).map((tab) => {
           const counts: Record<string, number | undefined> = {
             pets: customer.pets?.length,
             recipes: customer.recipes?.length,
             orders: customer.orders?.length,
-            subscriptions: customer.subscriptions?.length,
           };
           const label =
             tab === "overview" ? t("general") :
             tab === "pets" ? t("pets") :
             tab === "recipes" ? t("recipes") :
-            tab === "orders" ? t("orders") : t("subscriptions");
+            t("orders");
           return (
             <button
               key={tab}
@@ -743,9 +652,6 @@ export default function CustomerDetailPage() {
                     <ListIcon className="w-4 h-4" />
                   </button>
                 </div>
-                <Link href={`/recipes/new?user_id=${customer.id}`} className="flex-1 sm:flex-none">
-                  <Button className="w-full"><Plus className="w-4 h-4 mr-2" /> {tRec("title")}</Button>
-                </Link>
               </div>
             </div>
 
@@ -763,7 +669,7 @@ export default function CustomerDetailPage() {
                       <thead className="text-xs text-muted-foreground bg-muted/50 uppercase">
                         <tr>
                           <th className="px-6 py-3 font-medium">{tRec("recipe_name")}</th>
-                          <th className="px-6 py-3 font-medium text-center">{tRec("pet_type")}</th>
+                          <th className="px-6 py-3 font-medium text-center">{tRec("pet_label")}</th>
                           <th className="px-6 py-3 font-medium text-center">{tCat("duration")}</th>
                           <th className="px-6 py-3 font-medium text-right">{tRec("estimated_cost")}</th>
                           <th className="px-6 py-3 font-medium text-right">{t("actions")}</th>
@@ -776,16 +682,18 @@ export default function CustomerDetailPage() {
                               <div className="font-semibold text-foreground">{recipe.name}</div>
                               <div className="text-xs text-muted-foreground line-clamp-1 max-w-[220px] mt-0.5">{recipe.description}</div>
                             </td>
-                            <td className="px-6 py-3.5 text-center">{recipe.pet_type === "cat" ? tCat("cat") : recipe.pet_type === "dog" ? tCat("dog") : tCommon("all")}</td>
+                            <td className="px-6 py-3.5 text-center">{recipe.pet?.name ?? "—"}</td>
                             <td className="px-6 py-3.5 text-center">{recipe.duration_days ?? "—"}d</td>
                             <td className="px-6 py-3.5 text-right font-semibold text-amber-600 dark:text-amber-400">
                               R$ {Number(recipe.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                             <td className="px-6 py-3.5 text-right">
                               <div className="flex gap-1 justify-end">
-                                <Link href={`/recipes/${recipe.id}`}>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronRight className="h-4 w-4 text-muted-foreground" /></Button>
-                                </Link>
+                                {recipe.pet_id && (
+                                  <Link href={`/pets/${recipe.pet_id}/recipes/${recipe.id}/edit`} aria-label={tCommon("edit")}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronRight className="h-4 w-4 text-muted-foreground" /></Button>
+                                  </Link>
+                                )}
                                 {!recipe.is_template && (
                                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenRecEditModal(recipe)}>
                                     <Edit2 className="h-4 w-4 text-muted-foreground" />
@@ -806,11 +714,7 @@ export default function CustomerDetailPage() {
                   <UtensilsCrossed className="w-7 h-7 opacity-40" />
                 </div>
                 <p className="text-sm">{t("no_recipes_for_customer")}</p>
-                <Link href={`/recipes/new?user_id=${customer.id}`}>
-                  <Button variant="outline" size="sm" className="mt-1 gap-1.5 text-xs h-8">
-                    <Plus className="w-3.5 h-3.5" /> {tRec("title")}
-                  </Button>
-                </Link>
+                <p className="text-xs">{tRec("recipes_live_in_pets")}</p>
               </div>
             )}
           </div>
@@ -840,31 +744,6 @@ export default function CustomerDetailPage() {
             )}
           </div>
         )}
-
-        {activeTab === "subscriptions" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between bg-card p-4 rounded-xl border shadow-sm">
-              <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">{customer.subscriptions?.length || 0}</span> {tSubs("title").toLowerCase()}
-              </p>
-            </div>
-
-            {customer.subscriptions && customer.subscriptions.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                {customer.subscriptions.map((subscription) => (
-                  <AdminSubscriptionCard key={subscription.id} subscription={subscription} t={tSubs} />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-16 bg-card border rounded-xl gap-3 text-muted-foreground">
-                <div className="w-14 h-14 rounded-full bg-muted/50 flex items-center justify-center">
-                  <CalendarCheck className="w-7 h-7 opacity-40" />
-                </div>
-                <p className="text-sm">{t("no_subscriptions_for_customer")}</p>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Modals are mounted on demand so each opening re-seeds its form
@@ -873,7 +752,6 @@ export default function CustomerDetailPage() {
         <RecipeEditModal
           recipe={editingRecipe}
           customerId={customer.id}
-          customerPets={customer.pets ?? []}
           isOpen
           onClose={() => setIsRecEditModalOpen(false)}
         />

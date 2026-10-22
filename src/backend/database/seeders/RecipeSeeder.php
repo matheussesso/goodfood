@@ -3,7 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\Ingredient;
+use App\Models\Pet;
 use App\Models\Recipe;
+use App\Services\RecipeService;
 use Illuminate\Database\Seeder;
 
 class RecipeSeeder extends Seeder
@@ -11,7 +13,7 @@ class RecipeSeeder extends Seeder
     /**
      * Run the database seeds.
      */
-    public function run(): void
+    public function run(RecipeService $recipes): void
     {
         $ingFrango = Ingredient::where('name', 'Peito de Frango')->first();
         $ingCarne = Ingredient::where('name', 'Carne Moída (Patinho)')->first();
@@ -53,6 +55,12 @@ class RecipeSeeder extends Seeder
                 $ingBatata->id => ['quantity' => 180, 'unit' => 'g'],
                 $ingOleo->id => ['quantity' => 20, 'unit' => 'ml'],
             ]);
+        }
+
+        // Every pet has at least one recipe: give seeded pets a copy of a template.
+        $template = Recipe::templates()->with('ingredients')->orderBy('id')->first();
+        if ($template) {
+            Pet::doesntHave('recipes')->get()->each(fn (Pet $pet) => $recipes->copyToPet($template, $pet));
         }
     }
 }

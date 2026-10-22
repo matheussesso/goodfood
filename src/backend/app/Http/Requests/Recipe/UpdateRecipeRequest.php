@@ -9,7 +9,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * Validates the payload for updating a recipe. Authorization is enforced via
- * RecipePolicy. `user_id` and `is_template` are stripped for non-admins in
+ * RecipePolicy. A recipe never moves to another pet, so `pet_id` is not
+ * accepted. `user_id` and `is_template` are stripped for non-admins in
  * validated() so customers can neither reassign ownership nor promote a
  * recipe to template.
  */
@@ -45,9 +46,6 @@ class UpdateRecipeRequest extends FormRequest
             'is_template' => ['boolean'],
             'frequency' => ['nullable', 'string'],
             'is_active' => ['boolean'],
-            'pet_id' => ['nullable', 'exists:pets,id'],
-            'pet_ids' => ['nullable', 'array'],
-            'pet_ids.*' => ['exists:pets,id'],
             'ingredients' => ['nullable', 'array'],
             'ingredients.*.id' => ['required', 'exists:ingredients,id'],
             'ingredients.*.quantity' => ['required', 'numeric', 'min:0'],

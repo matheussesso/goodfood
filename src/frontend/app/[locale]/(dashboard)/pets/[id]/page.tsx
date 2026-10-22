@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -13,7 +13,6 @@ import {
   UtensilsCrossed,
   Package,
   Calendar,
-  Eye,
   Edit2,
   Plus,
   ShoppingBag,
@@ -28,7 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getOrderStatusStyle } from "@/lib/order-status";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 /** Generates a deterministic HSL color from a string. */
 function nameToHsl(str: string): string {
@@ -39,12 +38,24 @@ function nameToHsl(str: string): string {
 
 /**
  * Customer-facing pet profile page.
- * Displays full pet information including health data, linked recipes, and orders.
+ * Displays full pet information including health data, the pet's recipes
+ * (recipes only exist inside a pet) and orders. `?tab=recipes` opens the
+ * recipes tab directly.
  *
  * @returns The pet profile page element.
  */
 export default function PetProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <PetProfileContent />
+    </Suspense>
+  );
+}
+
+/** Page body; isolated so `useSearchParams` sits under a Suspense boundary. */
+function PetProfileContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = params.id as string;
 
   const t = useTranslations("Pets");
@@ -54,7 +65,9 @@ export default function PetProfilePage() {
   const tRec = useTranslations("Recipes");
 
   const { pet, isLoading } = usePet(id);
-  const [activeTab, setActiveTab] = useState<"overview" | "recipes" | "orders">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "recipes" | "orders">(() =>
+    searchParams.get("tab") === "recipes" ? "recipes" : searchParams.get("tab") === "orders" ? "orders" : "overview"
+  );
 
   if (isLoading) {
     return (
@@ -394,8 +407,8 @@ export default function PetProfilePage() {
           <div className="space-y-4">
             {/* Filter bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card p-4 rounded-xl border shadow-sm">
-              <p className="text-sm text-muted-foreground">{t("linked_recipes_count", { count: pet.recipes?.length ?? 0 })}</p>
-              <Link href="/recipes/new">
+              <p className="text-sm text-muted-foreground">{t("recipes_count", { count: pet.recipes?.length ?? 0 })}</p>
+              <Link href={`/pets/${pet.id}/recipes/new`}>
                 <Button size="sm" className="gap-1.5">
                   <Plus className="w-3.5 h-3.5" /> {t("new_recipe")}
                 </Button>
@@ -413,7 +426,7 @@ export default function PetProfilePage() {
                     <div className="p-4 pb-0 border-b border-border/50 bg-muted/20">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <Link href={`/recipes/${recipe.id}`} className="hover:text-primary transition-colors">
+                          <Link href={`/pets/${pet.id}/recipes/${recipe.id}/edit`} className="hover:text-primary transition-colors">
                             <h4 className="font-semibold text-base line-clamp-1">{recipe.name}</h4>
                           </Link>
                           <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2 min-h-[2.5rem]">
@@ -448,18 +461,11 @@ export default function PetProfilePage() {
 
                     {/* Actions */}
                     <div className="flex gap-2 p-3 mt-auto">
-                      <Link href={`/recipes/${recipe.id}`} className="flex-1">
-                        <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
-                          <Eye className="w-3.5 h-3.5" /> {tCommon("view")}
+                      <Link href={`/pets/${pet.id}/recipes/${recipe.id}/edit`} className="flex-1">
+                        <Button variant="secondary" size="sm" className="w-full gap-1.5 text-xs">
+                          <Edit2 className="w-3.5 h-3.5" /> {tCommon("edit")}
                         </Button>
                       </Link>
-                      {!recipe.is_template && (
-                        <Link href={`/recipes/${recipe.id}/edit`} className="flex-1">
-                          <Button variant="secondary" size="sm" className="w-full gap-1.5 text-xs">
-                            <Edit2 className="w-3.5 h-3.5" /> {tCommon("edit")}
-                          </Button>
-                        </Link>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -470,7 +476,7 @@ export default function PetProfilePage() {
                   <UtensilsCrossed className="w-7 h-7 opacity-40" />
                 </div>
                 <p className="text-sm">{t("no_recipes_linked")}</p>
-                <Link href="/recipes/new">
+                <Link href={`/pets/${pet.id}/recipes/new`}>
                   <Button variant="outline" size="sm" className="mt-1 gap-1.5 text-xs h-8">
                     <Plus className="w-3.5 h-3.5" /> {tRec("create_first_recipe")}
                   </Button>

@@ -2,8 +2,8 @@
  * Locale-specific URL paths.
  *
  * App Router folders (and every `href` in the code) use the canonical English
- * route, e.g. `/recipes/new`. Each locale may rename the static segments, so
- * Portuguese users browse `/receitas/criar`. The middleware rewrites the
+ * route, e.g. `/pets/new`. Each locale may rename the static segments, so
+ * Portuguese users browse `/pets/criar`. The middleware rewrites the
  * localized URL back to the canonical folder; `localizePath`/`delocalizePath`
  * convert between the two for links, redirects and active-link checks.
  */
@@ -20,16 +20,11 @@ export const CANONICAL_ROUTES = [
   "/pets/new",
   "/pets/[id]",
   "/pets/[id]/edit",
-  "/recipes",
-  "/recipes/new",
-  "/recipes/[id]",
-  "/recipes/[id]/edit",
+  "/pets/[id]/recipes/new",
+  "/pets/[id]/recipes/[recipeId]/edit",
   "/orders",
   "/orders/new",
   "/orders/[id]",
-  "/orders/subscriptions/new",
-  "/orders/subscriptions/[id]",
-  "/orders/subscriptions/[id]/edit",
   "/production",
   "/admin",
   "/admin/catalog",
@@ -50,7 +45,6 @@ const SEGMENT_TRANSLATIONS: Record<string, Record<string, string>> = {
     profile: "perfil",
     recipes: "receitas",
     orders: "pedidos",
-    subscriptions: "assinaturas",
     production: "producao",
     catalog: "catalogo",
     customers: "clientes",
@@ -155,7 +149,7 @@ export function localizePath(href: string, locale: string): string {
 /**
  * Converts a localized URL path (without locale prefix) back to the canonical route.
  *
- * @param path - Localized path as shown in the browser, e.g. `/receitas/criar`.
+ * @param path - Localized path as shown in the browser, e.g. `/pets/12/receitas/criar`.
  * @param locale - Locale the path is written in.
  * @returns The canonical path, or `path` unchanged when it is not a known route.
  */

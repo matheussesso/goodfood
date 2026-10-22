@@ -41,4 +41,18 @@ class Ingredient extends Model
             ->withPivot('quantity')
             ->withTimestamps();
     }
+
+    /**
+     * Convert a quantity to kilograms for weight rules (g/ml -> /1000,
+     * kg/l -> 1:1, unit -> 0.1 kg; unknown units weigh nothing).
+     */
+    public static function weightInKg(float $quantity, string $unit): float
+    {
+        return match (strtolower($unit)) {
+            'g', 'ml' => $quantity / 1000,
+            'kg', 'l' => $quantity,
+            'unit' => $quantity * 0.1,
+            default => 0.0,
+        };
+    }
 }

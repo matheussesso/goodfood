@@ -109,10 +109,10 @@ describe("sections", () => {
     expect(screen.getByText(L.faq.items.q3.q)).toBeInTheDocument();
   });
 
-  it("compares one-off orders and subscriptions and links the bone broth to WhatsApp", async () => {
+  it("compares one-off orders and meal plans and links the bone broth to WhatsApp", async () => {
     await renderServer(Plans());
     expect(screen.getByRole("heading", { name: L.plans.single.title })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: L.plans.subscription.title })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: L.plans.meal_plan.title })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: new RegExp(L.cta.whatsapp) }).getAttribute("href")).toContain("wa.me/5561981425385");
   });
 
@@ -190,7 +190,7 @@ describe("structured data and SEO routes", () => {
   it("robots blocks the authenticated areas and points to the sitemap", () => {
     const result = robots();
     const rules = Array.isArray(result.rules) ? result.rules[0] : result.rules;
-    expect(rules.disallow).toEqual(expect.arrayContaining(["/inicio", "/receitas", "/pedidos", "/admin"]));
+    expect(rules.disallow).toEqual(expect.arrayContaining(["/inicio", "/pets", "/pedidos", "/admin"]));
     expect(result.sitemap).toMatch(/\/sitemap\.xml$/);
   });
 });

@@ -9,118 +9,118 @@ use App\Http\Requests\Recipe\CloneRecipeRequest;
 use App\Http\Requests\Recipe\StoreRecipeRequest;
 use App\Http\Requests\Recipe\UpdateRecipeRequest;
 use App\Http\Resources\RecipeResource;
+use App\Models\Pet;
 use App\Models\Recipe;
 use App\Services\RecipeCostCalculatorService;
+use App\Services\RecipeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Manages recipe resources. Visibility/mutation rules live in RecipePolicy.
+ * Manages recipes. A customer recipe always belongs to one of their pets;
+ * catalog templates (admin) have no pet. Visibility/mutation rules live in
+ * RecipePolicy.
  */
 class RecipeController extends Controller
 {
+    public function __construct(private readonly RecipeService $recipes) {}
+
     /**
-     * List recipes. Admins see all; customers see templates, their own
-     * recipes, and recipes linked to their pets.
+     * List recipes.
+     *
+     * Query filters: `templates=1` returns only active catalog templates;
+     * `pet_id` returns only that pet's recipes. Without filters, admins get
+     * everything and customers get templates plus the recipes of their pets.
      */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $query = Recipe::with(['ingredients', 'pet']);
 
-        $query = Recipe::with(['ingredients', 'pets']);
-
-        if ($user->isAdmin()) {
-            $recipes = $query->get();
-        } else {
-            $userPetIds = $user->pets()->pluck('id');
-            $recipes = $query->where('is_template', true)
-                ->orWhere('user_id', $user->id)
-                ->orWhereHas('pets', function ($q) use ($userPetIds) {
-                    $q->whereIn('pets.id', $userPetIds);
-                })
-                ->distinct()
-                ->get();
+        if ($request->boolean('templates')) {
+            $query->where('is_template', true)->where('is_active', true);
+        } elseif ($request->filled('pet_id')) {
+            $pet = Pet::findOrFail((int) $request->query('pet_id'));
+            $this->authorize('view', $pet);
+            $query->where('pet_id', $pet->id);
+        } elseif (! $user->isAdmin()) {
+            $query->where(function ($scope) use ($user): void {
+                $scope->where('is_template', true)
+                    ->orWhereIn('pet_id', $user->pets()->select('id'));
+            });
         }
 
-        return $this->respondSuccess(RecipeResource::collection($recipes), 'Recipes fetched successfully');
+        return $this->respondSuccess(RecipeResource::collection($query->orderBy('id')->get()), 'Recipes fetched successfully');
     }
 
     /**
-     * Create a recipe, optionally syncing ingredients and linked pets.
+     * Create a recipe for a pet (or, for admins, a catalog template).
      */
     public function store(StoreRecipeRequest $request): JsonResponse
     {
         $user = $request->user();
         $validated = $request->validated();
 
-        if (! $user->isAdmin()) {
-            $validated['is_template'] = false;
-            $validated['user_id'] = $user->id;
+        if ($user->isAdmin() && ($validated['is_template'] ?? false)) {
+            $recipe = Recipe::create(array_diff_key($validated, array_flip(['ingredients', 'pet_id'])) + [
+                'user_id' => $validated['user_id'] ?? $user->id,
+            ]);
+            $this->recipes->syncIngredients($recipe, $validated['ingredients'] ?? null);
+            $recipe->updateBaseCost();
         } else {
-            $validated['user_id'] = $validated['user_id'] ?? $user->id;
+            $pet = Pet::findOrFail($validated['pet_id']);
+            $recipe = $this->recipes->createForPet($pet, $validated);
         }
-
-        $recipe = Recipe::create($validated);
-
-        $this->syncIngredients($recipe, $validated);
-
-        if (isset($validated['pet_ids'])) {
-            $recipe->pets()->sync($validated['pet_ids']);
-        }
-
-        $recipe->updateBaseCost();
 
         return $this->respondSuccess(
-            RecipeResource::make($recipe->load(['ingredients', 'pets'])),
+            RecipeResource::make($recipe->load(['ingredients', 'pet'])),
             'Recipe created successfully',
             201
         );
     }
 
     /**
-     * Show a recipe with its ingredients and linked pets.
+     * Show a recipe with its ingredients and pet.
      */
     public function show(Request $request, Recipe $recipe): JsonResponse
     {
         $this->authorize('view', $recipe);
 
         return $this->respondSuccess(
-            RecipeResource::make($recipe->load(['ingredients', 'pets'])),
+            RecipeResource::make($recipe->load(['ingredients', 'pet'])),
             'Recipe fetched successfully'
         );
     }
 
     /**
      * Update a recipe. Ownership/template fields are stripped for customers
-     * inside UpdateRecipeRequest::validated().
+     * inside UpdateRecipeRequest::validated(); a recipe never changes pet.
      */
     public function update(UpdateRecipeRequest $request, Recipe $recipe): JsonResponse
     {
         $validated = $request->validated();
 
-        $recipe->update($validated);
-
-        $this->syncIngredients($recipe, $validated);
-
-        if (isset($validated['pet_ids'])) {
-            $recipe->pets()->sync($validated['pet_ids']);
-        }
-
+        $recipe->update(array_diff_key($validated, ['ingredients' => true]));
+        $this->recipes->syncIngredients($recipe, $validated['ingredients'] ?? null);
         $recipe->updateBaseCost();
 
         return $this->respondSuccess(
-            RecipeResource::make($recipe->load(['ingredients', 'pets'])),
+            RecipeResource::make($recipe->load(['ingredients', 'pet'])),
             'Recipe updated successfully'
         );
     }
 
     /**
-     * Delete a recipe.
+     * Delete a recipe, unless it is the pet's last one or part of an order.
      */
     public function destroy(Request $request, Recipe $recipe): JsonResponse
     {
         $this->authorize('delete', $recipe);
+
+        if ($reason = $this->recipes->deletionBlocker($recipe)) {
+            return $this->respondError($reason, 422);
+        }
 
         $recipe->delete();
 
@@ -128,51 +128,18 @@ class RecipeController extends Controller
     }
 
     /**
-     * Copy a recipe (usually a catalog template) into the user's own private
-     * recipes, optionally linking the copy to their pets in one step.
-     *
-     * Ownership, template flag and cached costs are never copied: the clone
-     * always belongs to the caller, is never a template, and its price is
-     * recomputed from the current ingredient costs.
+     * Copy a recipe (usually a catalog template) into one of the user's pets.
+     * The copy is private, never a template, and priced from today's costs.
      */
     public function clone(CloneRecipeRequest $request, Recipe $recipe): JsonResponse
     {
         $validated = $request->validated();
+        $pet = Pet::findOrFail($validated['pet_id']);
 
-        $clone = DB::transaction(function () use ($request, $recipe, $validated): Recipe {
-            $copy = Recipe::create([
-                'user_id' => $request->user()->id,
-                'name' => $validated['name'] ?? $recipe->name,
-                'description' => $recipe->description,
-                'pet_type' => $recipe->pet_type,
-                'duration_days' => $recipe->duration_days,
-                'daily_portions' => $recipe->daily_portions,
-                'instructions' => $recipe->instructions,
-                'frequency' => $recipe->frequency,
-                'is_template' => false,
-                'is_active' => true,
-            ]);
-
-            $copy->ingredients()->sync(
-                $recipe->ingredients->mapWithKeys(fn ($ingredient) => [
-                    $ingredient->id => [
-                        'quantity' => $ingredient->pivot->quantity,
-                        'unit' => $ingredient->pivot->unit,
-                    ],
-                ])->all()
-            );
-
-            if (! empty($validated['pet_ids'])) {
-                $copy->pets()->sync($validated['pet_ids']);
-            }
-
-            $copy->updateBaseCost();
-
-            return $copy;
-        });
+        $copy = DB::transaction(fn (): Recipe => $this->recipes->copyToPet($recipe, $pet, $validated['name'] ?? null));
 
         return $this->respondSuccess(
-            RecipeResource::make($clone->load(['ingredients', 'pets'])),
+            RecipeResource::make($copy->load(['ingredients', 'pet'])),
             'Recipe cloned successfully',
             201
         );
@@ -192,27 +159,5 @@ class RecipeController extends Controller
         );
 
         return $this->respondSuccess($result, 'Cost calculated successfully');
-    }
-
-    /**
-     * Sync the recipe's ingredient pivot rows from a validated payload.
-     *
-     * @param  array<string, mixed>  $validated
-     */
-    private function syncIngredients(Recipe $recipe, array $validated): void
-    {
-        if (! isset($validated['ingredients'])) {
-            return;
-        }
-
-        $syncData = [];
-        foreach ($validated['ingredients'] as $ingredient) {
-            $syncData[$ingredient['id']] = [
-                'quantity' => $ingredient['quantity'],
-                'unit' => $ingredient['unit'] ?? 'kg',
-            ];
-        }
-
-        $recipe->ingredients()->sync($syncData);
     }
 }

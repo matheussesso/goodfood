@@ -7,7 +7,6 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Pet;
 use App\Models\Recipe;
-use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -37,10 +36,11 @@ function dashPet(User $user, array $overrides = []): Pet
 /**
  * Create a private (non-template) recipe owned by the user.
  */
-function dashRecipe(User $user, string $name = 'Frango'): Recipe
+function dashRecipe(User $user, string $name = 'Frango', ?Pet $pet = null): Recipe
 {
     return Recipe::create([
         'user_id' => $user->id,
+        'pet_id' => $pet?->id,
         'name' => $name,
         'pet_type' => 'dog',
         'duration_days' => 14,
@@ -60,49 +60,30 @@ test('a brand new customer is guided to add the first pet', function () {
         ->assertJsonPath('data.progress.has_address', false)
         ->assertJsonPath('data.onboarding_dismissed', false)
         ->assertJsonPath('data.current_order', null)
-        ->assertJsonPath('data.active_subscription', null)
+        ->assertJsonMissingPath('data.active_subscription')
         ->assertJsonCount(0, 'data.pets')
         ->assertJsonCount(0, 'data.recent_orders');
 });
 
-test('the next step follows pet, recipe, link and first order', function () {
+test('the next step follows pet, recipe and first order', function () {
     $user = User::factory()->create();
     $step = fn () => $this->actingAs($user)->getJson('/api/dashboard')->json('data.progress.next_step');
 
-    $pet = dashPet($user);
+    // A pet created before recipes became mandatory still lacks one.
+    $legacyPet = dashPet($user);
     expect($step())->toBe('create_recipe');
+    $this->actingAs($user)->getJson('/api/dashboard')
+        ->assertJsonPath('data.progress.first_pet_without_recipe_id', $legacyPet->id)
+        ->assertJsonPath('data.progress.pets_with_recipe_count', 0);
 
-    $recipe = dashRecipe($user);
-    expect($step())->toBe('link_recipe');
-    $this->actingAs($user)->getJson('/api/dashboard')->assertJsonPath('data.progress.first_unlinked_recipe_id', $recipe->id);
-
-    $pet->recipes()->attach($recipe->id);
+    dashRecipe($user, 'Ração', $legacyPet);
     expect($step())->toBe('place_order');
-    $this->actingAs($user)->getJson('/api/dashboard')->assertJsonPath('data.progress.first_unlinked_recipe_id', null);
+    $this->actingAs($user)->getJson('/api/dashboard')
+        ->assertJsonPath('data.progress.first_pet_without_recipe_id', null)
+        ->assertJsonPath('data.progress.pets_with_recipe_count', 1);
 
     Order::create(['user_id' => $user->id, 'total_price' => 10, 'status' => 'pending_payment']);
     expect($step())->toBe('complete');
-});
-
-test('templates linked to a pet do not count as the customer having a recipe', function () {
-    $user = User::factory()->create();
-    $pet = dashPet($user);
-    $template = Recipe::create(['name' => 'Template', 'pet_type' => 'dog', 'is_template' => true]);
-    $pet->recipes()->attach($template->id);
-
-    $this->actingAs($user)->getJson('/api/dashboard')
-        ->assertJsonPath('data.progress.next_step', 'create_recipe')
-        ->assertJsonPath('data.progress.linked_recipes_count', 0);
-});
-
-test('a subscription also counts as the first purchase', function () {
-    $user = User::factory()->create();
-    $pet = dashPet($user);
-    $recipe = dashRecipe($user);
-    $pet->recipes()->attach($recipe->id);
-    Subscription::create(['user_id' => $user->id, 'pet_id' => $pet->id, 'duration_days' => 14, 'status' => 'active', 'start_date' => Carbon::today()]);
-
-    $this->actingAs($user)->getJson('/api/dashboard')->assertJsonPath('data.progress.next_step', 'complete');
 });
 
 test('has_address needs street, city and zipcode', function () {
@@ -174,27 +155,11 @@ test('the current order is the newest one still in flight', function () {
         ->assertJsonPath('data.current_order.status', 'in_production');
 });
 
-test('the active subscription is the running plan with its week and recipes', function () {
+test('pets list their own recipes', function () {
     $user = User::factory()->create();
     $pet = dashPet($user);
-    $recipe = dashRecipe($user);
-    Subscription::create(['user_id' => $user->id, 'pet_id' => $pet->id, 'duration_days' => 14, 'status' => 'paused', 'start_date' => Carbon::today()->subDays(2)]);
-    $plan = Subscription::create(['user_id' => $user->id, 'pet_id' => $pet->id, 'duration_days' => 21, 'status' => 'active', 'start_date' => Carbon::today()->subDays(9)]);
-    $plan->recipes()->attach($recipe->id, ['position' => 0]);
-
-    $this->actingAs($user)->getJson('/api/dashboard')
-        ->assertJsonPath('data.active_subscription.id', $plan->id)
-        ->assertJsonPath('data.active_subscription.current_cycle_index', 1)
-        ->assertJsonPath('data.active_subscription.total_cycles', 3)
-        ->assertJsonPath('data.active_subscription.pet.name', 'Rex');
-});
-
-test('pets list their own recipes only, never catalog templates', function () {
-    $user = User::factory()->create();
-    $pet = dashPet($user);
-    $own = dashRecipe($user, 'Mine');
-    $template = Recipe::create(['name' => 'Template', 'pet_type' => 'dog', 'is_template' => true]);
-    $pet->recipes()->attach([$own->id, $template->id]);
+    dashRecipe($user, 'Mine', $pet);
+    Recipe::create(['name' => 'Template', 'pet_type' => 'dog', 'is_template' => true]);
 
     $recipes = $this->actingAs($user)->getJson('/api/dashboard')->json('data.pets.0.recipes');
 
@@ -261,9 +226,8 @@ test('the dashboard costs a constant number of queries however much data exists'
     $seed = function (int $count) use ($user, $ingredient): void {
         foreach (range(1, $count) as $i) {
             $pet = dashPet($user, ['name' => "Pet {$i}"]);
-            $recipe = dashRecipe($user, "Recipe {$i}");
+            $recipe = dashRecipe($user, "Recipe {$i}", $pet);
             $recipe->ingredients()->attach($ingredient->id, ['quantity' => 1, 'unit' => 'kg']);
-            $pet->recipes()->attach($recipe->id);
             $pet->vaccines()->create(['name' => "V{$i}", 'application_date' => '2024-01-01', 'next_due_date' => '2024-06-01']);
             $order = Order::create(['user_id' => $user->id, 'total_price' => 10, 'status' => 'pending_payment']);
             Invoice::create(['order_id' => $order->id, 'user_id' => $user->id, 'amount' => 10, 'status' => 'pending', 'due_date' => Carbon::today()]);

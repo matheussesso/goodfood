@@ -15,6 +15,9 @@ class Recipe extends Model
 {
     use HasFactory;
 
+    /** Minimum total ingredient weight, in kg, a customer recipe must feed. */
+    public const MIN_TOTAL_WEIGHT_KG = 1.5;
+
     protected $fillable = [
         'user_id',
         'pet_id',
@@ -46,14 +49,14 @@ class Recipe extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * The pet this recipe belongs to. Catalog templates have no pet.
+     *
+     * @return BelongsTo<Pet, $this>
+     */
     public function pet(): BelongsTo
     {
         return $this->belongsTo(Pet::class);
-    }
-
-    public function pets(): BelongsToMany
-    {
-        return $this->belongsToMany(Pet::class)->withTimestamps();
     }
 
     public function ingredients(): BelongsToMany
@@ -66,6 +69,16 @@ class Recipe extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Order lines that used this recipe.
+     *
+     * @return HasMany<OrderItem, $this>
+     */
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
     }
 
     public function scopeTemplates($query)
@@ -88,9 +101,8 @@ class Recipe extends Model
      * today's ingredient prices) — never a cached value.
      *
      * @param  int|null  $durationOverride  Duration in days to price for, instead of the
-     *                                      recipe's own `duration_days` (e.g. 7 for a single
-     *                                      subscription cycle, regardless of the recipe's
-     *                                      native duration).
+     *                                      recipe's own `duration_days` (e.g. the duration
+     *                                      chosen for this recipe inside an order's meal plan).
      * @return array{estimatedCost: float, ingredientCost: float, costPerKg: float, costBreakdown: array}
      */
     public function calculateCostResult(?int $durationOverride = null): array
@@ -121,6 +133,17 @@ class Recipe extends Model
     public function calculateTotalCost(?int $durationOverride = null): float
     {
         return (float) $this->calculateCostResult($durationOverride)['estimatedCost'];
+    }
+
+    /**
+     * Ingredient weight fed per day, in kg, from the loaded ingredients.
+     */
+    public function dailyWeightKg(): float
+    {
+        return (float) $this->ingredients->sum(fn (Ingredient $ingredient): float => Ingredient::weightInKg(
+            (float) ($ingredient->pivot->quantity ?? 0),
+            (string) ($ingredient->pivot->unit ?? $ingredient->unit),
+        ));
     }
 
     public function updateBaseCost(): void

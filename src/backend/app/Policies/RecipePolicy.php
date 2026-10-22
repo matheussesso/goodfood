@@ -9,8 +9,8 @@ use App\Models\User;
 
 /**
  * Authorization rules for Recipe resources. Admins may do anything.
- * Customers may view templates, their own recipes, or recipes linked to
- * their pets; they may only modify their own non-template recipes.
+ * Customers may view catalog templates and the recipes of their own pets, and
+ * may only change recipes of their own pets (never templates).
  */
 class RecipePolicy
 {
@@ -27,24 +27,16 @@ class RecipePolicy
      */
     public function view(User $user, Recipe $recipe): bool
     {
-        if ($recipe->is_template || $recipe->user_id === $user->id) {
-            return true;
-        }
-
-        // Recipes linked to one of the user's pets are also visible.
-        $recipe->loadMissing('pets');
-        $userPetIds = $user->pets()->pluck('id');
-
-        return $recipe->pets->pluck('id')->intersect($userPetIds)->isNotEmpty();
+        return $recipe->is_template || $this->ownsRecipe($user, $recipe);
     }
 
     /**
      * Determine whether the user can update the recipe.
-     * Customers cannot modify templates, even their own.
+     * Customers cannot modify templates.
      */
     public function update(User $user, Recipe $recipe): bool
     {
-        return $recipe->user_id === $user->id && ! $recipe->is_template;
+        return ! $recipe->is_template && $this->ownsRecipe($user, $recipe);
     }
 
     /**
@@ -52,6 +44,21 @@ class RecipePolicy
      */
     public function delete(User $user, Recipe $recipe): bool
     {
+        return ! $recipe->is_template && $this->ownsRecipe($user, $recipe);
+    }
+
+    /**
+     * A recipe is the user's when it belongs to one of their pets. Legacy
+     * recipes without a pet fall back to the `user_id` owner.
+     */
+    private function ownsRecipe(User $user, Recipe $recipe): bool
+    {
+        if ($recipe->pet_id !== null) {
+            $recipe->loadMissing('pet');
+
+            return $recipe->pet?->user_id === $user->id;
+        }
+
         return $recipe->user_id === $user->id;
     }
 }

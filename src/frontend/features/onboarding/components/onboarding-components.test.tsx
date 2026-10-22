@@ -22,11 +22,9 @@ const O = messages.Onboarding;
 const progress = (overrides: Partial<DashboardProgress> = {}): DashboardProgress => ({
   has_address: false,
   pets_count: 0,
-  own_recipes_count: 0,
-  linked_recipes_count: 0,
-  first_unlinked_recipe_id: null,
+  pets_with_recipe_count: 0,
+  first_pet_without_recipe_id: null,
   orders_count: 0,
-  subscriptions_count: 0,
   next_step: "add_pet",
   ...overrides,
 });
@@ -39,7 +37,6 @@ const dashboardResponse = (p: DashboardProgress) =>
       onboarding_dismissed: false,
       alerts: { pending_invoices: [], overdue_vaccines: [], incomplete_pets: [] },
       current_order: null,
-      active_subscription: null,
       pets: [],
       recent_orders: [],
     },
@@ -52,16 +49,15 @@ beforeEach(() => {
 });
 
 describe("JourneyStepper", () => {
-  it("renders four linked steps and flags only the current one", () => {
-    renderWithProviders(<JourneyStepper steps={getJourney(progress({ pets_count: 1 }))} />);
+  it("renders the linked steps and flags only the current one", () => {
+    renderWithProviders(<JourneyStepper steps={getJourney(progress({ pets_count: 1, first_pet_without_recipe_id: 3 }))} />);
 
     const items = screen.getAllByRole("listitem");
-    expect(items).toHaveLength(4);
-    expect(items.map((li) => li.getAttribute("aria-current"))).toEqual([null, "step", null, null]);
+    expect(items).toHaveLength(3);
+    expect(items.map((li) => li.getAttribute("aria-current"))).toEqual([null, "step", null]);
     expect(screen.getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
       "/pets/new",
-      "/recipes/new",
-      "/recipes",
+      "/pets/3/recipes/new",
       "/orders/new",
     ]);
   });
@@ -85,17 +81,17 @@ describe("NextStepCard", () => {
 
 describe("JourneyEmptyState", () => {
   it("offers the current step's CTA and the stepper once the summary loads", async () => {
-    vi.mocked(apiClient.get).mockResolvedValue(dashboardResponse(progress({ pets_count: 1 })));
+    vi.mocked(apiClient.get).mockResolvedValue(dashboardResponse(progress({ pets_count: 1, first_pet_without_recipe_id: 3 })));
     renderWithProviders(<JourneyEmptyState icon={<Dog />} title="Nothing here" description="Add something" />);
 
     expect(screen.getByText("Nothing here")).toBeInTheDocument();
-    expect(await screen.findByRole("link", { name: O.cta_recipe })).toHaveAttribute("href", "/recipes/new");
+    expect(await screen.findByRole("link", { name: O.cta_recipe })).toHaveAttribute("href", "/pets/3/recipes/new");
     expect(screen.getByRole("list", { name: O.journey_label })).toBeInTheDocument();
   });
 
   it("falls back to the given action when the journey is complete", async () => {
     vi.mocked(apiClient.get).mockResolvedValue(
-      dashboardResponse(progress({ pets_count: 1, own_recipes_count: 1, linked_recipes_count: 1, orders_count: 1 }))
+      dashboardResponse(progress({ pets_count: 1, pets_with_recipe_count: 1, orders_count: 1 }))
     );
     renderWithProviders(
       <JourneyEmptyState icon={<Dog />} title="t" description="d" fallbackAction={{ href: "/pets/new", label: "Add pet" }} />
@@ -115,10 +111,10 @@ describe("JourneyEmptyState", () => {
 describe("GettingStarted", () => {
   it("greets the customer, shows progress and dismisses the guide", async () => {
     vi.mocked(apiClient.post).mockResolvedValue(axiosResponse({ success: true }));
-    renderWithProviders(<GettingStarted progress={progress({ pets_count: 1 })} name="Ana" />);
+    renderWithProviders(<GettingStarted progress={progress({ pets_count: 1, first_pet_without_recipe_id: 3 })} name="Ana" />);
 
     expect(screen.getByRole("heading", { name: O.welcome_title.replace("{name}", "Ana") })).toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "25");
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "33");
 
     await userEvent.click(screen.getByRole("button", { name: new RegExp(O.dismiss) }));
     await waitFor(() => expect(apiClient.post).toHaveBeenCalledWith("/onboarding/dismiss"));
@@ -137,9 +133,9 @@ describe("GettingStarted", () => {
 describe("ContinueSetupBanner", () => {
   it("links to the pending step and restores the guide", async () => {
     vi.mocked(apiClient.delete).mockResolvedValue(axiosResponse({ success: true }));
-    renderWithProviders(<ContinueSetupBanner progress={progress({ pets_count: 1 })} />);
+    renderWithProviders(<ContinueSetupBanner progress={progress({ pets_count: 1, first_pet_without_recipe_id: 3 })} />);
 
-    expect(screen.getByRole("link")).toHaveAttribute("href", "/recipes/new");
+    expect(screen.getByRole("link")).toHaveAttribute("href", "/pets/3/recipes/new");
 
     await userEvent.click(screen.getByRole("button", { name: O.show_guide }));
     await waitFor(() => expect(apiClient.delete).toHaveBeenCalledWith("/onboarding/dismiss"));
@@ -147,7 +143,7 @@ describe("ContinueSetupBanner", () => {
 
   it("renders nothing when the journey is finished", () => {
     const { container } = renderWithProviders(
-      <ContinueSetupBanner progress={progress({ pets_count: 1, own_recipes_count: 1, linked_recipes_count: 1, orders_count: 1 })} />
+      <ContinueSetupBanner progress={progress({ pets_count: 1, pets_with_recipe_count: 1, orders_count: 1 })} />
     );
     expect(container).toBeEmptyDOMElement();
   });

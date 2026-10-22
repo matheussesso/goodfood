@@ -1,24 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import type { Order } from "./useOrders";
-import type { Subscription } from "./useSubscriptions";
 
 /** Query key of the dashboard summary; invalidated whenever any mutation succeeds. */
 export const DASHBOARD_QUERY_KEY = ["dashboard"] as const;
 
 /** Where a new customer is in the "first order" journey, as decided by the backend. */
-export type NextStep = "add_pet" | "create_recipe" | "link_recipe" | "place_order" | "complete";
+export type NextStep = "add_pet" | "create_recipe" | "place_order" | "complete";
 
 /** Counts and flags describing the customer's onboarding progress. */
 export interface DashboardProgress {
   has_address: boolean;
   pets_count: number;
-  own_recipes_count: number;
-  linked_recipes_count: number;
-  /** Id of the user's first recipe that is not yet linked to any pet (where the "link" step should go). */
-  first_unlinked_recipe_id: number | null;
+  /** Pets that already have at least one recipe (new pets always do). */
+  pets_with_recipe_count: number;
+  /** First pet still without a recipe (pets created before recipes became mandatory). */
+  first_pet_without_recipe_id: number | null;
   orders_count: number;
-  subscriptions_count: number;
   next_step: NextStep;
 }
 
@@ -58,7 +56,6 @@ export interface DashboardData {
   onboarding_dismissed: boolean;
   alerts: DashboardAlerts;
   current_order: Order | null;
-  active_subscription: Subscription | null;
   pets: DashboardPet[];
   recent_orders: DashboardRecentOrder[];
 }

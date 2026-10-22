@@ -32,82 +32,81 @@ function cloneTemplate(): Recipe
     return $template;
 }
 
-test('a customer clones a template into a private recipe linked to their pet', function () {
+test('a customer clones a template into a private recipe of their pet', function () {
     $user = User::factory()->create();
     $pet = Pet::create(['user_id' => $user->id, 'name' => 'Rex', 'type' => 'dog']);
     $template = cloneTemplate();
 
-    $response = $this->actingAs($user)->postJson("/api/recipes/{$template->id}/clone", ['pet_ids' => [$pet->id]])
+    $response = $this->actingAs($user)->postJson("/api/recipes/{$template->id}/clone", ['pet_id' => $pet->id])
         ->assertStatus(201)
         ->assertJsonPath('success', true)
-        ->assertJsonPath('data.name', 'Mix Frango');
+        ->assertJsonPath('data.name', 'Mix Frango')
+        ->assertJsonPath('data.pet_id', $pet->id);
 
     $copy = Recipe::find($response->json('data.id'));
     expect($copy->id)->not->toBe($template->id)
         ->and($copy->user_id)->toBe($user->id)
+        ->and($copy->pet_id)->toBe($pet->id)
         ->and($copy->is_template)->toBeFalse()
         ->and($copy->description)->toBe('Balanced')
         ->and($copy->instructions)->toBe('Cook it')
         ->and($copy->duration_days)->toBe(14)
         ->and($copy->daily_portions)->toBe(2)
-        ->and($copy->pets->pluck('id')->all())->toBe([$pet->id])
         ->and($copy->ingredients)->toHaveCount(1)
         ->and((float) $copy->ingredients->first()->pivot->quantity)->toBe(0.3)
         ->and($copy->ingredients->first()->pivot->unit)->toBe('kg');
     // The stale cached cost of the template is never copied: it is recomputed.
     expect((float) $copy->base_cost)->not->toBe(999.0)->and((float) $copy->base_cost)->toBeGreaterThan(0.0);
     // The template itself is untouched.
-    expect($template->fresh()->is_template)->toBeTrue()->and($template->pets()->count())->toBe(0);
+    expect($template->fresh()->is_template)->toBeTrue()->and($template->fresh()->pet_id)->toBeNull();
 });
 
-test('cloning accepts a custom name and works without pets', function () {
+test('cloning accepts a custom name and requires a target pet', function () {
     $user = User::factory()->create();
+    $pet = Pet::create(['user_id' => $user->id, 'name' => 'Rex', 'type' => 'dog']);
     $template = cloneTemplate();
 
     $this->actingAs($user)->postJson("/api/recipes/{$template->id}/clone", ['name' => 'Minha versão'])
+        ->assertStatus(422)
+        ->assertJsonStructure(['errors' => ['pet_id']]);
+
+    $this->actingAs($user)->postJson("/api/recipes/{$template->id}/clone", ['name' => 'Minha versão', 'pet_id' => $pet->id])
         ->assertStatus(201)
-        ->assertJsonPath('data.name', 'Minha versão')
-        ->assertJsonCount(0, 'data.pets');
+        ->assertJsonPath('data.name', 'Minha versão');
 });
 
-test('a customer cannot link a clone to someone else\'s pet', function () {
+test('a customer cannot copy a recipe to someone else\'s pet', function () {
     $user = User::factory()->create();
     $other = User::factory()->create();
     $foreign = Pet::create(['user_id' => $other->id, 'name' => 'Theirs', 'type' => 'cat']);
     $template = cloneTemplate();
 
-    $this->actingAs($user)->postJson("/api/recipes/{$template->id}/clone", ['pet_ids' => [$foreign->id]])
+    $this->actingAs($user)->postJson("/api/recipes/{$template->id}/clone", ['pet_id' => $foreign->id])
         ->assertStatus(422)
-        ->assertJsonStructure(['errors' => ['pet_ids.0']]);
+        ->assertJsonStructure(['errors' => ['pet_id']]);
 
-    expect(Recipe::where('user_id', $user->id)->count())->toBe(0);
+    expect(Recipe::where('pet_id', $foreign->id)->count())->toBe(0);
 });
 
 test('a customer cannot clone another customer\'s private recipe', function () {
     $user = User::factory()->create();
     $other = User::factory()->create();
-    $private = Recipe::create(['user_id' => $other->id, 'name' => 'Private', 'pet_type' => 'dog', 'is_template' => false]);
-
-    $this->actingAs($user)->postJson("/api/recipes/{$private->id}/clone")->assertStatus(403);
-});
-
-test('a visible-but-not-owned recipe linked to the user\'s pet cannot be cloned', function () {
-    $user = User::factory()->create();
-    $other = User::factory()->create();
     $pet = Pet::create(['user_id' => $user->id, 'name' => 'Rex', 'type' => 'dog']);
-    $shared = Recipe::create(['user_id' => $other->id, 'name' => 'Shared', 'pet_type' => 'dog', 'is_template' => false]);
-    $shared->pets()->attach($pet->id);
+    $foreignPet = Pet::create(['user_id' => $other->id, 'name' => 'Theirs', 'type' => 'dog']);
+    $private = Recipe::create(['user_id' => $other->id, 'pet_id' => $foreignPet->id, 'name' => 'Private', 'pet_type' => 'dog', 'is_template' => false]);
 
-    $this->actingAs($user)->getJson("/api/recipes/{$shared->id}")->assertStatus(200);
-    $this->actingAs($user)->postJson("/api/recipes/{$shared->id}/clone")->assertStatus(403);
+    $this->actingAs($user)->postJson("/api/recipes/{$private->id}/clone", ['pet_id' => $pet->id])->assertStatus(403);
 });
 
-test('a customer can clone their own recipe', function () {
+test('a customer can copy a recipe from one of their pets to another', function () {
     $user = User::factory()->create();
-    $own = Recipe::create(['user_id' => $user->id, 'name' => 'Own', 'pet_type' => 'dog', 'is_template' => false]);
+    $rex = Pet::create(['user_id' => $user->id, 'name' => 'Rex', 'type' => 'dog']);
+    $mel = Pet::create(['user_id' => $user->id, 'name' => 'Mel', 'type' => 'dog']);
+    $own = Recipe::create(['user_id' => $user->id, 'pet_id' => $rex->id, 'name' => 'Own', 'pet_type' => 'dog', 'is_template' => false]);
 
-    $this->actingAs($user)->postJson("/api/recipes/{$own->id}/clone", ['name' => 'Own 2'])
-        ->assertStatus(201);
+    $this->actingAs($user)->postJson("/api/recipes/{$own->id}/clone", ['name' => 'Own 2', 'pet_id' => $mel->id])
+        ->assertStatus(201)
+        ->assertJsonPath('data.pet_id', $mel->id);
 
     expect(Recipe::where('user_id', $user->id)->count())->toBe(2);
 });
@@ -118,8 +117,10 @@ test('an admin can clone a template for any pet', function () {
     $pet = Pet::create(['user_id' => $customer->id, 'name' => 'Rex', 'type' => 'dog']);
     $template = cloneTemplate();
 
-    $this->actingAs($admin)->postJson("/api/recipes/{$template->id}/clone", ['pet_ids' => [$pet->id]])
+    $response = $this->actingAs($admin)->postJson("/api/recipes/{$template->id}/clone", ['pet_id' => $pet->id])
         ->assertStatus(201);
+
+    expect(Recipe::find($response->json('data.id'))->user_id)->toBe($customer->id);
 });
 
 test('cloning requires authentication', function () {
