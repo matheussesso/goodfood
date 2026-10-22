@@ -12,7 +12,6 @@ const progress: DashboardProgress = {
   pets_with_recipe_count: 0,
   first_pet_without_recipe_id: null,
   orders_count: 0,
-  subscriptions_count: 0,
   next_step: "create_recipe",
 };
 

@@ -1,5 +1,5 @@
 /**
- * Single source of truth for order and subscription statuses: their order,
+ * Single source of truth for order statuses: their order,
  * the progress pipeline and the Tailwind classes used to render them.
  */
 
@@ -58,27 +58,4 @@ export function getOrderStatusStyle(status: string): StatusStyle {
  */
 export function getOrderProgressStep(status: string): number {
   return ORDER_PIPELINE.indexOf(status as OrderStatus);
-}
-
-/** Every status a subscription can have. */
-export const SUBSCRIPTION_STATUSES = ["active", "paused", "cancelled"] as const;
-
-/** A valid subscription status. */
-export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
-
-/** Per-status styling for subscriptions. */
-export const SUBSCRIPTION_STATUS_STYLE: Record<SubscriptionStatus, StatusStyle> = {
-  active:    { badge: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800", dot: "bg-emerald-500", bar: "bg-emerald-500" },
-  paused:    { badge: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800",             dot: "bg-amber-400",   bar: "bg-amber-400" },
-  cancelled: { badge: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",                         dot: "bg-red-400",     bar: "bg-red-400" },
-};
-
-/**
- * Looks up the style for a raw subscription status string.
- *
- * @param status - Status as returned by the API.
- * @returns The matching style, falling back to the "active" style for unknown values.
- */
-export function getSubscriptionStatusStyle(status: string): StatusStyle {
-  return SUBSCRIPTION_STATUS_STYLE[status as SubscriptionStatus] ?? SUBSCRIPTION_STATUS_STYLE.active;
 }

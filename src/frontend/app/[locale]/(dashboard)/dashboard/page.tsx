@@ -7,7 +7,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDashboard } from "@/hooks/useDashboard";
 import { Button } from "@/components/ui/button";
 import { getNavLinks } from "@/components/layout/nav-links";
-import { ActiveSubscriptionCard } from "@/features/dashboard/components/ActiveSubscriptionCard";
 import { AlertsBar } from "@/features/dashboard/components/AlertsBar";
 import { ContinueSetupBanner } from "@/features/dashboard/components/ContinueSetupBanner";
 import { CurrentOrderCard } from "@/features/dashboard/components/CurrentOrderCard";
@@ -103,7 +102,7 @@ export default function DashboardPage() {
 
   const { progress, alerts } = data;
   const journeyDone = progress.next_step === "complete";
-  const isFreshAccount = progress.pets_count === 0 && progress.orders_count === 0 && progress.subscriptions_count === 0;
+  const isFreshAccount = progress.pets_count === 0 && progress.orders_count === 0;
   const showGuide = !journeyDone && !data.onboarding_dismissed;
   // A brand-new account only needs the guide; the empty sections would be noise.
   const showSections = !(isFreshAccount && showGuide);
@@ -119,10 +118,7 @@ export default function DashboardPage() {
 
       {showSections && (
         <>
-          <div className="grid gap-4 md:grid-cols-2">
-            <CurrentOrderCard order={data.current_order} />
-            <ActiveSubscriptionCard subscription={data.active_subscription} />
-          </div>
+          <CurrentOrderCard order={data.current_order} />
 
           <section aria-labelledby="dashboard-pets" className="space-y-3">
             <div className="flex items-center justify-between">

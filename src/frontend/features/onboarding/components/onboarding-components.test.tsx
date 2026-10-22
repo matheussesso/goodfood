@@ -25,7 +25,6 @@ const progress = (overrides: Partial<DashboardProgress> = {}): DashboardProgress
   pets_with_recipe_count: 0,
   first_pet_without_recipe_id: null,
   orders_count: 0,
-  subscriptions_count: 0,
   next_step: "add_pet",
   ...overrides,
 });
@@ -38,7 +37,6 @@ const dashboardResponse = (p: DashboardProgress) =>
       onboarding_dismissed: false,
       alerts: { pending_invoices: [], overdue_vaccines: [], incomplete_pets: [] },
       current_order: null,
-      active_subscription: null,
       pets: [],
       recent_orders: [],
     },

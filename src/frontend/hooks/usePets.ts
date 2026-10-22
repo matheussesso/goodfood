@@ -3,7 +3,6 @@ import { apiClient } from "@/lib/api-client";
 import { Recipe } from "./useRecipes";
 import type { RecipePayload } from "@/features/recipes/draft";
 import { Order } from "./useOrders";
-import { Subscription } from "./useSubscriptions";
 import { PetVaccine } from "./usePetVaccines";
 import { PetDocument } from "./usePetDocuments";
 
@@ -33,7 +32,6 @@ export interface Pet {
   updated_at: string;
   recipes?: Recipe[];
   orders?: Order[];
-  subscriptions?: Subscription[];
   vaccines?: PetVaccine[];
   documents?: PetDocument[];
 }

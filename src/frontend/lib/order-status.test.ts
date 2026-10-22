@@ -5,7 +5,6 @@ import {
   ORDER_STATUS_STYLE,
   getOrderProgressStep,
   getOrderStatusStyle,
-  getSubscriptionStatusStyle,
 } from "./order-status";
 
 describe("order status config", () => {
@@ -32,10 +31,5 @@ describe("order status config", () => {
 
   it("falls back to the pending style for unknown order statuses", () => {
     expect(getOrderStatusStyle("bogus")).toBe(ORDER_STATUS_STYLE.pending);
-  });
-
-  it("resolves subscription styles with an active fallback", () => {
-    expect(getSubscriptionStatusStyle("paused").dot).toBe("bg-amber-400");
-    expect(getSubscriptionStatusStyle("bogus").dot).toBe("bg-emerald-500");
   });
 });

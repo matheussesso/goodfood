@@ -14,7 +14,7 @@ interface ViewModeToggleProps {
 }
 
 /**
- * Card/list view switcher used atop order and subscription list pages.
+ * Card/list view switcher used atop order list pages.
  *
  * @param viewMode - The currently active view mode.
  * @param onViewModeChange - Callback invoked with the newly selected mode.

@@ -5,14 +5,13 @@ describe("localizePath", () => {
   it("translates static segments to Portuguese", () => {
     expect(localizePath("/pets/3/recipes/new", "pt")).toBe("/pets/3/receitas/criar");
     expect(localizePath("/dashboard", "pt")).toBe("/inicio");
-    expect(localizePath("/orders/subscriptions/new", "pt")).toBe("/pedidos/assinaturas/criar");
+    expect(localizePath("/orders/new", "pt")).toBe("/pedidos/criar");
     expect(localizePath("/admin/customers", "pt")).toBe("/admin/clientes");
   });
 
   it("keeps dynamic values and translates the segments around them", () => {
     expect(localizePath("/pets/3/recipes/12/edit", "pt")).toBe("/pets/3/receitas/12/editar");
     expect(localizePath("/admin/customers/4/pets/9", "pt")).toBe("/admin/clientes/4/pets/9");
-    expect(localizePath("/orders/subscriptions/7/edit", "pt")).toBe("/pedidos/assinaturas/7/editar");
   });
 
   it("prefers static routes over dynamic ones", () => {
@@ -42,7 +41,7 @@ describe("localizePath", () => {
 describe("delocalizePath", () => {
   it("restores the canonical route", () => {
     expect(delocalizePath("/pets/3/receitas/criar", "pt")).toBe("/pets/3/recipes/new");
-    expect(delocalizePath("/pedidos/assinaturas/7/editar", "pt")).toBe("/orders/subscriptions/7/edit");
+    expect(delocalizePath("/pedidos/7", "pt")).toBe("/orders/7");
     expect(delocalizePath("/inicio", "pt")).toBe("/dashboard");
   });
 

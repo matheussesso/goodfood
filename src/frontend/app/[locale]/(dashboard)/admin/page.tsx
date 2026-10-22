@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useOrders } from "@/hooks/useOrders";
-import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { formatBRL } from "@/lib/format";
 import { Users, ShoppingBag, DollarSign, Activity, ArrowRight, Package } from "lucide-react";
 
@@ -13,12 +12,11 @@ export default function AdminDashboardPage() {
   const tOrders = useTranslations("Orders");
   const { customers, isLoading: loadingCustomers } = useCustomers();
   const { orders, isLoading: loadingOrders } = useOrders();
-  const { subscriptions } = useSubscriptions();
 
   const grossRevenue = (orders ?? [])
     .filter((o) => o.status !== "cancelled")
     .reduce((sum, o) => sum + Number(o.total_price), 0);
-  const activeSubscriptions = (subscriptions ?? []).filter((s) => s.status === "active").length;
+  const ordersInProgress = (orders ?? []).filter((o) => !["delivered", "cancelled"].includes(o.status)).length;
 
   const stats = [
     {
@@ -43,8 +41,8 @@ export default function AdminDashboardPage() {
       bg: "bg-violet-500/10",
     },
     {
-      title: t("active_subscriptions"),
-      value: activeSubscriptions,
+      title: t("orders_in_progress"),
+      value: ordersInProgress,
       icon: Activity,
       color: "text-orange-500",
       bg: "bg-orange-500/10",

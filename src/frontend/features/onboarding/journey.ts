@@ -45,7 +45,7 @@ export function getJourney(progress: DashboardProgress): JourneyStep[] {
   const done: Record<JourneyStepId, boolean> = {
     pet: progress.pets_count > 0,
     recipe: progress.pets_with_recipe_count > 0,
-    order: progress.orders_count + progress.subscriptions_count > 0,
+    order: progress.orders_count > 0,
   };
 
   let currentAssigned = false;

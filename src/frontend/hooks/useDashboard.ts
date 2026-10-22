@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import type { Order } from "./useOrders";
-import type { Subscription } from "./useSubscriptions";
 
 /** Query key of the dashboard summary; invalidated whenever any mutation succeeds. */
 export const DASHBOARD_QUERY_KEY = ["dashboard"] as const;
@@ -18,7 +17,6 @@ export interface DashboardProgress {
   /** First pet still without a recipe (pets created before recipes became mandatory). */
   first_pet_without_recipe_id: number | null;
   orders_count: number;
-  subscriptions_count: number;
   next_step: NextStep;
 }
 
@@ -58,7 +56,6 @@ export interface DashboardData {
   onboarding_dismissed: boolean;
   alerts: DashboardAlerts;
   current_order: Order | null;
-  active_subscription: Subscription | null;
   pets: DashboardPet[];
   recent_orders: DashboardRecentOrder[];
 }

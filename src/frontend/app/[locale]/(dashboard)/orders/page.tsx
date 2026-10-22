@@ -3,17 +3,15 @@
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useOrders, Order, Invoice } from "@/hooks/useOrders";
-import { useSubscriptions, Subscription } from "@/hooks/useSubscriptions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { JourneyEmptyState } from "@/features/onboarding/components/JourneyEmptyState";
 import { Link } from "@/i18n/navigation";
-import { ShoppingBag, Plus, Loader2, Package, Calendar, CalendarDays, Dog, Cat, UtensilsCrossed, MapPin, Layers, Search, FilterX, ChevronRight, ChevronDown, ChevronUp, Receipt, AlertCircle, CheckCircle2, PauseCircle, PlayCircle, XCircle } from "lucide-react";
+import { ShoppingBag, Plus, Loader2, Package, Calendar, UtensilsCrossed, MapPin, Search, FilterX, ChevronRight, ChevronDown, ChevronUp, Receipt, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ORDER_PIPELINE, getOrderProgressStep, getOrderStatusStyle, getSubscriptionStatusStyle, type OrderStatus, type SubscriptionStatus } from "@/lib/order-status";
+import { ORDER_PIPELINE, getOrderProgressStep, getOrderStatusStyle, type OrderStatus } from "@/lib/order-status";
 import { OrderStatusBadge } from "@/features/orders/components/OrderStatusBadge";
 import { OrderRecipeBlock } from "@/features/orders/components/OrderRecipeBlock";
-import { sortRecipesByWeek, weekProgressLabel } from "@/features/subscriptions/utils";
 import { ViewModeToggle, type ViewMode } from "@/components/ui/view-mode-toggle";
 
 /* ─────────────────────────── One-off order pieces ─────────────────────────── */
@@ -36,7 +34,7 @@ function InvoiceBadge({ invoice, t }: { invoice: Invoice; t: ReturnType<typeof u
   );
 }
 
-/** Card for a one-off order, tagged with the "Avulso" type badge. */
+/** Card for an order: status, progress, recipes and invoice. */
 function SingleOrderCard({ order, t }: { order: Order; t: ReturnType<typeof useTranslations> }) {
   const style = getOrderStatusStyle(order.status);
   const step = getOrderProgressStep(order.status);
@@ -50,8 +48,8 @@ function SingleOrderCard({ order, t }: { order: Order; t: ReturnType<typeof useT
   return (
     <div className="group bg-card border rounded-xl shadow-sm overflow-hidden hover:shadow-md hover:border-primary/30 transition-all flex flex-col">
       <div className="p-4 flex-1 flex flex-col">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1 basis-40">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
               <ShoppingBag className="w-5 h-5" />
             </div>
@@ -63,12 +61,7 @@ function SingleOrderCard({ order, t }: { order: Order; t: ReturnType<typeof useT
               </span>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-              {t("order_badge_single")}
-            </span>
-            <OrderStatusBadge status={order.status} label={t(`status_${order.status}` as `status_${OrderStatus}`)} />
-          </div>
+          <OrderStatusBadge status={order.status} label={t(`status_${order.status}` as `status_${OrderStatus}`)} />
         </div>
 
         <div className="grid grid-cols-4 divide-x divide-border/50 bg-muted/30 rounded-lg">
@@ -173,9 +166,6 @@ function SingleOrderRow({ order, t }: { order: Order; t: ReturnType<typeof useTr
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-sm text-foreground">{t("order_number")}{order.id}</span>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-              {t("order_badge_single")}
-            </span>
             <OrderStatusBadge status={order.status} label={t(`status_${order.status}` as `status_${OrderStatus}`)} />
             {order.invoice && <InvoiceBadge invoice={order.invoice} t={t} />}
           </div>
@@ -229,329 +219,22 @@ function SingleOrderRow({ order, t }: { order: Order; t: ReturnType<typeof useTr
   );
 }
 
-/* ─────────────────────────── Subscription pieces ─────────────────────────── */
-
-/** Collapsed-by-default accordion listing a plan's weekly recipes, ordered by week. */
-function SubscriptionRecipesAccordion({ recipes, t }: { recipes: Subscription["recipes"]; t: ReturnType<typeof useTranslations> }) {
-  const [expanded, setExpanded] = useState(false);
-  const ordered = sortRecipesByWeek(recipes);
-
-  if (ordered.length === 0) {
-    return <span className="text-xs text-muted-foreground italic">—</span>;
-  }
-
-  return (
-    <div className="mt-2.5 pt-2 border-t border-border/50">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
-      >
-        <span>{t("select_recipes")} ({ordered.length})</span>
-        {expanded ? <ChevronUp className="w-3 h-3 shrink-0" /> : <ChevronDown className="w-3 h-3 shrink-0" />}
-      </button>
-      {expanded && (
-        <ul className="mt-2 space-y-1 max-h-40 overflow-y-auto pr-1">
-          {ordered.map((recipe, index) => (
-            <li key={`${recipe.id}-${index}`} className="flex items-center justify-between text-[11px] gap-2">
-              <span className="text-muted-foreground shrink-0">{t("rotation_order", { n: String(index + 1) })}</span>
-              <span className="text-foreground truncate flex-1 text-right">{recipe.name}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-interface SubscriptionCardProps {
-  sub: Subscription;
-  t: ReturnType<typeof useTranslations>;
-  isUpdating: boolean;
-  onStatusChange: (sub: Subscription, status: SubscriptionStatus) => void;
-}
-
-/** Card for a recurring subscription plan, tagged with the "Assinatura" type badge. */
-function SubscriptionSummaryCard({ sub, t, isUpdating, onStatusChange }: SubscriptionCardProps) {
-  const tOrders = useTranslations("Orders");
-  const status = sub.status as SubscriptionStatus;
-  const style = getSubscriptionStatusStyle(status);
-  const PetIcon = sub.pet?.type === "cat" ? Cat : Dog;
-  const estimatedPrice = sub.estimated_price ?? 0;
-  const progress = weekProgressLabel(sub, t);
-
-  const startDate = sub.start_date
-    ? new Date(sub.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
-    : "—";
-
-  return (
-    <div className={cn(
-      "group bg-card border rounded-xl shadow-sm overflow-hidden hover:shadow-md hover:border-primary/30 transition-all flex flex-col",
-      status === "cancelled" && "opacity-60"
-    )}>
-      <div className="p-4 flex-1 flex flex-col">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-              <PetIcon className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="font-semibold text-sm leading-tight truncate">{sub.pet?.name ?? "—"}</h4>
-              <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                <CalendarDays className="w-3 h-3 shrink-0" />
-                {startDate}
-              </span>
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
-              {tOrders("subscription_badge")}
-            </span>
-            <span className={cn("inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border", style.badge)}>
-              <span className={cn("w-1.5 h-1.5 rounded-full", style.dot)} />
-              {t(`status_${status}` as `status_${SubscriptionStatus}`)}
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 divide-x divide-border/50 bg-muted/30 rounded-lg">
-          <div className="px-1.5 py-2 text-center min-w-0">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("duration_days")}</span>
-            <span className="font-medium text-xs truncate block">{sub.duration_days}d</span>
-          </div>
-          <div className="px-1.5 py-2 text-center min-w-0">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("total_cycles_label")}</span>
-            <span className="font-medium text-xs truncate block">{sub.total_cycles ?? "—"}</span>
-          </div>
-          <div className="px-1.5 py-2 text-center min-w-0">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{t("estimated_price")}</span>
-            <span className="font-semibold text-xs text-amber-600 dark:text-amber-400 truncate block">
-              R$ {estimatedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-            </span>
-          </div>
-        </div>
-
-        {progress && (
-          <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-2.5">
-            <Layers className="w-3 h-3 shrink-0" />
-            {progress}
-          </p>
-        )}
-
-        <SubscriptionRecipesAccordion recipes={sub.recipes} t={t} />
-
-        {status !== "cancelled" && (
-          <div className="flex items-center gap-2 mt-2.5">
-            {isUpdating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-auto" />
-            ) : status === "active" ? (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50 dark:hover:bg-amber-900/20 h-8 px-3"
-                  onClick={() => onStatusChange(sub, "paused")}
-                >
-                  <PauseCircle className="w-3.5 h-3.5" />
-                  {t("pause_subscription")}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 px-3"
-                  onClick={() => onStatusChange(sub, "cancelled")}
-                >
-                  <XCircle className="w-3.5 h-3.5" />
-                  {t("cancel_subscription")}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 h-8 px-3"
-                  onClick={() => onStatusChange(sub, "active")}
-                >
-                  <PlayCircle className="w-3.5 h-3.5" />
-                  {t("resume_subscription")}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 px-3"
-                  onClick={() => onStatusChange(sub, "cancelled")}
-                >
-                  <XCircle className="w-3.5 h-3.5" />
-                  {t("cancel_subscription")}
-                </Button>
-              </>
-            )}
-          </div>
-        )}
-
-        <Link
-          href={`/orders/subscriptions/${sub.id}`}
-          className="flex items-center justify-center gap-1 text-xs font-medium text-primary hover:text-primary/80 pt-2.5 mt-auto border-t border-border/50"
-        >
-          {t("view_detail")}
-          <ChevronRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-/** Compact list row for a recurring subscription plan. */
-function SubscriptionSummaryRow({ sub, t, isUpdating, onStatusChange }: SubscriptionCardProps) {
-  const tOrders = useTranslations("Orders");
-  const status = sub.status as SubscriptionStatus;
-  const style = getSubscriptionStatusStyle(status);
-  const PetIcon = sub.pet?.type === "cat" ? Cat : Dog;
-  const estimatedPrice = sub.estimated_price ?? 0;
-  const progress = weekProgressLabel(sub, t);
-  const orderedRecipes = sortRecipesByWeek(sub.recipes);
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div className={cn(status === "cancelled" && "opacity-60")}>
-      <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/20 transition-colors">
-        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
-          <PetIcon className="w-4 h-4" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-foreground line-clamp-1">{sub.pet?.name ?? "—"}</span>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
-              {tOrders("subscription_badge")}
-            </span>
-            <span className={cn("inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border", style.badge)}>
-              <span className={cn("w-1 h-1 rounded-full", style.dot)} />
-              {t(`status_${status}` as `status_${SubscriptionStatus}`)}
-            </span>
-          </div>
-          <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
-            <span className="flex items-center gap-1 shrink-0 text-amber-600 dark:text-amber-400 font-semibold">
-              R$ {estimatedPrice.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-            <span className="flex items-center gap-1 shrink-0">
-              {sub.duration_days}d · {sub.total_cycles ?? "—"} {t("weeks_count_plural")}
-            </span>
-            {progress && (
-              <span className="flex items-center gap-1 shrink-0">
-                <Layers className="w-3 h-3" />{progress}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <Link
-            href={`/orders/subscriptions/${sub.id}`}
-            title={t("view_detail")}
-            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Link>
-          {status !== "cancelled" && (
-            isUpdating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-            ) : status === "active" ? (
-              <>
-                <button
-                  type="button"
-                  title={t("pause_subscription")}
-                  onClick={() => onStatusChange(sub, "paused")}
-                  className="p-1.5 rounded text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-900/20 transition-colors"
-                >
-                  <PauseCircle className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  title={t("cancel_subscription")}
-                  onClick={() => onStatusChange(sub, "cancelled")}
-                  className="p-1.5 rounded text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
-                >
-                  <XCircle className="w-4 h-4" />
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  title={t("resume_subscription")}
-                  onClick={() => onStatusChange(sub, "active")}
-                  className="p-1.5 rounded text-emerald-500 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 transition-colors"
-                >
-                  <PlayCircle className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  title={t("cancel_subscription")}
-                  onClick={() => onStatusChange(sub, "cancelled")}
-                  className="p-1.5 rounded text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
-                >
-                  <XCircle className="w-4 h-4" />
-                </button>
-              </>
-            )
-          )}
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 px-4 py-2 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors border-t border-border/50"
-      >
-        <span className="uppercase tracking-wider">{t("select_recipes")} ({orderedRecipes.length})</span>
-        {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-      </button>
-
-      {expanded && (
-        <div className="border-t border-border/50 bg-muted/10 px-4 py-3">
-          {orderedRecipes.length > 0 ? (
-            <ul className="space-y-1.5">
-              {orderedRecipes.map((recipe, index) => (
-                <li key={`${recipe.id}-${index}`} className="flex items-center justify-between text-xs gap-2">
-                  <span className="text-muted-foreground shrink-0">{t("rotation_order", { n: String(index + 1) })}</span>
-                  <span className="text-foreground truncate flex-1 text-right font-medium">{recipe.name}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs text-muted-foreground italic">—</p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─────────────────────────── Unified list ─────────────────────────── */
-
-type UnifiedItem =
-  | { kind: "single"; sortDate: string; data: Order }
-  | { kind: "subscription"; sortDate: string; data: Subscription };
-
-type TypeFilter = "all" | "single" | "subscription";
+/* ─────────────────────────── Order list ─────────────────────────── */
 
 /**
- * Renders one recency-sorted section (in-progress or history) of the
- * unified list in the given view mode.
+ * Renders one recency-sorted section (in-progress or history) of the order
+ * list in the given view mode.
  */
-function UnifiedSection({
-  items, label, pulse, viewMode, tOrders, tSub, isUpdatingSub, onSubStatusChange,
+function OrderSection({
+  orders, label, pulse, viewMode, tOrders,
 }: {
-  items: UnifiedItem[];
+  orders: Order[];
   label: string;
   pulse?: boolean;
   viewMode: ViewMode;
   tOrders: ReturnType<typeof useTranslations>;
-  tSub: ReturnType<typeof useTranslations>;
-  isUpdatingSub: boolean;
-  onSubStatusChange: (sub: Subscription, status: SubscriptionStatus) => void;
 }) {
-  if (items.length === 0) return null;
+  if (orders.length === 0) return null;
   return (
     <section className="space-y-4">
       <div className="flex items-center gap-2">
@@ -560,41 +243,21 @@ function UnifiedSection({
           "text-sm font-semibold text-muted-foreground uppercase tracking-wider",
           !pulse && "border-b pb-2 w-full"
         )}>
-          {label} ({items.length})
+          {label} ({orders.length})
         </h2>
       </div>
 
       {viewMode === "card" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-          {items.map((item) =>
-            item.kind === "single" ? (
-              <SingleOrderCard key={`order-${item.data.id}`} order={item.data} t={tOrders} />
-            ) : (
-              <SubscriptionSummaryCard
-                key={`sub-${item.data.id}`}
-                sub={item.data}
-                t={tSub}
-                isUpdating={isUpdatingSub}
-                onStatusChange={onSubStatusChange}
-              />
-            )
-          )}
+          {orders.map((order) => (
+            <SingleOrderCard key={order.id} order={order} t={tOrders} />
+          ))}
         </div>
       ) : (
         <div className="space-y-2">
-          {items.map((item) =>
-            item.kind === "single" ? (
-              <SingleOrderRow key={`order-${item.data.id}`} order={item.data} t={tOrders} />
-            ) : (
-              <SubscriptionSummaryRow
-                key={`sub-${item.data.id}`}
-                sub={item.data}
-                t={tSub}
-                isUpdating={isUpdatingSub}
-                onStatusChange={onSubStatusChange}
-              />
-            )
-          )}
+          {orders.map((order) => (
+            <SingleOrderRow key={order.id} order={order} t={tOrders} />
+          ))}
         </div>
       )}
     </section>
@@ -602,44 +265,25 @@ function UnifiedSection({
 }
 
 /**
- * Customer orders page — unified view of one-off orders and recurring
- * subscriptions. Both are created from the same "Novo Pedido" entry point
- * (which branches by type) and listed together here, grouped into
- * in-progress/history sections and filterable by type.
+ * Customer orders page: every order (each one a meal plan for one or more
+ * pets), newest first, grouped into in-progress and history sections and
+ * searchable by number, recipe or address.
  *
- * @returns The unified orders page element.
+ * @returns The orders page element.
  */
 export default function OrdersPage() {
   const tOrders = useTranslations("Orders");
-  const tSub = useTranslations("Subscriptions");
   const tCommon = useTranslations("Common");
 
-  const { orders, isLoading: isLoadingOrders } = useOrders();
-  const { subscriptions, isLoading: isLoadingSubs, updateSubscription, isUpdating: isUpdatingSub } = useSubscriptions();
+  const { orders, isLoading } = useOrders();
 
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  const isLoading = isLoadingOrders || isLoadingSubs;
-
-  async function handleSubStatusChange(sub: Subscription, status: SubscriptionStatus) {
-    if (status === "cancelled" && !confirm(tSub("cancel_confirm"))) return;
-    try {
-      await updateSubscription({ id: sub.id, status });
-      setFeedback({ type: "success", message: tSub("status_updated") });
-    } catch {
-      setFeedback({ type: "error", message: tSub("error_update") });
-    } finally {
-      setTimeout(() => setFeedback(null), 3000);
-    }
-  }
-
-  const unified = useMemo<UnifiedItem[]>(() => {
+  const filtered = useMemo<Order[]>(() => {
     const q = search.toLowerCase();
 
-    const singleItems: UnifiedItem[] = (typeFilter === "subscription" ? [] : orders ?? [])
+    return (orders ?? [])
       .filter((o) => {
         if (!q) return true;
         return (
@@ -649,41 +293,18 @@ export default function OrdersPage() {
           (o.delivery_address?.toLowerCase().includes(q) ?? false)
         );
       })
-      .map((o) => ({ kind: "single" as const, sortDate: o.created_at, data: o }));
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }, [orders, search]);
 
-    const subscriptionItems: UnifiedItem[] = (typeFilter === "single" ? [] : subscriptions ?? [])
-      .filter((s) => {
-        if (!q) return true;
-        return (
-          (s.pet?.name?.toLowerCase().includes(q) ?? false) ||
-          (s.recipes?.some((r) => r.name?.toLowerCase().includes(q)) ?? false)
-        );
-      })
-      .map((s) => ({ kind: "subscription" as const, sortDate: s.created_at, data: s }));
+  const activeOrders = filtered.filter((order) => !["delivered", "cancelled"].includes(order.status));
+  const historyOrders = filtered.filter((order) => ["delivered", "cancelled"].includes(order.status));
 
-    return [...singleItems, ...subscriptionItems].sort(
-      (a, b) => new Date(b.sortDate).getTime() - new Date(a.sortDate).getTime()
-    );
-  }, [orders, subscriptions, search, typeFilter]);
-
-  const activeItems = unified.filter((item) =>
-    item.kind === "single"
-      ? !["delivered", "cancelled"].includes(item.data.status)
-      : item.data.status !== "cancelled"
-  );
-  const historyItems = unified.filter((item) =>
-    item.kind === "single"
-      ? ["delivered", "cancelled"].includes(item.data.status)
-      : item.data.status === "cancelled"
-  );
-
-  const hasAnything = !!((orders && orders.length > 0) || (subscriptions && subscriptions.length > 0));
-  const noResults = hasAnything && unified.length === 0;
-  const isFiltering = search !== "" || typeFilter !== "all";
+  const hasAnything = !!(orders && orders.length > 0);
+  const noResults = hasAnything && filtered.length === 0;
+  const isFiltering = search !== "";
 
   function clearFilters() {
     setSearch("");
-    setTypeFilter("all");
   }
 
   const viewToggleLabels = { grid: tCommon("grid"), list: tCommon("list") };
@@ -706,18 +327,6 @@ export default function OrdersPage() {
         </Link>
       </div>
 
-      {/* ── Feedback banner ────────────────────────────────────────── */}
-      {feedback && (
-        <div className={cn(
-          "px-4 py-3 rounded-lg text-sm font-medium border",
-          feedback.type === "success"
-            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
-            : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
-        )}>
-          {feedback.message}
-        </div>
-      )}
-
       {/* ── Filter bar ──────────────────────────────────────────────── */}
       {hasAnything && (
         <>
@@ -732,15 +341,6 @@ export default function OrdersPage() {
               />
             </div>
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
-                className="h-10 flex-1 sm:w-48 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="all">{tOrders("type_filter_all")}</option>
-                <option value="single">{tOrders("type_filter_single")}</option>
-                <option value="subscription">{tOrders("type_filter_subscription")}</option>
-              </select>
               <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} labels={viewToggleLabels} />
             </div>
           </div>
@@ -781,28 +381,11 @@ export default function OrdersPage() {
       ) : (
         <div className="space-y-8">
           <p className="text-sm text-muted-foreground px-1">
-            <span className="font-semibold text-foreground">{unified.length}</span>{" "}
-            {unified.length === 1 ? tOrders("results_found_singular") : tOrders("results_found_plural")}
+            <span className="font-semibold text-foreground">{filtered.length}</span>{" "}
+            {filtered.length === 1 ? tOrders("results_found_singular") : tOrders("results_found_plural")}
           </p>
-          <UnifiedSection
-            items={activeItems}
-            label={tOrders("in_progress")}
-            pulse
-            viewMode={viewMode}
-            tOrders={tOrders}
-            tSub={tSub}
-            isUpdatingSub={isUpdatingSub}
-            onSubStatusChange={handleSubStatusChange}
-          />
-          <UnifiedSection
-            items={historyItems}
-            label={tOrders("history")}
-            viewMode={viewMode}
-            tOrders={tOrders}
-            tSub={tSub}
-            isUpdatingSub={isUpdatingSub}
-            onSubStatusChange={handleSubStatusChange}
-          />
+          <OrderSection orders={activeOrders} label={tOrders("in_progress")} pulse viewMode={viewMode} tOrders={tOrders} />
+          <OrderSection orders={historyOrders} label={tOrders("history")} viewMode={viewMode} tOrders={tOrders} />
         </div>
       )}
     </div>
