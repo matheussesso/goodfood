@@ -15,6 +15,9 @@ class Recipe extends Model
 {
     use HasFactory;
 
+    /** Minimum total ingredient weight, in kg, a customer recipe must feed. */
+    public const MIN_TOTAL_WEIGHT_KG = 1.5;
+
     protected $fillable = [
         'user_id',
         'pet_id',
@@ -130,6 +133,17 @@ class Recipe extends Model
     public function calculateTotalCost(?int $durationOverride = null): float
     {
         return (float) $this->calculateCostResult($durationOverride)['estimatedCost'];
+    }
+
+    /**
+     * Ingredient weight fed per day, in kg, from the loaded ingredients.
+     */
+    public function dailyWeightKg(): float
+    {
+        return (float) $this->ingredients->sum(fn (Ingredient $ingredient): float => Ingredient::weightInKg(
+            (float) ($ingredient->pivot->quantity ?? 0),
+            (string) ($ingredient->pivot->unit ?? $ingredient->unit),
+        ));
     }
 
     public function updateBaseCost(): void

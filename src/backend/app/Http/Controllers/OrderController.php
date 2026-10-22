@@ -7,14 +7,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Order\StoreOrderRequest;
 use App\Http\Requests\Order\UpdateOrderRequest;
 use App\Http\Resources\OrderResource;
-use App\Models\Invoice;
 use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Recipe;
-use Carbon\Carbon;
+use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Manages order resources. Ownership rules live in OrderPolicy.
@@ -41,74 +37,16 @@ class OrderController extends Controller
     }
 
     /**
-     * Create a new order for the authenticated user.
-     * Accepts an array of items (each with recipe_id and optional pet_id),
-     * allowing the same recipe to appear multiple times for different pets.
+     * Create a new order (a meal plan) for the authenticated user. Validation,
+     * pet ownership and recipe/pet consistency live in StoreOrderRequest.
      */
-    public function store(StoreOrderRequest $request): JsonResponse
+    public function store(StoreOrderRequest $request, OrderService $orders): JsonResponse
     {
         $validated = $request->validated();
 
-        $userPetIds = $request->user()->pets()->pluck('id');
-        foreach ($validated['items'] as $item) {
-            if (! empty($item['pet_id']) && ! $userPetIds->contains($item['pet_id'])) {
-                return $this->respondError('Pet not found or unauthorized', 403);
-            }
-        }
+        $order = $orders->place($request->user(), $validated['items'], $validated['delivery_address'] ?? null);
 
-        $recipeIds = collect($validated['items'])->pluck('recipe_id');
-        $recipesById = Recipe::with('ingredients')->whereIn('id', $recipeIds->unique())->get()->keyBy('id');
-
-        foreach ($recipesById as $recipe) {
-            if ($request->user()->cannot('view', $recipe)) {
-                return $this->respondError('Recipe not found or unauthorized', 403);
-            }
-        }
-
-        $total = collect($validated['items'])->sum(function (array $item) use ($recipesById): float {
-            /** @var Recipe|null $recipe */
-            $recipe = $recipesById->get($item['recipe_id']);
-
-            return (float) ($recipe?->calculateTotalCost() ?? 0);
-        });
-
-        // Order, invoice and items are persisted atomically so a failure
-        // mid-way never leaves a header without its items or invoice.
-        $order = DB::transaction(function () use ($request, $validated, $total, $recipesById): Order {
-            $order = $request->user()->orders()->create([
-                'total_price' => $total,
-                'status' => 'pending_payment',
-                'delivery_address' => $validated['delivery_address'] ?? null,
-            ]);
-
-            Invoice::create([
-                'order_id' => $order->id,
-                'user_id' => $request->user()->id,
-                'amount' => $total,
-                'status' => 'pending',
-                'due_date' => Carbon::today()->addDays(3),
-            ]);
-
-            foreach ($validated['items'] as $item) {
-                /** @var Recipe|null $recipe */
-                $recipe = $recipesById->get($item['recipe_id']);
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'pet_id' => $item['pet_id'] ?? null,
-                    'recipe_id' => $item['recipe_id'],
-                    'unit_price' => (float) ($recipe?->calculateTotalCost() ?? 0),
-                    'quantity' => 1,
-                ]);
-            }
-
-            return $order;
-        });
-
-        return $this->respondSuccess(
-            OrderResource::make($order->load(['items.recipe.ingredients', 'items.pet', 'invoice'])),
-            'Order created successfully',
-            201
-        );
+        return $this->respondSuccess(OrderResource::make($order), 'Order created successfully', 201);
     }
 
     /**
