@@ -135,7 +135,7 @@ export function OrderSummaryCard({ order, onRetry }: OrderSummaryCardProps) {
 
 1. Definir a chave em `messages/pt.json`, depois `en.json` e `es.json` — **os 3 simultaneamente, com paridade total**.
 2. Consumir com `useTranslations()` (ou `getTranslations()` em Server Components).
-3. Chaves semânticas agrupadas por namespace (`Common`, `Auth`, `Navigation`, `Catalog`, `Recipes`, `Pets`, `Orders`, `Subscriptions`, `Profile`, `Production`, `Dashboard`, `admin`, `Metadata`, `NotFound`). **Nunca duplicar chave que já existe em `Common`.**
+3. Chaves semânticas agrupadas por namespace (`Common`, `Auth`, `Navigation`, `Catalog`, `Recipes`, `Pets`, `Orders`, `Profile`, `Production`, `Dashboard`, `admin`, `Metadata`, `NotFound`). **Nunca duplicar chave que já existe em `Common`.**
 4. Interpolações (`{name}`, `{count}`) dentro da chave, nunca concatenadas.
 
 Exceções permitidas: formatação de locale (moeda/data), dados da API (nomes próprios), o arquivo `global-error.tsx` (fora da árvore de locale) e o namespace `Landing`, que existe **somente em `pt.json`** (a landing é só em português; ver [docs/internacionalizacao.md](docs/internacionalizacao.md)).

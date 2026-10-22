@@ -1,6 +1,6 @@
 # GoodFood System
 
-Plataforma de alimentação natural para pets por assinatura: tutores cadastram seus pets, montam receitas personalizadas com base nas necessidades de cada animal e recebem pedidos avulsos ou recorrentes. A empresa administra catálogo de ingredientes, precificação, produção e entregas.
+Plataforma de alimentação natural para pets: tutores cadastram seus pets, montam receitas personalizadas com base nas necessidades de cada animal e fazem pedidos como planos alimentares (uma ou mais receitas em sequência por pet, cada uma com a sua duração). A empresa administra catálogo de ingredientes, precificação, produção e entregas.
 
 ## Stack
 
@@ -54,13 +54,13 @@ Toda a documentação técnica vive em [`docs/`](docs/README.md):
 
 **Para tutores (clientes)**
 - Cadastro e gestão de pets (perfil, restrições alimentares, alergias, foto).
-- Receitas personalizadas por pet, com custo calculado a partir dos ingredientes.
-- Pedidos avulsos multi-pet e assinaturas com rotação de receitas e entrega recorrente.
+- Receitas personalizadas dentro de cada pet (do zero ou a partir de um modelo), com custo calculado a partir dos ingredientes.
+- Pedidos multi-pet como plano alimentar: receitas em sequência, duração de cada uma em dias e preço calculado ao vivo.
 - Acompanhamento de pedidos e histórico; perfil com endereço (busca por CEP/ViaCEP).
 
 **Para a empresa (admin)**
 - Catálogo de ingredientes e receitas-modelo com parâmetros globais de precificação.
-- Gestão de clientes, pets, pedidos (fluxo de status até a entrega) e assinaturas.
+- Gestão de clientes, pets e pedidos (fluxo de status até a entrega).
 - Painel de produção.
 
 **Transversal**
@@ -77,7 +77,7 @@ Toda a documentação técnica vive em [`docs/`](docs/README.md):
 │   │   │   ├── Http/       # Controllers, FormRequests, Middleware
 │   │   │   ├── Models/     # Eloquent models
 │   │   │   ├── Policies/   # Autorização por recurso
-│   │   │   └── Services/   # Regras de negócio (custo de receitas)
+│   │   │   └── Services/   # Regras de negócio (custo de receitas, pedidos, dashboard)
 │   │   ├── database/       # Migrations, factories e seeders
 │   │   ├── routes/         # api.php
 │   │   └── tests/          # Suíte Pest (Feature/Unit)

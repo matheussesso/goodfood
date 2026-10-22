@@ -23,6 +23,8 @@ Branch: `feature/remove-recipes-subscriptions-meal-plans` (a partir da `main`).
 
 ### Etapa 1 — Receitas vinculadas ao pet
 
+**Status:** implementada (`300d0a4` backend, `089a5bd` frontend).
+
 **Backend**
 - Migration `2026_10_22_000001_make_recipes_belong_to_a_single_pet`:
   - receita de cliente com 1 pet no pivot → `pet_id` desse pet;
@@ -45,6 +47,8 @@ Branch: `feature/remove-recipes-subscriptions-meal-plans` (a partir da `main`).
 
 ### Etapa 2 — Remoção das assinaturas
 
+**Status:** implementada (`4c82fda` backend, `dcd5857` frontend).
+
 **Backend**
 - Migration `2026_10_22_000002_archive_subscriptions_tables`: renomeia as tabelas para `legacy_*` (sem perda de dados; `down()` desfaz).
 - Remove `Subscription`, `SubscriptionRecipe`, `SubscriptionController`, requests, policy, resource, seeder, rotas e testes; remove `subscriptions` de `User`, `Pet`, `UserResource`, `PetResource`, `CustomerController` e do dashboard (`active_subscription`, `subscriptions_count`).
@@ -53,6 +57,8 @@ Branch: `feature/remove-recipes-subscriptions-meal-plans` (a partir da `main`).
 - Remove `/orders/subscriptions/*`, `hooks/useSubscriptions`, `features/subscriptions`, `ActiveSubscriptionCard`, abas de assinaturas (pedidos do cliente, admin de pedidos e admin de cliente), a tela de escolha "avulso × assinatura" e o bloco de assinatura da landing.
 
 ### Etapa 3 — Pedido como plano alimentar
+
+**Status:** implementada (`b66f879` backend, `35b8143` frontend). A criação do pedido (preço por duração e `position`) ficou em `App\Services\OrderService`, chamado pelo `OrderController::store`.
 
 **Backend**
 - Migration `2026_10_22_000003_add_duration_and_position_to_order_items`: `duration_days` (preenchido nos itens antigos com a duração da receita, ou 15) e `position`.
@@ -65,6 +71,8 @@ Branch: `feature/remove-recipes-subscriptions-meal-plans` (a partir da `main`).
 - Detalhe do pedido (cliente e admin) e painel da produção mostram a duração e a sequência do plano.
 
 ### Etapa 4 — Documentação
+
+**Status:** implementada (inclui também `internacionalizacao.md`, `README.md` de `docs/` e da raiz e `AGENTS.md`).
 
 `api.md`, `dominio.md`, `funcionalidades.md`, `arquitetura.md`, `testes.md` e este plano.
 
