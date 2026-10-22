@@ -9,8 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * API representation of a Recipe with its ingredient/pet relations. Includes
- * the subscription_recipes pivot (position) when nested under a subscription.
+ * API representation of a Recipe with its ingredients and (when loaded) the
+ * pet it belongs to. Catalog templates have no pet.
  *
  * @mixin Recipe
  */
@@ -48,7 +48,7 @@ class RecipeResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'user' => UserResource::make($this->whenLoaded('user')),
-            'pets' => PetResource::collection($this->whenLoaded('pets')),
+            'pet' => PetResource::make($this->whenLoaded('pet')),
             'ingredients' => IngredientResource::collection($this->whenLoaded('ingredients')),
             'pivot' => $this->when($this->resource->pivot !== null, fn () => $this->resource->pivot),
         ];

@@ -23,8 +23,6 @@ class DashboardService
 
     public const STEP_CREATE_RECIPE = 'create_recipe';
 
-    public const STEP_LINK_RECIPE = 'link_recipe';
-
     public const STEP_PLACE_ORDER = 'place_order';
 
     public const STEP_COMPLETE = 'complete';
@@ -50,29 +48,22 @@ class DashboardService
      */
     public function summary(User $user): array
     {
-        $pets = $user->pets()
-            ->with([
-                'recipes' => fn ($query) => $query->where('is_template', false),
-                'vaccines',
-            ])
-            ->get();
+        $pets = $user->pets()->with(['recipes', 'vaccines'])->orderBy('id')->get();
 
-        $ownRecipesCount = $user->recipes()->where('is_template', false)->count();
         $ordersCount = $user->orders()->count();
         $subscriptionsCount = $user->subscriptions()->count();
-        $linkedRecipesCount = $pets->flatMap(fn (Pet $pet) => $pet->recipes)->pluck('id')->unique()->count();
+        $petsWithRecipe = $pets->filter(fn (Pet $pet) => $pet->recipes->isNotEmpty());
 
         return [
             'progress' => [
                 'has_address' => $this->hasAddress($user),
                 'pets_count' => $pets->count(),
-                'own_recipes_count' => $ownRecipesCount,
-                'linked_recipes_count' => $linkedRecipesCount,
-                // Where the "link a recipe to a pet" step should send the user.
-                'first_unlinked_recipe_id' => $user->recipes()->where('is_template', false)->whereDoesntHave('pets')->orderBy('id')->value('id'),
+                'pets_with_recipe_count' => $petsWithRecipe->count(),
+                // Pets created before recipes became mandatory may still lack one.
+                'first_pet_without_recipe_id' => $pets->first(fn (Pet $pet) => $pet->recipes->isEmpty())?->id,
                 'orders_count' => $ordersCount,
                 'subscriptions_count' => $subscriptionsCount,
-                'next_step' => $this->nextStep($pets->count(), $ownRecipesCount, $linkedRecipesCount, $ordersCount + $subscriptionsCount),
+                'next_step' => $this->nextStep($pets->count(), $petsWithRecipe->count(), $ordersCount + $subscriptionsCount),
             ],
             'onboarding_dismissed' => $user->onboarding_dismissed_at !== null,
             'alerts' => [
@@ -94,14 +85,14 @@ class DashboardService
     }
 
     /**
-     * Decide the next onboarding step from simple counts.
+     * Decide the next onboarding step from simple counts. New pets always come
+     * with a recipe; `create_recipe` only applies to pets created before that.
      */
-    public function nextStep(int $pets, int $ownRecipes, int $linkedRecipes, int $purchases): string
+    public function nextStep(int $pets, int $petsWithRecipe, int $purchases): string
     {
         return match (true) {
             $pets === 0 => self::STEP_ADD_PET,
-            $ownRecipes === 0 => self::STEP_CREATE_RECIPE,
-            $linkedRecipes === 0 => self::STEP_LINK_RECIPE,
+            $petsWithRecipe === 0 => self::STEP_CREATE_RECIPE,
             $purchases === 0 => self::STEP_PLACE_ORDER,
             default => self::STEP_COMPLETE,
         };

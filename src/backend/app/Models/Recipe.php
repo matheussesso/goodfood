@@ -46,14 +46,14 @@ class Recipe extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * The pet this recipe belongs to. Catalog templates have no pet.
+     *
+     * @return BelongsTo<Pet, $this>
+     */
     public function pet(): BelongsTo
     {
         return $this->belongsTo(Pet::class);
-    }
-
-    public function pets(): BelongsToMany
-    {
-        return $this->belongsToMany(Pet::class)->withTimestamps();
     }
 
     public function ingredients(): BelongsToMany
@@ -66,6 +66,16 @@ class Recipe extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Order lines that used this recipe.
+     *
+     * @return HasMany<OrderItem, $this>
+     */
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
     }
 
     public function scopeTemplates($query)

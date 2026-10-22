@@ -88,9 +88,14 @@ class Pet extends Model
         return $this->belongsToMany(Order::class, 'order_items')->distinct();
     }
 
+    /**
+     * The pet's own recipes. Every pet is created with at least one.
+     *
+     * @return HasMany<Recipe, $this>
+     */
     public function recipes()
     {
-        return $this->belongsToMany(Recipe::class)->withTimestamps();
+        return $this->hasMany(Recipe::class)->orderBy('id');
     }
 
     /** @return HasMany<PetVaccine, $this> */

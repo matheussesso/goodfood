@@ -33,21 +33,31 @@ trait ValidatesMinimumRecipeWeight
                 return;
             }
 
-            $items = (array) $this->input('ingredients', []);
+            $prefix = $this->recipeInputPrefix();
+            $items = (array) $this->input($prefix.'ingredients', []);
             if ($items === []) {
                 return;
             }
 
-            $duration = (int) ($this->input('duration_days') ?: $this->currentDurationDays());
+            $duration = (int) ($this->input($prefix.'duration_days') ?: $this->currentDurationDays());
             $totalKg = $this->dailyWeightKg($items) * $duration;
 
             if ($totalKg < self::MIN_TOTAL_WEIGHT_KG) {
                 $validator->errors()->add(
-                    'ingredients',
+                    $prefix.'ingredients',
                     'The recipe must contain at least '.self::MIN_TOTAL_WEIGHT_KG.' kg of ingredients in total.'
                 );
             }
         });
+    }
+
+    /**
+     * Prefix of the recipe fields in the payload ("" when the recipe is the
+     * payload itself, "recipe." when it is nested, e.g. when creating a pet).
+     */
+    protected function recipeInputPrefix(): string
+    {
+        return '';
     }
 
     /**

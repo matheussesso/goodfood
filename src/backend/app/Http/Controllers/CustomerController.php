@@ -74,12 +74,12 @@ class CustomerController extends Controller
     public function show($id): JsonResponse
     {
         $user = User::with([
-            'pets',
+            'pets.recipes.ingredients',
             'orders.items.recipe.ingredients',
             'orders.invoice',
             'subscriptions.recipes.ingredients',
             'recipes.ingredients',
-            'recipes.pets',
+            'recipes.pet',
         ])->findOrFail($id);
 
         return $this->respondSuccess(UserResource::make($user), 'User fetched successfully');

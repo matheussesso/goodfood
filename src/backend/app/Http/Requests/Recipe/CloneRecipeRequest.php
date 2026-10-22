@@ -9,8 +9,8 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Validates a request to clone a recipe (typically a catalog template) into
- * the user's own recipes, optionally linking the copy to some of their pets.
+ * Validates a request to copy a recipe (typically a catalog template) into one
+ * of the user's pets.
  */
 class CloneRecipeRequest extends FormRequest
 {
@@ -18,17 +18,14 @@ class CloneRecipeRequest extends FormRequest
      * Determine if the user is authorized to make this request.
      *
      * Only recipes the user can see AND is allowed to copy: catalog templates
-     * or their own recipes. A private recipe merely linked to one of their pets
-     * is visible but not cloneable.
+     * or recipes of their own pets.
      */
     public function authorize(): bool
     {
         /** @var Recipe $recipe */
         $recipe = $this->route('recipe');
-        $user = $this->user();
 
-        return $user->can('view', $recipe)
-            && ($user->isAdmin() || $recipe->is_template || $recipe->user_id === $user->id);
+        return $this->user()->can('view', $recipe);
     }
 
     /**
@@ -45,8 +42,7 @@ class CloneRecipeRequest extends FormRequest
 
         return [
             'name' => ['nullable', 'string', 'max:255'],
-            'pet_ids' => ['nullable', 'array'],
-            'pet_ids.*' => ['integer', $petExists],
+            'pet_id' => ['required', 'integer', $petExists],
         ];
     }
 }
