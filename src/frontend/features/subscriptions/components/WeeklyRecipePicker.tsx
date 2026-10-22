@@ -120,7 +120,7 @@ export function WeeklyRecipePicker({
       <div className="flex flex-col items-start gap-3 py-2">
         <p className="text-sm text-muted-foreground">{t("no_recipes_for_pet_short")}</p>
         <Link
-          href={petId ? `/recipes/new?pet_id=${petId}` : "/recipes/new"}
+          href={petId ? `/pets/${petId}/recipes/new` : "/pets"}
           className="inline-flex min-h-11 items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-muted"
         >
           {t("no_recipes_cta")}

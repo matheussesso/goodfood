@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useQueryClient } from "@tanstack/react-query";
 import { Pet, usePets } from "@/hooks/usePets";
+import { useRecipeTemplates } from "@/hooks/useRecipes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,10 +23,12 @@ interface PetFormModalProps {
 }
 
 /**
- * Admin modal for creating or editing a customer's pet. Owns its own form
- * state (seeded from the pet on mount — the parent must remount it per
- * opening, e.g. by rendering it conditionally) and invalidates the customer
- * query after saving.
+ * Admin modal for creating or editing a customer's pet. A new pet always
+ * starts with a recipe, so creating one requires picking a catalog template
+ * (the pet gets its own copy; it can be refined later in the pet's recipes).
+ * Owns its own form state (seeded from the pet on mount — the parent must
+ * remount it per opening, e.g. by rendering it conditionally) and invalidates
+ * the customer query after saving.
  */
 export function PetFormModal({ customerId, pet, isOpen, onClose }: PetFormModalProps) {
   const t = useTranslations("admin");
@@ -33,6 +36,8 @@ export function PetFormModal({ customerId, pet, isOpen, onClose }: PetFormModalP
   const tPets = useTranslations("Pets");
   const queryClient = useQueryClient();
   const { createPet, updatePet, isCreating, isUpdating } = usePets();
+  const { templates } = useRecipeTemplates();
+  const [templateId, setTemplateId] = useState("");
 
   const [form, setForm] = useState(() =>
     pet
@@ -57,7 +62,7 @@ export function PetFormModal({ customerId, pet, isOpen, onClose }: PetFormModalP
     if (pet) {
       await updatePet({ id: pet.id, ...data });
     } else {
-      await createPet(data);
+      await createPet({ ...data, recipe: { template_id: Number(templateId) } });
     }
 
     queryClient.invalidateQueries({ queryKey: ["customer", String(customerId)] });
@@ -89,6 +94,24 @@ export function PetFormModal({ customerId, pet, isOpen, onClose }: PetFormModalP
           <Label>{tPets("special_needs")}</Label>
           <textarea className="flex w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.special_needs} onChange={e => setForm({ ...form, special_needs: e.target.value })} placeholder={tPets("special_needs_placeholder")} />
         </div>
+        {!pet && (
+          <div className="space-y-2">
+            <Label htmlFor="pet-first-recipe">{tPets("first_recipe_template")} *</Label>
+            <select
+              id="pet-first-recipe"
+              required
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={templateId}
+              onChange={(e) => setTemplateId(e.target.value)}
+            >
+              <option value="" disabled>{tPets("choose_template")}</option>
+              {(templates ?? []).map((template) => (
+                <option key={template.id} value={template.id}>{template.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">{tPets("first_recipe_template_hint")}</p>
+          </div>
+        )}
         <div className="pt-4 flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onClose}>{tCommon("cancel")}</Button>
           <Button type="submit" disabled={isCreating || isUpdating}>

@@ -110,8 +110,8 @@ function AdminPetCard({ pet, customerId, onEdit, t, tPets, tCat }: {
 }
 
 /**
- * Compact recipe card matching the customer-facing `/recipes` card design —
- * stat strip, collapsed ingredient composition accordion, footer link.
+ * Compact recipe card: the pet it belongs to, stat strip, collapsed
+ * ingredient composition accordion and a footer link to edit it.
  */
 function AdminRecipeCard({ recipe, onEdit, tRec, tCat, tCommon }: {
   recipe: Recipe;
@@ -146,8 +146,8 @@ function AdminRecipeCard({ recipe, onEdit, tRec, tCat, tCommon }: {
 
         <div className="grid grid-cols-4 divide-x divide-border/50 bg-muted/30 rounded-lg">
           <div className="px-1.5 py-2 text-center min-w-0">
-            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{tRec("pet_type")}</span>
-            <span className="font-medium text-xs truncate block">{recipe.pet_type === "cat" ? tCat("cat") : recipe.pet_type === "dog" ? tCat("dog") : tCommon("all")}</span>
+            <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{tRec("pet_label")}</span>
+            <span className="font-medium text-xs truncate block">{recipe.pet?.name ?? "—"}</span>
           </div>
           <div className="px-1.5 py-2 text-center min-w-0">
             <span className="text-[9px] uppercase tracking-wider text-muted-foreground block mb-0.5">{tCat("duration")}</span>
@@ -188,13 +188,15 @@ function AdminRecipeCard({ recipe, onEdit, tRec, tCat, tCommon }: {
           </div>
         )}
 
-        <Link
-          href={`/recipes/${recipe.id}`}
-          className="flex items-center justify-center gap-1 text-xs font-medium text-primary hover:text-primary/80 pt-2.5 mt-auto border-t border-border/50"
-        >
-          {tCommon("view")}
-          <ChevronRight className="w-3.5 h-3.5" />
-        </Link>
+        {recipe.pet_id && (
+          <Link
+            href={`/pets/${recipe.pet_id}/recipes/${recipe.id}/edit`}
+            className="flex items-center justify-center gap-1 text-xs font-medium text-primary hover:text-primary/80 pt-2.5 mt-auto border-t border-border/50"
+          >
+            {tCommon("edit")}
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -743,9 +745,6 @@ export default function CustomerDetailPage() {
                     <ListIcon className="w-4 h-4" />
                   </button>
                 </div>
-                <Link href={`/recipes/new?user_id=${customer.id}`} className="flex-1 sm:flex-none">
-                  <Button className="w-full"><Plus className="w-4 h-4 mr-2" /> {tRec("title")}</Button>
-                </Link>
               </div>
             </div>
 
@@ -763,7 +762,7 @@ export default function CustomerDetailPage() {
                       <thead className="text-xs text-muted-foreground bg-muted/50 uppercase">
                         <tr>
                           <th className="px-6 py-3 font-medium">{tRec("recipe_name")}</th>
-                          <th className="px-6 py-3 font-medium text-center">{tRec("pet_type")}</th>
+                          <th className="px-6 py-3 font-medium text-center">{tRec("pet_label")}</th>
                           <th className="px-6 py-3 font-medium text-center">{tCat("duration")}</th>
                           <th className="px-6 py-3 font-medium text-right">{tRec("estimated_cost")}</th>
                           <th className="px-6 py-3 font-medium text-right">{t("actions")}</th>
@@ -776,16 +775,18 @@ export default function CustomerDetailPage() {
                               <div className="font-semibold text-foreground">{recipe.name}</div>
                               <div className="text-xs text-muted-foreground line-clamp-1 max-w-[220px] mt-0.5">{recipe.description}</div>
                             </td>
-                            <td className="px-6 py-3.5 text-center">{recipe.pet_type === "cat" ? tCat("cat") : recipe.pet_type === "dog" ? tCat("dog") : tCommon("all")}</td>
+                            <td className="px-6 py-3.5 text-center">{recipe.pet?.name ?? "—"}</td>
                             <td className="px-6 py-3.5 text-center">{recipe.duration_days ?? "—"}d</td>
                             <td className="px-6 py-3.5 text-right font-semibold text-amber-600 dark:text-amber-400">
                               R$ {Number(recipe.base_cost ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                             <td className="px-6 py-3.5 text-right">
                               <div className="flex gap-1 justify-end">
-                                <Link href={`/recipes/${recipe.id}`}>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronRight className="h-4 w-4 text-muted-foreground" /></Button>
-                                </Link>
+                                {recipe.pet_id && (
+                                  <Link href={`/pets/${recipe.pet_id}/recipes/${recipe.id}/edit`} aria-label={tCommon("edit")}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8"><ChevronRight className="h-4 w-4 text-muted-foreground" /></Button>
+                                  </Link>
+                                )}
                                 {!recipe.is_template && (
                                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenRecEditModal(recipe)}>
                                     <Edit2 className="h-4 w-4 text-muted-foreground" />
@@ -806,11 +807,7 @@ export default function CustomerDetailPage() {
                   <UtensilsCrossed className="w-7 h-7 opacity-40" />
                 </div>
                 <p className="text-sm">{t("no_recipes_for_customer")}</p>
-                <Link href={`/recipes/new?user_id=${customer.id}`}>
-                  <Button variant="outline" size="sm" className="mt-1 gap-1.5 text-xs h-8">
-                    <Plus className="w-3.5 h-3.5" /> {tRec("title")}
-                  </Button>
-                </Link>
+                <p className="text-xs">{tRec("recipes_live_in_pets")}</p>
               </div>
             )}
           </div>
@@ -873,7 +870,6 @@ export default function CustomerDetailPage() {
         <RecipeEditModal
           recipe={editingRecipe}
           customerId={customer.id}
-          customerPets={customer.pets ?? []}
           isOpen
           onClose={() => setIsRecEditModalOpen(false)}
         />

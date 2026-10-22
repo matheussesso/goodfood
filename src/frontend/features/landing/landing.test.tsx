@@ -190,7 +190,7 @@ describe("structured data and SEO routes", () => {
   it("robots blocks the authenticated areas and points to the sitemap", () => {
     const result = robots();
     const rules = Array.isArray(result.rules) ? result.rules[0] : result.rules;
-    expect(rules.disallow).toEqual(expect.arrayContaining(["/inicio", "/receitas", "/pedidos", "/admin"]));
+    expect(rules.disallow).toEqual(expect.arrayContaining(["/inicio", "/pets", "/pedidos", "/admin"]));
     expect(result.sitemap).toMatch(/\/sitemap\.xml$/);
   });
 });

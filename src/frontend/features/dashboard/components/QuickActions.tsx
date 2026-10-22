@@ -1,12 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { CircleHelp, Dog, ShoppingBag, UserCircle, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { CircleHelp, Dog, ShoppingBag, UserCircle, type LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
-const ACTIONS: { href: string; labelKey: "qa_new_order" | "qa_new_recipe" | "qa_new_pet" | "qa_guide" | "qa_profile"; icon: LucideIcon }[] = [
+const ACTIONS: { href: string; labelKey: "qa_new_order" | "qa_new_pet" | "qa_guide" | "qa_profile"; icon: LucideIcon }[] = [
   { href: "/orders/new", labelKey: "qa_new_order", icon: ShoppingBag },
-  { href: "/recipes/new", labelKey: "qa_new_recipe", icon: UtensilsCrossed },
   { href: "/pets/new", labelKey: "qa_new_pet", icon: Dog },
   { href: "/guide", labelKey: "qa_guide", icon: CircleHelp },
   { href: "/profile", labelKey: "qa_profile", icon: UserCircle },

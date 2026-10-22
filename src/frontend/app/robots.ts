@@ -3,7 +3,7 @@ import { company } from "@/lib/company";
 import { localizePath } from "@/i18n/pathnames";
 
 /** Authenticated areas are not meant to be indexed. */
-const PRIVATE_ROUTES = ["/dashboard", "/guide", "/profile", "/pets", "/recipes", "/orders", "/production", "/admin"];
+const PRIVATE_ROUTES = ["/dashboard", "/guide", "/profile", "/pets", "/orders", "/production", "/admin"];
 
 export default function robots(): MetadataRoute.Robots {
   return {

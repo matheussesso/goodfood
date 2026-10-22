@@ -12,7 +12,7 @@ export const NAV_ITEMS = [
 export const PROCESS_STEP_IDS = ["select", "prepare", "supplement", "portion", "delivery"] as const;
 
 /** Ids of the ordering steps (`Landing.how.steps.<id>`), in order. */
-export const HOW_STEP_IDS = ["pet", "recipe", "link", "order"] as const;
+export const HOW_STEP_IDS = ["pet", "recipe", "order"] as const;
 
 /** A system feature shown in the tabbed showcase (`Landing.system.features.<id>`). */
 export interface SystemFeature {

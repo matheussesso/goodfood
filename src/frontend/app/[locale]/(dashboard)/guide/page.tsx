@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ArrowRight, ChevronDown, CircleHelp, Dog, Lightbulb, Link2, ShoppingBag, UtensilsCrossed, type LucideIcon } from "lucide-react";
+import { ArrowRight, ChevronDown, CircleHelp, Dog, Lightbulb, ShoppingBag, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,8 +9,8 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { getCurrentStep, getJourney, getStepHref, JOURNEY_ORDER, type JourneyStepId } from "@/features/onboarding/journey";
 import { JourneyStepper } from "@/features/onboarding/components/JourneyStepper";
 
-const STEP_ICONS: Record<JourneyStepId, LucideIcon> = { pet: Dog, recipe: UtensilsCrossed, link: Link2, order: ShoppingBag };
-const STEP_KEYS: Record<JourneyStepId, "s1" | "s2" | "s3" | "s4"> = { pet: "s1", recipe: "s2", link: "s3", order: "s4" };
+const STEP_ICONS: Record<JourneyStepId, LucideIcon> = { pet: Dog, recipe: UtensilsCrossed, order: ShoppingBag };
+const STEP_KEYS: Record<JourneyStepId, "s1" | "s2" | "s3"> = { pet: "s1", recipe: "s2", order: "s3" };
 const FAQ_KEYS = ["q1", "q2", "q3", "q4", "q5", "q6"] as const;
 
 /**

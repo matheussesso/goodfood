@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   PackageSearch,
   ShoppingBag,
-  UtensilsCrossed,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -53,7 +52,6 @@ export function getNavLinks(role: string = "customer"): NavLink[] {
   if (role === "customer") {
     links.push(
       { href: "/pets", labelKey: "pets", icon: Dog },
-      { href: "/recipes", labelKey: "recipes", icon: UtensilsCrossed },
       { href: "/orders", labelKey: "orders", icon: ShoppingBag },
       { href: "/guide", labelKey: "guide", icon: CircleHelp }
     );

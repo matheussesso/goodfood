@@ -4,7 +4,7 @@ import { AuthCtas, type AuthCtaLabels } from "./AuthCtas";
 import { SectionHeading } from "./SectionHeading";
 
 /**
- * The four steps that take a customer from sign-up to the first order. They
+ * The three steps that take a customer from sign-up to the first order. They
  * are a real sequence, so they are numbered.
  *
  * @param ctaLabels - Texts of the auth buttons.
@@ -17,7 +17,7 @@ export async function HowItWorks({ ctaLabels }: { ctaLabels: AuthCtaLabels }) {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <SectionHeading id="how-title" title={t("title")} subtitle={t("subtitle")} />
 
-        <ol className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+        <ol className="mt-14 grid gap-10 sm:grid-cols-3 lg:gap-8">
           {HOW_STEP_IDS.map((id, index) => (
             <li key={id} className="border-t-2 border-gf-ink pt-5">
               <span className="gf-display block text-6xl font-extrabold leading-none text-gf-red" aria-hidden="true">

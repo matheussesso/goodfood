@@ -337,7 +337,7 @@ export default function NewOrderPage() {
             {pets.every((pet) => (pet.recipes ?? []).filter((r) => !r.is_template).length === 0) && (
               <div role="status" className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200 sm:flex-row sm:items-center">
                 <span className="flex-1">{tOnboarding("orders_need_recipe")}</span>
-                <Link href={`/recipes/new?pet_id=${pets[0].id}`}>
+                <Link href={`/pets/${pets[0].id}/recipes/new`}>
                   <Button size="sm">{tOnboarding("create_recipe_for_pet", { name: pets[0].name })}</Button>
                 </Link>
               </div>
@@ -389,7 +389,7 @@ export default function NewOrderPage() {
                       {petRecipes.length === 0 ? (
                         <div className="flex flex-col items-center gap-3 px-4 py-5 text-center">
                           <p className="text-sm text-muted-foreground">{t("no_recipes_for_pet", { name: pet.name })}</p>
-                          <Link href={`/recipes/new?pet_id=${pet.id}`}>
+                          <Link href={`/pets/${pet.id}/recipes/new`}>
                             <Button size="sm" variant="outline">{tOnboarding("create_recipe_for_pet", { name: pet.name })}</Button>
                           </Link>
                         </div>
