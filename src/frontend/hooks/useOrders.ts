@@ -19,12 +19,16 @@ export interface Invoice {
   updated_at: string;
 }
 
-/** A single recipe line within an order. */
+/** One step of a pet's meal plan inside an order. */
 export interface OrderItem {
   id: number;
   order_id: number;
   pet_id?: number;
   recipe_id: number;
+  /** How many days this recipe is fed (priced for this duration). */
+  duration_days: number;
+  /** 1-based place of this recipe in its pet's plan. */
+  position: number;
   unit_price: number;
   quantity: number;
   recipe?: Recipe;
@@ -52,10 +56,11 @@ export interface Order {
   user?: { id: number; name: string; email: string };
 }
 
-/** One item in the order creation payload — recipe + optional originating pet. */
+/** One meal plan step in the order creation payload; items of a pet are fed in the order sent. */
 export interface OrderItemPayload {
+  pet_id: number;
   recipe_id: number;
-  pet_id?: number;
+  duration_days: number;
 }
 
 /** Payload for creating a new order. */

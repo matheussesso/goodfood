@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/order-status";
 import { OrderStatusBadge } from "@/features/orders/components/OrderStatusBadge";
 import { OrderItemDetail } from "@/features/orders/components/OrderItemDetail";
+import { orderItemDayRanges, orderItemRecipeHref } from "@/features/orders/order-items";
 import { OrderStatusTimeline } from "@/features/orders/components/OrderStatusTimeline";
 
 /**
@@ -67,6 +68,7 @@ export default function AdminOrderDetailPage() {
 
     const isCancelled = order.status === "cancelled";
   const hasItems = !!(order.items && order.items.length > 0);
+  const dayRanges = orderItemDayRanges(order.items ?? []);
 
   return (
     <div className="space-y-6 mx-auto">
@@ -183,7 +185,9 @@ export default function AdminOrderDetailPage() {
             </div>
             <div className="p-4 space-y-3">
               {hasItems ? (
-                order.items!.map((item) => <OrderItemDetail key={item.id} item={item} />)
+                order.items!.map((item) => (
+                  <OrderItemDetail key={item.id} item={item} range={dayRanges[item.id]} href={orderItemRecipeHref(item, "admin")} />
+                ))
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   {order.recipe?.name ?? "—"}

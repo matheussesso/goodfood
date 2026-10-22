@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { ORDER_PIPELINE, getOrderProgressStep, getOrderStatusStyle, type OrderStatus } from "@/lib/order-status";
 import { OrderStatusBadge } from "@/features/orders/components/OrderStatusBadge";
 import { OrderRecipeBlock } from "@/features/orders/components/OrderRecipeBlock";
+import { orderItemRecipeHref } from "@/features/orders/order-items";
 import { ViewModeToggle, type ViewMode } from "@/components/ui/view-mode-toggle";
 
 /* ─────────────────────────── One-off order pieces ─────────────────────────── */
@@ -118,7 +119,7 @@ function SingleOrderCard({ order, t }: { order: Order; t: ReturnType<typeof useT
           {expanded && (
             <div className="mt-2 space-y-1.5 max-h-56 overflow-y-auto pr-1">
               {hasItems ? (
-                items.map((item) => <OrderRecipeBlock key={item.id} item={item} />)
+                items.map((item) => <OrderRecipeBlock key={item.id} item={item} href={orderItemRecipeHref(item, "customer")} />)
               ) : order.recipe ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
                   <UtensilsCrossed className="w-3.5 h-3.5 shrink-0" />
@@ -204,7 +205,7 @@ function SingleOrderRow({ order, t }: { order: Order; t: ReturnType<typeof useTr
       {expanded && (
         <div className="border-t bg-muted/10 px-4 py-3 divide-y divide-border/50">
           {hasItems ? (
-            items.map((item) => <OrderRecipeBlock key={item.id} item={item} />)
+            items.map((item) => <OrderRecipeBlock key={item.id} item={item} href={orderItemRecipeHref(item, "customer")} />)
           ) : order.recipe ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground py-1.5">
               <UtensilsCrossed className="w-3.5 h-3.5 shrink-0" />
