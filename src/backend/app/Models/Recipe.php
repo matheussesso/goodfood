@@ -98,9 +98,8 @@ class Recipe extends Model
      * today's ingredient prices) — never a cached value.
      *
      * @param  int|null  $durationOverride  Duration in days to price for, instead of the
-     *                                      recipe's own `duration_days` (e.g. 7 for a single
-     *                                      subscription cycle, regardless of the recipe's
-     *                                      native duration).
+     *                                      recipe's own `duration_days` (e.g. the duration
+     *                                      chosen for this recipe inside an order's meal plan).
      * @return array{estimatedCost: float, ingredientCost: float, costPerKg: float, costBreakdown: array}
      */
     public function calculateCostResult(?int $durationOverride = null): array

@@ -75,14 +75,14 @@ class PetController extends Controller
     }
 
     /**
-     * Show a pet with its recipes, orders, subscriptions and health records.
+     * Show a pet with its recipes, orders and health records.
      */
     public function show(Request $request, Pet $pet): JsonResponse
     {
         $this->authorize('view', $pet);
 
         return $this->respondSuccess(
-            PetResource::make($pet->load(['recipes.ingredients', 'orders', 'subscriptions', 'vaccines', 'documents'])),
+            PetResource::make($pet->load(['recipes.ingredients', 'orders', 'vaccines', 'documents'])),
             'Pet fetched successfully'
         );
     }

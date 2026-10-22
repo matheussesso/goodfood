@@ -7,14 +7,13 @@ namespace App\Services;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Pet;
-use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
  * Builds the customer dashboard summary: onboarding progress, alerts and the
- * orders/subscription currently in flight, using a fixed number of queries.
+ * order currently in flight, using a fixed number of queries.
  */
 class DashboardService
 {
@@ -41,7 +40,6 @@ class DashboardService
      *     onboarding_dismissed: bool,
      *     alerts: array<string, mixed>,
      *     current_order: Order|null,
-     *     active_subscription: Subscription|null,
      *     pets: Collection<int, Pet>,
      *     recent_orders: Collection<int, Order>
      * }
@@ -51,7 +49,6 @@ class DashboardService
         $pets = $user->pets()->with(['recipes', 'vaccines'])->orderBy('id')->get();
 
         $ordersCount = $user->orders()->count();
-        $subscriptionsCount = $user->subscriptions()->count();
         $petsWithRecipe = $pets->filter(fn (Pet $pet) => $pet->recipes->isNotEmpty());
 
         return [
@@ -62,8 +59,7 @@ class DashboardService
                 // Pets created before recipes became mandatory may still lack one.
                 'first_pet_without_recipe_id' => $pets->first(fn (Pet $pet) => $pet->recipes->isEmpty())?->id,
                 'orders_count' => $ordersCount,
-                'subscriptions_count' => $subscriptionsCount,
-                'next_step' => $this->nextStep($pets->count(), $petsWithRecipe->count(), $ordersCount + $subscriptionsCount),
+                'next_step' => $this->nextStep($pets->count(), $petsWithRecipe->count(), $ordersCount),
             ],
             'onboarding_dismissed' => $user->onboarding_dismissed_at !== null,
             'alerts' => [
@@ -72,7 +68,6 @@ class DashboardService
                 'incomplete_pets' => $this->incompletePets($pets),
             ],
             'current_order' => $this->currentOrder($user),
-            'active_subscription' => $this->activeSubscription($user),
             'pets' => $pets,
             'recent_orders' => $user->orders()
                 ->with('invoice')
@@ -88,12 +83,12 @@ class DashboardService
      * Decide the next onboarding step from simple counts. New pets always come
      * with a recipe; `create_recipe` only applies to pets created before that.
      */
-    public function nextStep(int $pets, int $petsWithRecipe, int $purchases): string
+    public function nextStep(int $pets, int $petsWithRecipe, int $orders): string
     {
         return match (true) {
             $pets === 0 => self::STEP_ADD_PET,
             $petsWithRecipe === 0 => self::STEP_CREATE_RECIPE,
-            $purchases === 0 => self::STEP_PLACE_ORDER,
+            $orders === 0 => self::STEP_PLACE_ORDER,
             default => self::STEP_COMPLETE,
         };
     }
@@ -184,20 +179,5 @@ class DashboardService
             ->latest()
             ->latest('id')
             ->first();
-    }
-
-    /**
-     * The active plan that is running now, or else the one starting soonest.
-     */
-    private function activeSubscription(User $user): ?Subscription
-    {
-        $plans = $user->subscriptions()
-            ->where('status', 'active')
-            ->with(['pet', 'recipes.ingredients'])
-            ->orderBy('start_date')
-            ->get();
-
-        return $plans->first(fn (Subscription $plan) => $plan->current_cycle_index !== null)
-            ?? $plans->first(fn (Subscription $plan) => $plan->start_date->gte(Carbon::today()));
     }
 }

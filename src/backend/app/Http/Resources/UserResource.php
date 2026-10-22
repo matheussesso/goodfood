@@ -43,7 +43,6 @@ class UserResource extends JsonResource
             'updated_at' => $this->updated_at,
             'pets' => PetResource::collection($this->whenLoaded('pets')),
             'orders' => OrderResource::collection($this->whenLoaded('orders')),
-            'subscriptions' => SubscriptionResource::collection($this->whenLoaded('subscriptions')),
             'recipes' => RecipeResource::collection($this->whenLoaded('recipes')),
             'pets_count' => $this->whenCounted('pets'),
             'orders_count' => $this->whenCounted('orders'),

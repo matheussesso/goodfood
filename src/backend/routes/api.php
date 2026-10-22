@@ -11,7 +11,6 @@ use App\Http\Controllers\PetController;
 use App\Http\Controllers\PetDocumentController;
 use App\Http\Controllers\PetVaccineController;
 use App\Http\Controllers\RecipeController;
-use App\Http\Controllers\SubscriptionController;
 use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\Facades\Route;
 
@@ -53,6 +52,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('recipes', RecipeController::class);
     Route::post('recipes/calculate-cost', [RecipeController::class, 'calculateCost']);
     Route::post('recipes/{recipe}/clone', [RecipeController::class, 'clone']);
-    Route::apiResource('subscriptions', SubscriptionController::class);
     Route::apiResource('orders', OrderController::class);
 });

@@ -154,7 +154,7 @@ test('an owner can show, update and delete their pet', function () {
 
     $this->actingAs($owner)->getJson("/api/pets/{$pet->id}")
         ->assertStatus(200)
-        ->assertJsonStructure(['data' => ['id', 'recipes', 'orders', 'subscriptions', 'vaccines', 'documents']]);
+        ->assertJsonStructure(['data' => ['id', 'recipes', 'orders', 'vaccines', 'documents']]);
 
     $this->actingAs($owner)->putJson("/api/pets/{$pet->id}", ['name' => 'Rex II', 'neutered' => true])
         ->assertStatus(200)

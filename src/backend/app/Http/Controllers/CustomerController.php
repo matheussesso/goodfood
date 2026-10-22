@@ -67,7 +67,7 @@ class CustomerController extends Controller
 
     /**
      * Display the specified user with full details (pets, orders,
-     * subscriptions, recipes).
+     * recipes).
      *
      * @param  int|string  $id
      */
@@ -77,7 +77,6 @@ class CustomerController extends Controller
             'pets.recipes.ingredients',
             'orders.items.recipe.ingredients',
             'orders.invoice',
-            'subscriptions.recipes.ingredients',
             'recipes.ingredients',
             'recipes.pet',
         ])->findOrFail($id);

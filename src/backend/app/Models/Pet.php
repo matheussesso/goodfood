@@ -73,11 +73,6 @@ class Pet extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function subscriptions()
-    {
-        return $this->hasMany(Subscription::class);
-    }
-
     /**
      * Orders that contain at least one item for this pet. The pet is stored on
      * `order_items.pet_id` (not on the legacy `orders.pet_id` column), so an

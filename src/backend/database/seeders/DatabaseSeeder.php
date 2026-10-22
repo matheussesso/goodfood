@@ -17,7 +17,6 @@ class DatabaseSeeder extends Seeder
             IngredientSeeder::class,
             GeneralSettingSeeder::class,
             RecipeSeeder::class,
-            SubscriptionSeeder::class,
             OrderSeeder::class,
         ]);
     }

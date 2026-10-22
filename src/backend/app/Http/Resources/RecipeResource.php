@@ -50,7 +50,6 @@ class RecipeResource extends JsonResource
             'user' => UserResource::make($this->whenLoaded('user')),
             'pet' => PetResource::make($this->whenLoaded('pet')),
             'ingredients' => IngredientResource::collection($this->whenLoaded('ingredients')),
-            'pivot' => $this->when($this->resource->pivot !== null, fn () => $this->resource->pivot),
         ];
     }
 }

@@ -80,12 +80,19 @@ test('a non-admin cannot access user management routes', function () {
     $this->actingAs($user)->getJson('/api/customers')->assertStatus(403);
 });
 
-test('user detail includes subscriptions', function () {
+test('user detail includes pets, orders and recipes, and no subscriptions anymore', function () {
     $admin = User::factory()->create(['role' => 'admin']);
     $customer = User::factory()->create(['role' => 'customer']);
 
     $response = $this->actingAs($admin)->getJson("/api/customers/{$customer->id}");
 
     $response->assertStatus(200);
-    expect($response->json('data'))->toHaveKey('subscriptions');
+    expect($response->json('data'))->toHaveKeys(['pets', 'orders', 'recipes'])
+        ->not->toHaveKey('subscriptions');
+});
+
+test('the subscriptions API no longer exists', function () {
+    $customer = User::factory()->create();
+
+    $this->actingAs($customer)->getJson('/api/subscriptions')->assertStatus(404);
 });

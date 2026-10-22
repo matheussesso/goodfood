@@ -7,7 +7,6 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Pet;
 use App\Models\Recipe;
-use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -61,7 +60,7 @@ test('a brand new customer is guided to add the first pet', function () {
         ->assertJsonPath('data.progress.has_address', false)
         ->assertJsonPath('data.onboarding_dismissed', false)
         ->assertJsonPath('data.current_order', null)
-        ->assertJsonPath('data.active_subscription', null)
+        ->assertJsonMissingPath('data.active_subscription')
         ->assertJsonCount(0, 'data.pets')
         ->assertJsonCount(0, 'data.recent_orders');
 });
@@ -85,15 +84,6 @@ test('the next step follows pet, recipe and first order', function () {
 
     Order::create(['user_id' => $user->id, 'total_price' => 10, 'status' => 'pending_payment']);
     expect($step())->toBe('complete');
-});
-
-test('a subscription also counts as the first purchase', function () {
-    $user = User::factory()->create();
-    $pet = dashPet($user);
-    dashRecipe($user, 'Ração', $pet);
-    Subscription::create(['user_id' => $user->id, 'pet_id' => $pet->id, 'duration_days' => 14, 'status' => 'active', 'start_date' => Carbon::today()]);
-
-    $this->actingAs($user)->getJson('/api/dashboard')->assertJsonPath('data.progress.next_step', 'complete');
 });
 
 test('has_address needs street, city and zipcode', function () {
@@ -163,21 +153,6 @@ test('the current order is the newest one still in flight', function () {
     $this->actingAs($user)->getJson('/api/dashboard')
         ->assertJsonPath('data.current_order.id', $open->id)
         ->assertJsonPath('data.current_order.status', 'in_production');
-});
-
-test('the active subscription is the running plan with its week and recipes', function () {
-    $user = User::factory()->create();
-    $pet = dashPet($user);
-    $recipe = dashRecipe($user);
-    Subscription::create(['user_id' => $user->id, 'pet_id' => $pet->id, 'duration_days' => 14, 'status' => 'paused', 'start_date' => Carbon::today()->subDays(2)]);
-    $plan = Subscription::create(['user_id' => $user->id, 'pet_id' => $pet->id, 'duration_days' => 21, 'status' => 'active', 'start_date' => Carbon::today()->subDays(9)]);
-    $plan->recipes()->attach($recipe->id, ['position' => 0]);
-
-    $this->actingAs($user)->getJson('/api/dashboard')
-        ->assertJsonPath('data.active_subscription.id', $plan->id)
-        ->assertJsonPath('data.active_subscription.current_cycle_index', 1)
-        ->assertJsonPath('data.active_subscription.total_cycles', 3)
-        ->assertJsonPath('data.active_subscription.pet.name', 'Rex');
 });
 
 test('pets list their own recipes', function () {
