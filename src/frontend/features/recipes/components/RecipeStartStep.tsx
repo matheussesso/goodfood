@@ -31,11 +31,11 @@ export function RecipeStartStep({ onScratch, onCustomize, onUse, busyId = null, 
   const { templates, isLoading } = useRecipeTemplates();
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid items-start gap-6 lg:grid-cols-3">
       <button
         type="button"
         onClick={onScratch}
-        className="flex min-h-64 flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-primary/30 bg-card p-8 text-center transition-all hover:border-primary/60 hover:bg-primary/5"
+        className="flex min-h-48 flex-col lg:sticky lg:top-6 lg:min-h-64 items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-primary/30 bg-card p-8 text-center transition-all hover:border-primary/60 hover:bg-primary/5"
       >
         <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Plus className="h-8 w-8" aria-hidden="true" />
@@ -47,11 +47,13 @@ export function RecipeStartStep({ onScratch, onCustomize, onUse, busyId = null, 
       </button>
 
       {isLoading ? (
-        <div className="flex items-center justify-center rounded-2xl border bg-card p-8">
+        <div className="flex items-center justify-center rounded-2xl border bg-card p-8 lg:col-span-2">
           <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden="true" />
         </div>
       ) : (
-        <TemplatePicker templates={templates ?? []} onCustomize={onCustomize} onUse={onUse} busyId={busyId} error={error} />
+        <div className="lg:col-span-2">
+          <TemplatePicker templates={templates ?? []} onCustomize={onCustomize} onUse={onUse} busyId={busyId} error={error} />
+        </div>
       )}
     </div>
   );

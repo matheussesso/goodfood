@@ -274,7 +274,19 @@
     "delete_blocked": "Could not delete: the recipe is already in an order or is the pet's only one.",
     "delete_only_recipe_hint": "Every pet needs at least one recipe.",
     "pet_label": "Pet",
-    "recipes_live_in_pets": "Recipes are created inside each pet."
+    "recipes_live_in_pets": "Recipes are created inside each pet.",
+    "composition_by_category": "Composition by category",
+    "composition_by_category_aria": "Composition by category: {summary}",
+    "total_for_days": "{count, plural, one {Total for # day} other {Total for # days}}",
+    "unit_each": "pc",
+    "daily_weight": "Weight per day",
+    "total_weight": "Total weight",
+    "estimated_price": "Estimated price",
+    "price_per_day_hint": "{price} per day · {days, plural, one {# day} other {# days}} plan",
+    "show_details": "{count, plural, one {Show the ingredient and preparation} other {Show the # ingredients and preparation}}",
+    "hide_details": "Hide details",
+    "daily_weight_hint": "{weight} of food per day.",
+    "plan_weight_summary": "{daily} per day · {total} in this period"
   },
   "Pets": {
     "title": "My Pets",

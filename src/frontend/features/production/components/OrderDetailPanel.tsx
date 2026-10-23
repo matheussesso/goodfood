@@ -16,6 +16,7 @@ import {
   Truck,
   UtensilsCrossed,
   X,
+  Scale,
 } from "lucide-react";
 import { Order } from "@/hooks/useOrders";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,9 @@ import { computeCycleDates, Phase } from "@/features/production/cycle";
 import { ORDER_STATUSES } from "@/lib/order-status";
 import { OrderStatusBadge } from "@/features/orders/components/OrderStatusBadge";
 import { orderItemDayRanges, orderItemRecipeHref } from "@/features/orders/order-items";
+import { formatQuantity, recipeDailyKg, weightQuantity } from "@/features/recipes/recipe-facts";
+import { CompositionBar, RecipeDetailsDisclosure } from "@/features/recipes/components/RecipeFacts";
+import { formatBRL } from "@/lib/format";
 
 /**
  * Slide-in detail panel shown when an order is selected.
@@ -47,6 +51,7 @@ export function OrderDetailPanel({
   const t     = useTranslations("Orders");
   const tProd = useTranslations("Production");
   const tCat  = useTranslations("Catalog");
+  const tRec  = useTranslations("Recipes");
 
   const [localStatus, setLocalStatus] = useState(order.status);
   const placed = new Date(order.created_at);
@@ -188,11 +193,10 @@ export function OrderDetailPanel({
                     const PetIcon = item.pet?.type === "cat" ? Cat : Dog;
                     const range = dayRanges[item.id];
                     const href = orderItemRecipeHref(item, "admin");
+                    const dailyKg = item.recipe ? recipeDailyKg(item.recipe) : 0;
                     return (
-                      <div
-                        key={item.id}
-                        className="flex items-start justify-between gap-3 bg-muted/30 rounded-lg px-3 py-2.5"
-                      >
+                      <div key={item.id} className="bg-muted/30 rounded-lg px-3 py-2.5">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center flex-wrap gap-1 text-sm font-semibold text-foreground">
                             <span className="line-clamp-1">
@@ -217,8 +221,13 @@ export function OrderDetailPanel({
                                 <Salad className="w-3 h-3" /> {item.recipe.daily_portions} {tCat("daily_portions").toLowerCase()}
                               </span>
                             )}
+                            {dailyKg > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Scale className="w-3 h-3" aria-hidden="true" /> {formatQuantity(weightQuantity(dailyKg * item.duration_days), tRec("unit_each"))}
+                              </span>
+                            )}
                             <span className="font-semibold text-amber-600 dark:text-amber-400">
-                              R$ {Number(item.unit_price).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              {formatBRL(item.unit_price, true)}
                             </span>
                           </p>
                         </div>
@@ -229,6 +238,13 @@ export function OrderDetailPanel({
                             </Button>
                           </Link>
                         )}
+                      </div>
+                      {item.recipe && (
+                        <div className="mt-2 space-y-1">
+                          <CompositionBar recipe={item.recipe} showLegend={false} />
+                          <RecipeDetailsDisclosure recipe={item.recipe} days={item.duration_days} id={`production-item-${item.id}-details`} withComposition={false} />
+                        </div>
+                      )}
                       </div>
                     );
                   })}

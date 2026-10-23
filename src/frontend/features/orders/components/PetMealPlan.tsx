@@ -10,6 +10,8 @@ import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { MIN_PLAN_DAYS, buildTimeline, minimumDurationDays, totalDays, type MealPlanStep } from "../meal-plan";
 import { DurationStepper } from "./DurationStepper";
+import { formatQuantity, recipeDailyKg, weightQuantity } from "@/features/recipes/recipe-facts";
+import { RecipeDetailsDisclosure } from "@/features/recipes/components/RecipeFacts";
 
 /** Segment colors, reused by the timeline bar and the matching step marker. */
 export const STEP_TONES = ["bg-primary", "bg-amber-500", "bg-emerald-500", "bg-sky-500", "bg-violet-500"] as const;
@@ -47,6 +49,7 @@ export function PetMealPlan({ pet, recipes, steps, recipesById, costs, onAdd, on
   const t = useTranslations("Orders");
   const tPets = useTranslations("Pets");
   const tOnboarding = useTranslations("Onboarding");
+  const tRec = useTranslations("Recipes");
 
   const PetIcon = pet.type === "cat" ? Cat : Dog;
   const timeline = buildTimeline(steps);
@@ -90,6 +93,7 @@ export function PetMealPlan({ pet, recipes, steps, recipesById, costs, onAdd, on
               const min = recipe ? minimumDurationDays(recipe) : MIN_PLAN_DAYS;
               const cost = costs[step.key];
               const name = recipe?.name ?? `#${step.recipeId}`;
+              const dailyKg = recipe ? recipeDailyKg(recipe) : 0;
 
               return (
                 <li key={step.key} className="space-y-3 px-4 py-4">
@@ -103,6 +107,14 @@ export function PetMealPlan({ pet, recipes, steps, recipesById, costs, onAdd, on
                     <div className="min-w-0 flex-1">
                       <p className="break-words text-sm font-semibold text-foreground">{name}</p>
                       <p className="text-xs text-muted-foreground">{t("plan_days_range", { start: startDay, end: endDay })}</p>
+                      {dailyKg > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {tRec("plan_weight_summary", {
+                            daily: formatQuantity(weightQuantity(dailyKg), tRec("unit_each")),
+                            total: formatQuantity(weightQuantity(dailyKg * step.durationDays), tRec("unit_each")),
+                          })}
+                        </p>
+                      )}
                     </div>
                     <span className="shrink-0 text-sm font-bold text-amber-600 dark:text-amber-400">
                       {cost === undefined ? <Loader2 className="h-4 w-4 animate-spin" aria-label={t("price_calculating")} /> : formatBRL(cost, true)}
@@ -129,6 +141,11 @@ export function PetMealPlan({ pet, recipes, steps, recipesById, costs, onAdd, on
                     </div>
                   </div>
                   {min > MIN_PLAN_DAYS && <p className="text-xs text-muted-foreground sm:pl-9">{t("plan_min_days_hint", { min })}</p>}
+                  {recipe && (
+                    <div className="sm:pl-9">
+                      <RecipeDetailsDisclosure recipe={recipe} days={step.durationDays} id={`plan-step-${step.key}-details`} />
+                    </div>
+                  )}
                 </li>
               );
             })}
