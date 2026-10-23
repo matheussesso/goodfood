@@ -279,14 +279,16 @@
     "composition_by_category_aria": "Composición por categoría: {summary}",
     "total_for_days": "{count, plural, one {Total en # día} other {Total en # días}}",
     "unit_each": "ud.",
-    "daily_weight": "Peso por día",
     "total_weight": "Peso total",
-    "estimated_price": "Precio estimado",
-    "price_per_day_hint": "{price} por día · plan de {days, plural, one {# día} other {# días}}",
     "show_details": "{count, plural, one {Ver el ingrediente y la preparación} other {Ver los # ingredientes y la preparación}}",
     "hide_details": "Ocultar detalles",
     "daily_weight_hint": "{weight} de comida por día.",
-    "plan_weight_summary": "{daily} por día · {total} en el período"
+    "plan_weight_summary": "{daily} por día · {total} en el período",
+    "no_templates_match": "Ningún modelo con ese nombre.",
+    "price_per_day_short": "{price}/día",
+    "template_figures": "Datos del modelo",
+    "portions_per_day_value": "{count, plural, one {# porción/día} other {# porciones/día}}",
+    "weight_per_day_value": "{weight}/día"
   },
   "Pets": {
     "title": "Mis Mascotas",
