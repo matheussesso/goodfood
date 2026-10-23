@@ -4,11 +4,10 @@ import { Link } from "@/i18n/navigation";
 import { formatBRL } from "@/lib/format";
 import type { OrderItem } from "@/hooks/useOrders";
 import { formatQuantity, recipeDailyKg, weightQuantity } from "@/features/recipes/recipe-facts";
-import { CompositionBar } from "@/features/recipes/components/RecipeFacts";
 
 /**
  * Compact recipe line for an order's items accordion (card and list views):
- * pet, plan duration, total weight and a composition bar.
+ * pet, plan duration and total weight.
  *
  * @param item - The order item to render.
  * @param href - Where the recipe name links to (plain text when null).
@@ -50,11 +49,7 @@ export function OrderRecipeBlock({ item, href }: { item: OrderItem; href: string
             </>
           )}
         </p>
-        {item.recipe && (
-          <div className="mt-1.5">
-            <CompositionBar recipe={item.recipe} showLegend={false} />
-          </div>
-        )}
+
       </div>
       <span className="text-xs font-bold text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
         R$ {formatBRL(item.unit_price)}

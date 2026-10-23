@@ -25,7 +25,7 @@ import { ORDER_STATUSES } from "@/lib/order-status";
 import { OrderStatusBadge } from "@/features/orders/components/OrderStatusBadge";
 import { orderItemDayRanges, orderItemRecipeHref } from "@/features/orders/order-items";
 import { formatQuantity, recipeDailyKg, weightQuantity } from "@/features/recipes/recipe-facts";
-import { CompositionBar, RecipeDetailsDisclosure } from "@/features/recipes/components/RecipeFacts";
+import { RecipeDetailsDisclosure } from "@/features/recipes/components/RecipeFacts";
 import { formatBRL } from "@/lib/format";
 
 /**
@@ -240,9 +240,8 @@ export function OrderDetailPanel({
                         )}
                       </div>
                       {item.recipe && (
-                        <div className="mt-2 space-y-1">
-                          <CompositionBar recipe={item.recipe} showLegend={false} />
-                          <RecipeDetailsDisclosure recipe={item.recipe} days={item.duration_days} id={`production-item-${item.id}-details`} withComposition={false} />
+                        <div className="mt-1">
+                          <RecipeDetailsDisclosure recipe={item.recipe} days={item.duration_days} id={`production-item-${item.id}-details`} />
                         </div>
                       )}
                       </div>

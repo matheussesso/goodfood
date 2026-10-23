@@ -9,7 +9,7 @@ import { PetMealPlan } from "./PetMealPlan";
 const O = messages.Orders;
 const pet = { id: 1, name: "Rex", type: "dog" } as Pet;
 const recipe = (id: number, name: string) =>
-  ({ id, name, ingredients: [{ id: 1, pivot: { quantity: "0.5", unit: "kg" } }] }) as unknown as Recipe;
+  ({ id, name, daily_portions: 2, ingredients: [{ id: 1, pivot: { quantity: "0.5", unit: "kg" } }] }) as unknown as Recipe;
 const chicken = recipe(10, "Frango");
 const beef = recipe(11, "Carne");
 
@@ -43,10 +43,17 @@ describe("PetMealPlan", () => {
     expect(screen.getByText("R$ 200,00")).toBeInTheDocument();
   });
 
+  it("shows the daily portions of each step and of the recipes to add", () => {
+    renderPlan();
+    // Two steps plus two "add" buttons.
+    expect(screen.getAllByText("2 porções/dia")).toHaveLength(4);
+    expect(screen.getByRole("button", { name: /Carne.*2 porções\/dia/ })).toBeInTheDocument();
+  });
+
   it("adds, moves and removes recipes", () => {
     const handlers = renderPlan();
 
-    fireEvent.click(screen.getByRole("button", { name: "Carne" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Carne/ }));
     expect(handlers.onAdd).toHaveBeenCalledWith(beef);
 
     expect(screen.getByRole("button", { name: "Mover Frango para antes" })).toBeDisabled();

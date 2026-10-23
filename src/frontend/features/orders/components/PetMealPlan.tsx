@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ArrowDown, ArrowUp, Cat, Dog, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Cat, Dog, Loader2, Plus, Trash2, Utensils } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import type { Pet } from "@/hooks/usePets";
@@ -107,14 +107,23 @@ export function PetMealPlan({ pet, recipes, steps, recipesById, costs, onAdd, on
                     <div className="min-w-0 flex-1">
                       <p className="break-words text-sm font-semibold text-foreground">{name}</p>
                       <p className="text-xs text-muted-foreground">{t("plan_days_range", { start: startDay, end: endDay })}</p>
-                      {dailyKg > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {tRec("plan_weight_summary", {
-                            daily: formatQuantity(weightQuantity(dailyKg), tRec("unit_each")),
-                            total: formatQuantity(weightQuantity(dailyKg * step.durationDays), tRec("unit_each")),
-                          })}
-                        </p>
-                      )}
+                      <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                        {recipe?.daily_portions ? (
+                          <span className="flex items-center gap-1 font-medium text-foreground">
+                            <Utensils className="h-3 w-3" aria-hidden="true" />
+                            {tRec("portions_per_day_value", { count: recipe.daily_portions })}
+                          </span>
+                        ) : null}
+                        {recipe?.daily_portions && dailyKg > 0 ? <span className="hidden sm:inline" aria-hidden="true">·</span> : null}
+                        {dailyKg > 0 && (
+                          <span className="w-full sm:w-auto">
+                            {tRec("plan_weight_summary", {
+                              daily: formatQuantity(weightQuantity(dailyKg), tRec("unit_each")),
+                              total: formatQuantity(weightQuantity(dailyKg * step.durationDays), tRec("unit_each")),
+                            })}
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <span className="shrink-0 text-sm font-bold text-amber-600 dark:text-amber-400">
                       {cost === undefined ? <Loader2 className="h-4 w-4 animate-spin" aria-label={t("price_calculating")} /> : formatBRL(cost, true)}
@@ -175,7 +184,14 @@ export function PetMealPlan({ pet, recipes, steps, recipesById, costs, onAdd, on
                   className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-lg border bg-background px-3 text-left text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5"
                 >
                   <Plus className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-                  <span className="truncate">{recipe.name}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate">{recipe.name}</span>
+                    {recipe.daily_portions ? (
+                      <span className="block text-[11px] font-normal text-muted-foreground">
+                        {tRec("portions_per_day_value", { count: recipe.daily_portions })}
+                      </span>
+                    ) : null}
+                  </span>
                 </button>
               ))}
             </div>

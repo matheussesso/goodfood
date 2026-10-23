@@ -514,7 +514,8 @@
     "plan_add_first": "Choose the plan's first recipe",
     "plan_add_next": "Add another recipe to the plan",
     "meal_plan_label": "Meal plan",
-    "plan_step": "Step {n}"
+    "plan_step": "Step {n}",
+    "summary_step_meta": "{days} · {portions}"
   },
   "Profile": {
     "title": "My Account",
