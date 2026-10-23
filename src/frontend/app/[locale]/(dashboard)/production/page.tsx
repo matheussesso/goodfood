@@ -8,27 +8,28 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ORDER_STATUSES } from "@/lib/order-status";
 import {
-  PHASES,
+  EMPTY_RANGE,
   buildMonthGrid,
-  buildPhaseEntries,
-  countByPhase,
-  entriesInMonth,
-  groupEntriesByDay,
-  togglePhase,
-  type Phase,
+  groupOrdersByDay,
+  isRangeActive,
+  ordersInMonth,
+  ordersInRange,
+  rangeStartMonth,
+  type DateRange,
   type ViewMode,
 } from "@/features/production/cycle";
+import { DateRangeFilter } from "@/features/production/components/DateRangeFilter";
 import { DayOrdersPanel } from "@/features/production/components/DayOrdersPanel";
+import { MonthHeader } from "@/features/production/components/MonthHeader";
 import { OrderDetailPanel } from "@/features/production/components/OrderDetailPanel";
-import { PhaseFilter } from "@/features/production/components/PhaseFilter";
 import { ProductionCalendar } from "@/features/production/components/ProductionCalendar";
 import { ProductionList } from "@/features/production/components/ProductionList";
 
 /**
- * Production page — shows orders positioned in the weekly production cycle.
- * One or more cycle phases can be shown together (calendar or list); orders
- * are searchable and filterable by status, a day can be opened as a full list,
- * the status can be updated and the cycle rescheduled by dragging a tile.
+ * Production page — placed orders on a month calendar or in a list, by the
+ * day they were placed. Orders are searchable and filterable by status and by
+ * a placement period; a day can be opened as a full list and an order's
+ * details and status managed in a side panel.
  *
  * @returns The production management page element.
  */
@@ -40,7 +41,7 @@ export default function ProductionPage() {
   const now = new Date();
   const { orders, isLoading, updateOrder, isUpdating } = useOrders();
 
-  const [phases, setPhases] = useState<Phase[]>(["order_placed"]);
+  const [range, setRange] = useState<DateRange>(EMPTY_RANGE);
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -66,13 +67,23 @@ export default function ProductionPage() {
     });
   }, [orders, search, filterStatus]);
 
-  // Every phase of every filtered order, so chip counters stay accurate for phases that are off.
-  const allPhaseEntries = useMemo(() => entriesInMonth(buildPhaseEntries(filteredOrders, [...PHASES]), year, month), [filteredOrders, year, month]);
-  const phaseCounts = useMemo(() => countByPhase(allPhaseEntries), [allPhaseEntries]);
+  const rangeActive = isRangeActive(range);
+  const rangeOrders = useMemo(() => ordersInRange(filteredOrders, range), [filteredOrders, range]);
+  const monthOrders = useMemo(() => ordersInMonth(rangeOrders, year, month), [rangeOrders, year, month]);
+  const ordersByDay = useMemo(() => groupOrdersByDay(monthOrders), [monthOrders]);
+  // With a period, the list shows the whole period; without one, the visible month.
+  const listOrders = rangeActive ? rangeOrders : monthOrders;
 
-  const monthEntries = useMemo(() => allPhaseEntries.filter((entry) => phases.includes(entry.phase)), [allPhaseEntries, phases]);
-  const entriesByDay = useMemo(() => groupEntriesByDay(monthEntries), [monthEntries]);
-  const ordersCount = useMemo(() => new Set(monthEntries.map((entry) => entry.order.id)).size, [monthEntries]);
+  function changeRange(next: DateRange) {
+    setRange(next);
+    setSelectedOrder(null);
+    setSelectedDay(null);
+    const start = rangeStartMonth(next);
+    if (start) {
+      setYear(start.year);
+      setMonth(start.month);
+    }
+  }
 
   const changeMonth = (delta: number) => {
     const next = new Date(year, month + delta, 1);
@@ -146,18 +157,7 @@ export default function ProductionPage() {
           </div>
         </div>
 
-        <PhaseFilter
-          selected={phases}
-          counts={phaseCounts}
-          onToggle={(phase) => {
-            setPhases((current) => togglePhase(current, phase));
-            setSelectedOrder(null);
-          }}
-          onSelectAll={() => {
-            setPhases([...PHASES]);
-            setSelectedOrder(null);
-          }}
-        />
+        <DateRangeFilter value={range} onChange={changeRange} />
       </div>
 
       {isLoading ? (
@@ -171,16 +171,15 @@ export default function ProductionPage() {
             year={year}
             month={month}
             grid={grid}
-            entriesByDay={entriesByDay}
-            phases={phases}
+            ordersByDay={ordersByDay}
+            range={range}
             selectedOrderId={selectedOrder?.id ?? null}
             selectedDay={selectedDay}
-            ordersCount={ordersCount}
+            ordersCount={monthOrders.length}
             onPrevMonth={() => changeMonth(-1)}
             onNextMonth={() => changeMonth(1)}
             onSelectDay={selectDay}
             onSelectOrder={selectOrder}
-            onReschedule={(orderId, reposicaoDate) => updateOrder({ id: orderId, scheduled_reposicao_date: reposicaoDate })}
           />
 
           {selectedDay === null ? (
@@ -188,7 +187,7 @@ export default function ProductionPage() {
           ) : (
             <DayOrdersPanel
               date={new Date(year, month, selectedDay)}
-              entries={entriesByDay[selectedDay] ?? []}
+              orders={ordersByDay[selectedDay] ?? []}
               selectedOrderId={selectedOrder?.id ?? null}
               onSelectOrder={selectOrder}
               onClose={() => setSelectedDay(null)}
@@ -196,7 +195,28 @@ export default function ProductionPage() {
           )}
         </>
       ) : (
-        <ProductionList entries={monthEntries} selectedOrderId={selectedOrder?.id ?? null} onSelectOrder={selectOrder} />
+        <div className="space-y-3">
+          {rangeActive ? (
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              {tProd("orders_in_period", { count: listOrders.length })}
+            </p>
+          ) : (
+            <MonthHeader
+              year={year}
+              month={month}
+              ordersCount={monthOrders.length}
+              onPrevMonth={() => changeMonth(-1)}
+              onNextMonth={() => changeMonth(1)}
+              className="rounded-xl border bg-card shadow-sm"
+            />
+          )}
+          <ProductionList
+            orders={listOrders}
+            selectedOrderId={selectedOrder?.id ?? null}
+            onSelectOrder={selectOrder}
+            emptyMessage={rangeActive ? tProd("no_orders_period") : tProd("no_orders_month")}
+          />
+        </div>
       )}
 
       {selectedOrder && (

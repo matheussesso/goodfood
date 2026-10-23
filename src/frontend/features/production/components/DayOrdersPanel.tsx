@@ -1,34 +1,33 @@
 "use client";
 
 import { useFormatter, useTranslations } from "next-intl";
-import { X } from "lucide-react";
+import { ShoppingBag, X } from "lucide-react";
 import type { Order } from "@/hooks/useOrders";
 import { OrderStatusBadge } from "@/features/orders/components/OrderStatusBadge";
 import { formatBRL } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { PHASE_LABEL_KEYS, PHASE_STYLE, type PhaseEntry } from "@/features/production/cycle";
 import type { OrderStatus } from "@/lib/order-status";
 
 interface DayOrdersPanelProps {
   date: Date;
-  entries: PhaseEntry[];
+  orders: Order[];
   selectedOrderId: number | null;
   onSelectOrder: (order: Order) => void;
   onClose: () => void;
 }
 
 /**
- * Full list of the orders of one calendar day, with phase, customer, status and
- * total. It is the readable alternative to the tiles on small screens and to
- * crowded days.
+ * Full list of the orders placed on one calendar day, with customer, time,
+ * status and total. It is the readable alternative to the tiles on small
+ * screens and to crowded days.
  *
  * @param date - The selected day.
- * @param entries - Entries of that day (every selected phase).
+ * @param orders - Orders placed that day.
  * @param selectedOrderId - Order currently open in the detail panel.
  * @param onSelectOrder - Opens an order's detail panel.
  * @param onClose - Closes this panel.
  */
-export function DayOrdersPanel({ date, entries, selectedOrderId, onSelectOrder, onClose }: DayOrdersPanelProps) {
+export function DayOrdersPanel({ date, orders, selectedOrderId, onSelectOrder, onClose }: DayOrdersPanelProps) {
   const t = useTranslations("Production");
   const tOrders = useTranslations("Orders");
   const format = useFormatter();
@@ -48,14 +47,13 @@ export function DayOrdersPanel({ date, entries, selectedOrderId, onSelectOrder, 
         </button>
       </div>
 
-      {entries.length === 0 ? (
+      {orders.length === 0 ? (
         <p className="px-5 py-8 text-center text-sm text-muted-foreground">{t("no_orders_day")}</p>
       ) : (
         <ul className="divide-y">
-          {entries.map(({ order, phase }) => {
-            const { Icon, tileColor } = PHASE_STYLE[phase];
+          {orders.map((order) => {
             return (
-              <li key={`${order.id}-${phase}`}>
+              <li key={order.id}>
                 <button
                   type="button"
                   onClick={() => onSelectOrder(order)}
@@ -65,9 +63,9 @@ export function DayOrdersPanel({ date, entries, selectedOrderId, onSelectOrder, 
                   )}
                 >
                   <span className="flex w-full items-center justify-between gap-3">
-                    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold", tileColor)}>
-                      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-                      {t(PHASE_LABEL_KEYS[phase])}
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <ShoppingBag className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                      {t("placed_at_time", { time: format.dateTime(new Date(order.created_at), { hour: "2-digit", minute: "2-digit" }) })}
                     </span>
                     <span className="text-sm font-bold tabular-nums text-primary">R$ {formatBRL(order.total_price)}</span>
                   </span>
