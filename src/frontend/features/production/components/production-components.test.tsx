@@ -1,110 +1,101 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithProviders, messages } from "@/test/render-intl";
 import type { Order } from "@/hooks/useOrders";
-import {
-  PHASES,
-  buildMonthGrid,
-  buildPhaseEntries,
-  countByPhase,
-  entriesInMonth,
-  groupEntriesByDay,
-  type Phase,
-} from "@/features/production/cycle";
+import { EMPTY_RANGE, buildMonthGrid, groupOrdersByDay, presetRange, type DateRange } from "@/features/production/cycle";
+import { DateRangeFilter } from "./DateRangeFilter";
 import { DayOrdersPanel } from "./DayOrdersPanel";
-import { PhaseFilter } from "./PhaseFilter";
 import { ProductionCalendar } from "./ProductionCalendar";
 import { ProductionList } from "./ProductionList";
 
 const P = messages.Production;
 
-// Wednesday 2026-07-01 → reposição 07-06, produção 07-07, entrega 07-13.
-const order = (id: number, name: string): Order =>
-  ({ id, user_id: id, total_price: 100 + id, status: "pending", created_at: "2026-07-01T10:00:00", user: { id, name, email: `${name}@x.com` } }) as Order;
+const order = (id: number, name: string, createdAt: string): Order =>
+  ({ id, user_id: id, total_price: 100 + id, status: "pending", created_at: createdAt, user: { id, name, email: `${name}@x.com` } }) as Order;
 
-const orders = [order(1, "Ana"), order(2, "Bruno")];
+// Both placed on Wednesday 2026-07-01; a third on 07-15.
+const orders = [order(1, "Ana", "2026-07-01T10:00:00"), order(2, "Bruno", "2026-07-01T14:30:00"), order(3, "Caio", "2026-07-15T09:00:00")];
 
-const entriesFor = (phases: Phase[]) => entriesInMonth(buildPhaseEntries(orders, phases), 2026, 6);
+describe("DateRangeFilter", () => {
+  const setup = (value: DateRange = EMPTY_RANGE) => {
+    const onChange = vi.fn();
+    renderWithProviders(<DateRangeFilter value={value} onChange={onChange} />);
+    return onChange;
+  };
 
-describe("PhaseFilter", () => {
-  const counts = countByPhase(entriesFor([...PHASES]));
+  it("sends the typed bounds, swapping them when out of order", async () => {
+    const onChange = setup({ from: "2026-07-20", to: null });
 
-  it("marks the selected phases and shows how many entries each adds", () => {
-    renderWithProviders(<PhaseFilter selected={["reposicao", "entrega"]} counts={counts} onToggle={vi.fn()} onSelectAll={vi.fn()} />);
-
-    expect(screen.getByRole("button", { name: new RegExp(P.phase_reposicao) })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: new RegExp(P.phase_producao) })).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByRole("button", { name: new RegExp(P.all_phases) })).toHaveAttribute("aria-pressed", "false");
+    const to = screen.getByLabelText(P.period_to);
+    await userEvent.type(to, "2026-07-10");
+    expect(onChange).toHaveBeenLastCalledWith({ from: "2026-07-10", to: "2026-07-20" });
   });
 
-  it("toggles a phase and selects all", async () => {
-    const onToggle = vi.fn();
-    const onSelectAll = vi.fn();
-    renderWithProviders(<PhaseFilter selected={["order_placed"]} counts={counts} onToggle={onToggle} onSelectAll={onSelectAll} />);
+  it("applies a preset and marks it as active", async () => {
+    const onChange = setup(presetRange("this_month"));
 
-    await userEvent.click(screen.getByRole("button", { name: new RegExp(P.phase_producao) }));
-    expect(onToggle).toHaveBeenCalledWith("producao");
-
-    await userEvent.click(screen.getByRole("button", { name: new RegExp(P.all_phases) }));
-    expect(onSelectAll).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: P.preset_this_month })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(screen.getByRole("button", { name: P.preset_last_7_days }));
+    expect(onChange).toHaveBeenCalledWith(presetRange("last_7_days"));
   });
 
-  it("highlights 'all phases' when everything is selected", () => {
-    renderWithProviders(<PhaseFilter selected={[...PHASES]} counts={counts} onToggle={vi.fn()} onSelectAll={vi.fn()} />);
-    expect(screen.getByRole("button", { name: new RegExp(P.all_phases) })).toHaveAttribute("aria-pressed", "true");
+  it("clears the period, and offers clearing only when one is set", async () => {
+    const onChange = setup({ from: "2026-07-01", to: null });
+    await userEvent.click(screen.getByRole("button", { name: P.period_clear }));
+    expect(onChange).toHaveBeenCalledWith(EMPTY_RANGE);
+  });
+
+  it("has no clear button without a period", () => {
+    setup();
+    expect(screen.queryByRole("button", { name: P.period_clear })).not.toBeInTheDocument();
   });
 });
 
 describe("ProductionCalendar", () => {
-  const baseProps = (phases: Phase[]) => {
-    const entries = entriesFor(phases);
-    return {
-      year: 2026,
-      month: 6,
-      grid: buildMonthGrid(2026, 6),
-      entriesByDay: groupEntriesByDay(entries),
-      phases,
-      selectedOrderId: null,
-      selectedDay: null,
-      ordersCount: new Set(entries.map((e) => e.order.id)).size,
-      onPrevMonth: vi.fn(),
-      onNextMonth: vi.fn(),
-      onSelectDay: vi.fn(),
-      onSelectOrder: vi.fn(),
-      onReschedule: vi.fn(),
-    };
-  };
+  const baseProps = (range: DateRange = EMPTY_RANGE) => ({
+    year: 2026,
+    month: 6,
+    grid: buildMonthGrid(2026, 6),
+    ordersByDay: groupOrdersByDay(orders),
+    range,
+    selectedOrderId: null,
+    selectedDay: null,
+    ordersCount: orders.length,
+    onPrevMonth: vi.fn(),
+    onNextMonth: vi.fn(),
+    onSelectDay: vi.fn(),
+    onSelectOrder: vi.fn(),
+  });
 
-  it("shows a tile per order on each selected phase's day", () => {
-    renderWithProviders(<ProductionCalendar {...baseProps(["reposicao", "entrega"])} />);
+  it("shows each order on the day it was placed, with the month total", () => {
+    renderWithProviders(<ProductionCalendar {...baseProps()} />);
 
-    // 2 orders × 2 phases = 4 tiles (06 and 13 of July).
-    expect(screen.getAllByTitle(new RegExp(`${P.phase_reposicao} · #`))).toHaveLength(2);
-    expect(screen.getAllByTitle(new RegExp(`${P.phase_entrega} · #`))).toHaveLength(2);
-    expect(screen.queryAllByTitle(new RegExp(`${P.phase_producao} · #`))).toHaveLength(0);
+    expect(screen.getByTitle("#1 · Ana")).toBeInTheDocument();
+    expect(screen.getByTitle("#3 · Caio")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "1 — 2 pedidos" })).toBeInTheDocument();
+    expect(screen.getByText("3 pedidos realizados neste mês")).toBeInTheDocument();
   });
 
   it("opens an order from its tile without selecting the day", async () => {
-    const props = baseProps(["reposicao"]);
+    const props = baseProps();
     renderWithProviders(<ProductionCalendar {...props} />);
 
-    await userEvent.click(screen.getByTitle(`${P.phase_reposicao} · #1 · Ana`));
+    await userEvent.click(screen.getByTitle("#1 · Ana"));
     expect(props.onSelectOrder).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
     expect(props.onSelectDay).not.toHaveBeenCalled();
   });
 
-  it("selects a day from its number button, announcing how many orders it has", async () => {
-    const props = baseProps(["reposicao"]);
+  it("selects a day from its number button", async () => {
+    const props = baseProps();
     renderWithProviders(<ProductionCalendar {...props} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "6 — 2 pedidos" }));
-    expect(props.onSelectDay).toHaveBeenCalledWith(6);
-    expect(screen.getByRole("button", { name: "7 — sem pedidos" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "15 — 1 pedido" }));
+    expect(props.onSelectDay).toHaveBeenCalledWith(15);
   });
 
   it("navigates between months", async () => {
-    const props = baseProps(["reposicao"]);
+    const props = baseProps();
     renderWithProviders(<ProductionCalendar {...props} />);
 
     await userEvent.click(screen.getByRole("button", { name: P.next_month }));
@@ -113,45 +104,27 @@ describe("ProductionCalendar", () => {
     expect(props.onPrevMonth).toHaveBeenCalledOnce();
   });
 
-  it("reschedules by dropping a tile on another day using the tile's own phase", () => {
-    const props = baseProps(["producao"]);
-    renderWithProviders(<ProductionCalendar {...props} />);
+  it("dims the days outside the period and has no draggable tiles", () => {
+    renderWithProviders(<ProductionCalendar {...baseProps({ from: "2026-07-10", to: "2026-07-20" })} />);
 
-    const tile = screen.getByTitle(`${P.phase_producao} · #1 · Ana`);
-    const dataTransfer = { effectAllowed: "", setData: vi.fn() };
-    fireEvent.dragStart(tile, { dataTransfer });
-
-    // Produção dropped on 14/07 means reposição on 13/07.
-    const target = screen.getByRole("button", { name: "14 — sem pedidos" }).parentElement!.parentElement!;
-    fireEvent.dragEnter(target);
-    fireEvent.drop(target);
-
-    expect(props.onReschedule).toHaveBeenCalledWith(1, "2026-07-13");
-  });
-
-  it("does not reschedule tiles of the placement phase", () => {
-    const props = baseProps(["order_placed"]);
-    renderWithProviders(<ProductionCalendar {...props} />);
-
-    const tile = screen.getByTitle(`${P.phase_order_placed} · #1 · Ana`);
-    expect(tile).toHaveAttribute("draggable", "false");
-
-    fireEvent.dragStart(tile, { dataTransfer: { effectAllowed: "", setData: vi.fn() } });
-    fireEvent.drop(screen.getByRole("button", { name: "14 — sem pedidos" }).parentElement!.parentElement!);
-    expect(props.onReschedule).not.toHaveBeenCalled();
+    const cell = (day: number) => screen.getByRole("button", { name: new RegExp(`^${day} — `) }).parentElement!.parentElement!;
+    expect(cell(5)).toHaveClass("*:opacity-40");
+    expect(cell(15)).not.toHaveClass("*:opacity-40");
+    expect(screen.getByTitle("#3 · Caio")).not.toHaveAttribute("draggable", "true");
   });
 });
 
 describe("DayOrdersPanel", () => {
-  it("lists every entry of the day with its phase and lets the user open one", async () => {
-    const entries = groupEntriesByDay(entriesFor(["reposicao", "entrega"]))[6];
+  it("lists the orders placed that day and lets the user open one", async () => {
     const onSelectOrder = vi.fn();
     const onClose = vi.fn();
-    renderWithProviders(<DayOrdersPanel date={new Date(2026, 6, 6)} entries={entries} selectedOrderId={null} onSelectOrder={onSelectOrder} onClose={onClose} />);
+    renderWithProviders(
+      <DayOrdersPanel date={new Date(2026, 6, 1)} orders={groupOrdersByDay(orders)[1]} selectedOrderId={null} onSelectOrder={onSelectOrder} onClose={onClose} />
+    );
 
     const rows = screen.getAllByRole("listitem");
     expect(rows).toHaveLength(2);
-    expect(within(rows[0]).getByText(P.phase_reposicao)).toBeInTheDocument();
+    expect(within(rows[1]).getByText("Realizado às 14:30")).toBeInTheDocument();
 
     await userEvent.click(within(rows[1]).getByRole("button"));
     expect(onSelectOrder).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }));
@@ -161,23 +134,24 @@ describe("DayOrdersPanel", () => {
   });
 
   it("shows an empty message for a day without orders", () => {
-    renderWithProviders(<DayOrdersPanel date={new Date(2026, 6, 8)} entries={[]} selectedOrderId={null} onSelectOrder={vi.fn()} onClose={vi.fn()} />);
+    renderWithProviders(<DayOrdersPanel date={new Date(2026, 6, 8)} orders={[]} selectedOrderId={null} onSelectOrder={vi.fn()} onClose={vi.fn()} />);
     expect(screen.getByText(P.no_orders_day)).toBeInTheDocument();
   });
 });
 
 describe("ProductionList", () => {
-  it("renders one row per order and phase, sorted by date", () => {
-    renderWithProviders(<ProductionList entries={entriesFor(["entrega", "reposicao"])} selectedOrderId={null} onSelectOrder={vi.fn()} />);
+  it("renders one row per order with its cycle forecast", () => {
+    renderWithProviders(<ProductionList orders={orders} selectedOrderId={null} onSelectOrder={vi.fn()} emptyMessage={P.no_orders_month} />);
 
     const rows = screen.getAllByRole("listitem");
-    expect(rows).toHaveLength(4);
-    expect(within(rows[0]).getByText(P.phase_reposicao, { selector: "span.rounded-full" })).toBeInTheDocument();
-    expect(within(rows[3]).getByText(P.phase_entrega, { selector: "span.rounded-full" })).toBeInTheDocument();
+    expect(rows).toHaveLength(3);
+    expect(within(rows[0]).getByText("#1", { exact: false })).toBeInTheDocument();
+    // Wednesday 07-01 → reposição 06/07, entrega 13/07.
+    expect(within(rows[0]).getByText("13/07")).toBeInTheDocument();
   });
 
-  it("shows the empty state when there are no entries", () => {
-    renderWithProviders(<ProductionList entries={[]} selectedOrderId={null} onSelectOrder={vi.fn()} />);
-    expect(screen.getByText(P.no_orders_month)).toBeInTheDocument();
+  it("shows the given empty message", () => {
+    renderWithProviders(<ProductionList orders={[]} selectedOrderId={null} onSelectOrder={vi.fn()} emptyMessage={P.no_orders_period} />);
+    expect(screen.getByText(P.no_orders_period)).toBeInTheDocument();
   });
 });

@@ -1,18 +1,20 @@
 import { describe, it, expect } from "vitest";
 import { Order } from "@/hooks/useOrders";
 import {
-  areAllPhasesSelected,
+  EMPTY_RANGE,
   buildMonthGrid,
-  buildPhaseEntries,
   computeCycleDates,
-  countByPhase,
-  entriesInMonth,
   getPhaseDate,
-  getRescheduleAnchor,
-  groupEntriesByDay,
-  isHighlightDay,
-  isPhaseDraggable,
-  togglePhase,
+  getPlacedDate,
+  groupOrdersByDay,
+  isDateInRange,
+  isRangeActive,
+  matchingPreset,
+  normalizeRange,
+  ordersInMonth,
+  ordersInRange,
+  presetRange,
+  rangeStartMonth,
   toDateStr,
 } from "./cycle";
 
@@ -99,103 +101,68 @@ describe("buildMonthGrid", () => {
   });
 });
 
-describe("isHighlightDay", () => {
-  it("highlights Mondays for reposição and entrega", () => {
-    expect(isHighlightDay(1, "reposicao")).toBe(true);
-    expect(isHighlightDay(1, "entrega")).toBe(true);
-    expect(isHighlightDay(2, "reposicao")).toBe(false);
+describe("date range", () => {
+  // Thursday 2026-10-22.
+  const today = new Date(2026, 9, 22, 15, 30);
+
+  it("builds the presets ending today", () => {
+    expect(presetRange("last_7_days", today)).toEqual({ from: "2026-10-16", to: "2026-10-22" });
+    expect(presetRange("last_30_days", today)).toEqual({ from: "2026-09-23", to: "2026-10-22" });
+    expect(presetRange("this_month", today)).toEqual({ from: "2026-10-01", to: "2026-10-22" });
   });
 
-  it("highlights Tuesday through Saturday for produção", () => {
-    expect(isHighlightDay(2, "producao")).toBe(true);
-    expect(isHighlightDay(6, "producao")).toBe(true);
-    expect(isHighlightDay(0, "producao")).toBe(false);
-    expect(isHighlightDay(1, "producao")).toBe(false);
+  it("recognizes the preset a range matches", () => {
+    expect(matchingPreset({ from: "2026-10-01", to: "2026-10-22" }, today)).toBe("this_month");
+    expect(matchingPreset({ from: "2026-10-02", to: "2026-10-22" }, today)).toBeNull();
   });
 
-  it("never highlights for order_placed", () => {
-    expect(isHighlightDay(1, "order_placed")).toBe(false);
-  });
-});
-
-describe("togglePhase", () => {
-  it("adds a phase keeping the cycle order", () => {
-    expect(togglePhase(["entrega"], "reposicao")).toEqual(["reposicao", "entrega"]);
+  it("swaps bounds typed out of order and treats empty strings as unset", () => {
+    expect(normalizeRange({ from: "2026-10-20", to: "2026-10-01" })).toEqual({ from: "2026-10-01", to: "2026-10-20" });
+    expect(normalizeRange({ from: "", to: "2026-10-01" })).toEqual({ from: null, to: "2026-10-01" });
+    expect(isRangeActive(EMPTY_RANGE)).toBe(false);
+    expect(isRangeActive({ from: null, to: "2026-10-01" })).toBe(true);
   });
 
-  it("removes a selected phase", () => {
-    expect(togglePhase(["reposicao", "producao"], "reposicao")).toEqual(["producao"]);
+  it("includes both bounds and leaves unset bounds open", () => {
+    const range = { from: "2026-10-05", to: "2026-10-10" };
+    expect(isDateInRange(new Date(2026, 9, 5), range)).toBe(true);
+    expect(isDateInRange(new Date(2026, 9, 10), range)).toBe(true);
+    expect(isDateInRange(new Date(2026, 9, 11), range)).toBe(false);
+    expect(isDateInRange(new Date(2020, 0, 1), { from: null, to: "2026-10-10" })).toBe(true);
+    expect(isDateInRange(new Date(2030, 0, 1), EMPTY_RANGE)).toBe(true);
   });
 
-  it("never leaves the selection empty", () => {
-    expect(togglePhase(["producao"], "producao")).toEqual(["producao"]);
-  });
-
-  it("detects when all phases are selected", () => {
-    expect(areAllPhasesSelected(["order_placed", "reposicao", "producao", "entrega"])).toBe(true);
-    expect(areAllPhasesSelected(["reposicao"])).toBe(false);
-  });
-});
-
-describe("phase entries", () => {
-  // Wednesday 2026-07-01 → reposição 07-06, produção 07-07, entrega 07-13.
-  const wed = orderStub({ id: 1, created_at: "2026-07-01T09:00:00" });
-  // Friday 2026-07-03 → same cycle dates as the order above.
-  const fri = orderStub({ id: 2, created_at: "2026-07-03T09:00:00" });
-
-  it("creates one entry per order and selected phase", () => {
-    const entries = buildPhaseEntries([wed, fri], ["reposicao", "entrega"]);
-    expect(entries).toHaveLength(4);
-    expect(entries.map((e) => `${e.order.id}:${e.phase}:${toDateStr(e.date)}`)).toEqual([
-      "1:reposicao:2026-07-06",
-      "1:entrega:2026-07-13",
-      "2:reposicao:2026-07-06",
-      "2:entrega:2026-07-13",
-    ]);
-  });
-
-  it("keeps only entries of the requested month", () => {
-    const late = orderStub({ id: 3, created_at: "2026-07-29T09:00:00" }); // reposição 2026-08-03
-    const entries = buildPhaseEntries([wed, late], ["reposicao"]);
-    expect(entriesInMonth(entries, 2026, 6).map((e) => e.order.id)).toEqual([1]);
-    expect(entriesInMonth(entries, 2026, 7).map((e) => e.order.id)).toEqual([3]);
-  });
-
-  it("groups by day sorting by phase order and then by order id", () => {
-    const entries = buildPhaseEntries([fri, wed], ["producao", "reposicao"]);
-    const byDay = groupEntriesByDay(entriesInMonth(entries, 2026, 6));
-
-    expect(Object.keys(byDay).map(Number).sort((a, b) => a - b)).toEqual([6, 7]);
-    expect(byDay[6].map((e) => `${e.phase}:${e.order.id}`)).toEqual(["reposicao:1", "reposicao:2"]);
-    expect(byDay[7].map((e) => `${e.phase}:${e.order.id}`)).toEqual(["producao:1", "producao:2"]);
-  });
-
-  it("counts entries per phase, including empty ones", () => {
-    const entries = buildPhaseEntries([wed, fri], ["reposicao", "producao"]);
-    expect(countByPhase(entries)).toEqual({ order_placed: 0, reposicao: 2, producao: 2, entrega: 0 });
+  it("opens the calendar on the month of the first bound", () => {
+    expect(rangeStartMonth({ from: "2026-09-23", to: "2026-10-22" })).toEqual({ year: 2026, month: 8 });
+    expect(rangeStartMonth({ from: null, to: "2026-10-22" })).toEqual({ year: 2026, month: 9 });
+    expect(rangeStartMonth(EMPTY_RANGE)).toBeNull();
   });
 });
 
-describe("getRescheduleAnchor", () => {
-  const dropped = new Date(2026, 6, 14); // Tuesday 2026-07-14
+describe("placed orders", () => {
+  const orders = [
+    orderStub({ id: 3, created_at: "2026-10-05T18:00:00" }),
+    orderStub({ id: 1, created_at: "2026-09-30T08:00:00" }),
+    orderStub({ id: 2, created_at: "2026-10-05T09:00:00" }),
+    orderStub({ id: 4, created_at: "2026-10-12T10:00:00" }),
+  ];
 
-  it("uses the dropped day for reposição", () => {
-    expect(toDateStr(getRescheduleAnchor("reposicao", dropped)!)).toBe("2026-07-14");
+  it("uses the placement day at midnight", () => {
+    const placed = getPlacedDate(orders[0]);
+    expect(toDateStr(placed)).toBe("2026-10-05");
+    expect(placed.getHours()).toBe(0);
   });
 
-  it("moves the anchor 1 day back for produção and 7 for entrega", () => {
-    expect(toDateStr(getRescheduleAnchor("producao", dropped)!)).toBe("2026-07-13");
-    expect(toDateStr(getRescheduleAnchor("entrega", dropped)!)).toBe("2026-07-07");
+  it("keeps the orders placed in the period, oldest first", () => {
+    expect(ordersInRange(orders, { from: "2026-10-01", to: "2026-10-05" }).map((o) => o.id)).toEqual([2, 3]);
+    expect(ordersInRange(orders, EMPTY_RANGE).map((o) => o.id)).toEqual([1, 2, 3, 4]);
   });
 
-  it("does not reschedule the placement date", () => {
-    expect(getRescheduleAnchor("order_placed", dropped)).toBeNull();
-    expect(isPhaseDraggable("order_placed")).toBe(false);
-    expect(isPhaseDraggable("entrega")).toBe(true);
-  });
-
-  it("does not mutate the dropped date", () => {
-    getRescheduleAnchor("entrega", dropped);
-    expect(toDateStr(dropped)).toBe("2026-07-14");
+  it("keeps the orders of a month and groups them by day", () => {
+    const october = ordersInMonth(orders, 2026, 9);
+    expect(october.map((o) => o.id).sort()).toEqual([2, 3, 4]);
+    const byDay = groupOrdersByDay(october);
+    expect(byDay[5].map((o) => o.id)).toEqual([2, 3]);
+    expect(byDay[12].map((o) => o.id)).toEqual([4]);
   });
 });

@@ -8,7 +8,7 @@ import { Order } from "@/hooks/useOrders";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-/** Weekly production cycle phase an order can be viewed under. */
+/** Milestone of an order's weekly production cycle (shown as information; the screen lists placed orders). */
 export type Phase = "order_placed" | "reposicao" | "producao" | "entrega";
 
 /** Production page display mode. */
@@ -66,10 +66,16 @@ export function computeCycleDates(order: Order): CycleDates {
   return { reposicao, producao, entrega };
 }
 
-/** Returns the calendar date an order falls on for the given phase. */
-export function getPhaseDate(order: Order, phase: Phase): Date {
+/** Calendar day (midnight, local time) the order was placed on. */
+export function getPlacedDate(order: Order): Date {
   const placed = new Date(order.created_at);
   placed.setHours(0, 0, 0, 0);
+  return placed;
+}
+
+/** Returns the calendar date an order falls on for the given phase. */
+export function getPhaseDate(order: Order, phase: Phase): Date {
+  const placed = getPlacedDate(order);
   const { reposicao, producao, entrega } = computeCycleDates(order);
   switch (phase) {
     case "order_placed": return placed;
@@ -77,13 +83,6 @@ export function getPhaseDate(order: Order, phase: Phase): Date {
     case "producao":     return producao;
     case "entrega":      return entrega;
   }
-}
-
-/** Returns whether a weekday (0=Sun) should be highlighted for the active phase. */
-export function isHighlightDay(weekday: number, phase: Phase): boolean {
-  if (phase === "reposicao" || phase === "entrega") return weekday === 1;
-  if (phase === "producao") return weekday >= 2 && weekday <= 6;
-  return false;
 }
 
 /** Returns whether two dates fall on the same calendar day. */
@@ -111,50 +110,15 @@ export function buildMonthGrid(year: number, month: number): (Date | null)[] {
 /** Cycle phases in chronological order. */
 export const PHASES: Phase[] = ["order_placed", "reposicao", "producao", "entrega"];
 
-/** Per-phase icon and Tailwind styling for chips, calendar tiles and dots. */
-export const PHASE_STYLE: Record<Phase, {
-  Icon: typeof ShoppingBag;
-  chipActive: string;
-  chipInactive: string;
-  highlight: string;
-  tileColor: string;
-  dotColor: string;
-}> = {
-  order_placed: {
-    Icon: ShoppingBag,
-    chipActive: "bg-primary text-primary-foreground border-primary",
-    chipInactive: "text-muted-foreground border-border hover:bg-muted",
-    highlight: "",
-    tileColor: "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20",
-    dotColor: "bg-primary",
-  },
-  reposicao: {
-    Icon: Package,
-    chipActive: "bg-amber-500 text-white border-amber-500",
-    chipInactive: "text-muted-foreground border-border hover:bg-muted",
-    highlight: "bg-amber-50 dark:bg-amber-950/20",
-    tileColor: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800",
-    dotColor: "bg-amber-400",
-  },
-  producao: {
-    Icon: UtensilsCrossed,
-    chipActive: "bg-violet-600 text-white border-violet-600",
-    chipInactive: "text-muted-foreground border-border hover:bg-muted",
-    highlight: "bg-violet-50 dark:bg-violet-950/20",
-    tileColor: "bg-violet-100 text-violet-800 border-violet-200 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800",
-    dotColor: "bg-violet-400",
-  },
-  entrega: {
-    Icon: Truck,
-    chipActive: "bg-emerald-600 text-white border-emerald-600",
-    chipInactive: "text-muted-foreground border-border hover:bg-muted",
-    highlight: "bg-emerald-50 dark:bg-emerald-950/20",
-    tileColor: "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800",
-    dotColor: "bg-emerald-500",
-  },
+/** Icon of each cycle phase (detail panel and list milestones). */
+export const PHASE_ICONS: Record<Phase, typeof ShoppingBag> = {
+  order_placed: ShoppingBag,
+  reposicao: Package,
+  producao: UtensilsCrossed,
+  entrega: Truck,
 };
 
-// ─── Multi-phase calendar helpers ─────────────────────────────────────────────
+// ─── Placed orders and date range ────────────────────────────────────────────
 
 /** Translation key (namespace `Production`) of each phase's label. */
 export const PHASE_LABEL_KEYS: Record<Phase, string> = {
@@ -164,89 +128,103 @@ export const PHASE_LABEL_KEYS: Record<Phase, string> = {
   entrega: "phase_entrega",
 };
 
-/** One order positioned on the calendar under one cycle phase. */
-export interface PhaseEntry {
-  order: Order;
-  phase: Phase;
-  /** Calendar day (midnight, local time) the order falls on for `phase`. */
-  date: Date;
+/** Period filter on the order placement date; `YYYY-MM-DD` bounds, both inclusive and optional. */
+export interface DateRange {
+  from: string | null;
+  to: string | null;
+}
+
+/** No period filter. */
+export const EMPTY_RANGE: DateRange = { from: null, to: null };
+
+/** Quick period shortcuts offered next to the date fields. */
+export const RANGE_PRESETS = ["last_7_days", "last_30_days", "this_month"] as const;
+
+/** One of {@link RANGE_PRESETS}. */
+export type RangePreset = (typeof RANGE_PRESETS)[number];
+
+/** Parses a local `YYYY-MM-DD` key into a Date at midnight. */
+export function parseDateStr(value: string): Date {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Whether a period bound is set. */
+export function isRangeActive(range: DateRange): boolean {
+  return !!(range.from || range.to);
 }
 
 /**
- * Toggles a phase in the selection. At least one phase always stays selected,
- * so removing the last one is a no-op. The result is kept in cycle order.
+ * Keeps the bounds in order: when `from` is after `to` (e.g. typed by hand)
+ * they are swapped. Empty strings count as unset.
+ */
+export function normalizeRange(range: DateRange): DateRange {
+  const from = range.from || null;
+  const to = range.to || null;
+  if (from && to && from > to) return { from: to, to: from };
+  return { from, to };
+}
+
+/**
+ * Builds the period of a preset, ending today.
  *
- * @param selected - Currently selected phases.
- * @param phase - Phase the user clicked.
+ * @param preset - Shortcut picked by the user.
+ * @param today - Reference day (defaults to now).
  */
-export function togglePhase(selected: Phase[], phase: Phase): Phase[] {
-  const next = selected.includes(phase) ? selected.filter((p) => p !== phase) : [...selected, phase];
-  if (next.length === 0) return selected;
-  return PHASES.filter((p) => next.includes(p));
+export function presetRange(preset: RangePreset, today: Date = new Date()): DateRange {
+  const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const start = new Date(end);
+  if (preset === "last_7_days") start.setDate(end.getDate() - 6);
+  else if (preset === "last_30_days") start.setDate(end.getDate() - 29);
+  else start.setDate(1);
+  return { from: toDateStr(start), to: toDateStr(end) };
 }
 
-/** Whether every cycle phase is selected. */
-export function areAllPhasesSelected(selected: Phase[]): boolean {
-  return PHASES.every((p) => selected.includes(p));
+/** Which preset, if any, the range matches exactly (for the active chip). */
+export function matchingPreset(range: DateRange, today: Date = new Date()): RangePreset | null {
+  return RANGE_PRESETS.find((preset) => {
+    const candidate = presetRange(preset, today);
+    return candidate.from === range.from && candidate.to === range.to;
+  }) ?? null;
 }
 
-/**
- * Expands orders into one entry per order and selected phase, so an order
- * appears once on each phase's date when several phases are shown together.
- *
- * @param orders - Orders to place on the calendar.
- * @param phases - Selected phases.
- */
-export function buildPhaseEntries(orders: Order[], phases: Phase[]): PhaseEntry[] {
-  return orders.flatMap((order) => phases.map((phase) => ({ order, phase, date: getPhaseDate(order, phase) })));
+/** Whether a calendar day falls inside the period (an unset bound is open). */
+export function isDateInRange(date: Date, range: DateRange): boolean {
+  const key = toDateStr(date);
+  if (range.from && key < range.from) return false;
+  if (range.to && key > range.to) return false;
+  return true;
 }
 
-/** Keeps only the entries that fall in the given month. */
-export function entriesInMonth(entries: PhaseEntry[], year: number, month: number): PhaseEntry[] {
-  return entries.filter(({ date }) => date.getFullYear() === year && date.getMonth() === month);
+/** Orders placed inside the period, oldest first (then by id). */
+export function ordersInRange(orders: Order[], range: DateRange): Order[] {
+  return orders
+    .filter((order) => isDateInRange(getPlacedDate(order), range))
+    .sort((a, b) => getPlacedDate(a).getTime() - getPlacedDate(b).getTime() || a.id - b.id);
 }
 
-/**
- * Groups a month's entries by day of month. Inside a day, entries follow the
- * cycle order (placed → reposição → produção → entrega) and then the order id.
- */
-export function groupEntriesByDay(entries: PhaseEntry[]): Record<number, PhaseEntry[]> {
-  const byDay: Record<number, PhaseEntry[]> = {};
-  for (const entry of entries) {
-    const day = entry.date.getDate();
-    (byDay[day] ??= []).push(entry);
+/** Orders placed in the given month. */
+export function ordersInMonth(orders: Order[], year: number, month: number): Order[] {
+  return orders.filter((order) => {
+    const placed = getPlacedDate(order);
+    return placed.getFullYear() === year && placed.getMonth() === month;
+  });
+}
+
+/** Groups a month's orders by the day of month they were placed on, by id inside a day. */
+export function groupOrdersByDay(orders: Order[]): Record<number, Order[]> {
+  const byDay: Record<number, Order[]> = {};
+  for (const order of orders) {
+    (byDay[getPlacedDate(order).getDate()] ??= []).push(order);
   }
-  for (const list of Object.values(byDay)) {
-    list.sort((a, b) => PHASES.indexOf(a.phase) - PHASES.indexOf(b.phase) || a.order.id - b.order.id);
-  }
+  for (const list of Object.values(byDay)) list.sort((a, b) => a.id - b.id);
   return byDay;
 }
 
-/** Counts entries per phase (every phase present, zero when empty). */
-export function countByPhase(entries: PhaseEntry[]): Record<Phase, number> {
-  const counts: Record<Phase, number> = { order_placed: 0, reposicao: 0, producao: 0, entrega: 0 };
-  for (const { phase } of entries) counts[phase] += 1;
-  return counts;
-}
-
-/** Whether tiles of this phase can be dragged to reschedule (the order date is fixed). */
-export function isPhaseDraggable(phase: Phase): boolean {
-  return phase !== "order_placed";
-}
-
-/**
- * Converts the day an order tile was dropped on into the new reposição date,
- * according to the phase the dragged tile belongs to:
- * reposição → same day, produção → day − 1, entrega → day − 7.
- *
- * @param phase - Phase of the dragged tile.
- * @param droppedDate - Calendar day it was dropped on.
- * @returns The new reposição date, or `null` when the phase cannot be rescheduled.
- */
-export function getRescheduleAnchor(phase: Phase, droppedDate: Date): Date | null {
-  if (!isPhaseDraggable(phase)) return null;
-  const offset = phase === "reposicao" ? 0 : phase === "producao" ? 1 : 7;
-  const anchor = new Date(droppedDate);
-  anchor.setDate(droppedDate.getDate() - offset);
-  return anchor;
+/** Month (year + 0-based month) the calendar should open on for a period, or null without bounds. */
+export function rangeStartMonth(range: DateRange): { year: number; month: number } | null {
+  const bound = range.from ?? range.to;
+  if (!bound) return null;
+  const date = parseDateStr(bound);
+  return { year: date.getFullYear(), month: date.getMonth() };
 }
