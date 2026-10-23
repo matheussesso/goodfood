@@ -514,7 +514,8 @@
     "plan_add_first": "Escolha a primeira receita do plano",
     "plan_add_next": "Adicionar outra receita ao plano",
     "meal_plan_label": "Plano alimentar",
-    "plan_step": "Etapa {n}"
+    "plan_step": "Etapa {n}",
+    "summary_step_meta": "{days} · {portions}"
   },
   "Profile": {
     "title": "Minha Conta",

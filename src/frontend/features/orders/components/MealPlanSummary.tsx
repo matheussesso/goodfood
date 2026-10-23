@@ -29,6 +29,7 @@ interface MealPlanSummaryProps {
  */
 export function MealPlanSummary({ pets, plan, recipesById, costs, total, isPricing }: MealPlanSummaryProps) {
   const t = useTranslations("Orders");
+  const tRec = useTranslations("Recipes");
   const petsInPlan = pets.filter((pet) => plan.some((step) => step.petId === pet.id));
 
   return (
@@ -55,11 +56,19 @@ export function MealPlanSummary({ pets, plan, recipesById, costs, total, isPrici
                 <ul className="space-y-1.5">
                   {steps.map((step) => {
                     const cost = costs[step.key];
+                    const portions = recipesById[step.recipeId]?.daily_portions;
                     return (
                       <li key={step.key} className="flex items-baseline justify-between gap-3 text-sm">
                         <span className="flex min-w-0 flex-col text-muted-foreground">
                           <span className="line-clamp-1 text-foreground">{recipesById[step.recipeId]?.name ?? `#${step.recipeId}`}</span>
-                          <span className="text-xs">{t("days_value", { count: step.durationDays })}</span>
+                          <span className="text-xs">
+                            {portions
+                              ? t("summary_step_meta", {
+                                  days: t("days_value", { count: step.durationDays }),
+                                  portions: tRec("portions_per_day_value", { count: portions }),
+                                })
+                              : t("days_value", { count: step.durationDays })}
+                          </span>
                         </span>
                         <span className="shrink-0 font-semibold text-amber-600 dark:text-amber-400">
                           {cost === undefined ? "…" : formatBRL(cost, true)}
