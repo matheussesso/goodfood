@@ -47,8 +47,9 @@ export function RecipeStatGrid({ stats, className }: { stats: RecipeStat[]; clas
  *
  * @param recipe - Recipe with its ingredients loaded.
  * @param showLegend - Whether to list the categories under the bar.
+ * @param thin - Slimmer bar for compact cards.
  */
-export function CompositionBar({ recipe, showLegend = true }: { recipe: RecipeWithIngredients; showLegend?: boolean }) {
+export function CompositionBar({ recipe, showLegend = true, thin = false }: { recipe: RecipeWithIngredients; showLegend?: boolean; thin?: boolean }) {
   const t = useTranslations("Recipes");
   const tCat = useTranslations("Catalog");
   const shares = categoryShares(recipe);
@@ -60,7 +61,7 @@ export function CompositionBar({ recipe, showLegend = true }: { recipe: RecipeWi
 
   return (
     <div className="space-y-2">
-      <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full" role="img" aria-label={t("composition_by_category_aria", { summary })}>
+      <div className={cn("flex gap-0.5 overflow-hidden rounded-full", thin ? "h-1.5" : "h-2.5")} role="img" aria-label={t("composition_by_category_aria", { summary })}>
         {shares.map(({ category, share }) => (
           <div key={category ?? "none"} className={cn("h-full", categoryTone(category))} style={{ flexGrow: share, flexBasis: 0 }} />
         ))}
