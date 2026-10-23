@@ -97,16 +97,15 @@ Formulário em `/orders/new`: para cada pet, monta o plano → endereço de entr
 
 ### Produção (admin e produção)
 
-Tela `/production` com os pedidos posicionados no ciclo semanal, em **calendário** ou **lista**.
+Tela `/production` com os **pedidos realizados**, cada um no dia em que foi feito, em **calendário** ou **lista**.
 
-- **Fases do ciclo** (multisseleção): Pedido realizado, Reposição de estoque, Em produção e Entrega. Dá para marcar **uma ou mais** fases, ou "Todas as fases" — sempre fica ao menos uma marcada. Cada chip mostra quantos pedidos a fase soma no mês.
-- **Datas**: reposição na segunda seguinte ao pedido (ajustável), produção no dia seguinte e entrega 7 dias depois da reposição.
-- **Calendário com várias fases**: cada pedido aparece uma vez em cada fase marcada, com a cor e o ícone da fase, número, cliente e total. Em telas largas, dias cheios mostram 3 pedidos e "+N mais"; em telas pequenas cada pedido vira um ponto colorido.
-- **Dia selecionado**: clicar no número do dia abre a lista completa dos pedidos daquele dia (fase, cliente, status e total) e daí o detalhe do pedido.
-- **Reagendar**: arrastar um pedido de reposição, produção ou entrega para outro dia move o ciclo todo (`scheduled_reposicao_date`); o que vale é a fase do próprio pedido arrastado. "Pedido realizado" não é arrastável.
-- **Filtros**: busca (número, cliente, e-mail, receita) e status continuam valendo junto com as fases.
+- **Período do pedido**: campos "De" e "Até" (qualquer um pode ficar vazio) e atalhos "Últimos 7 dias", "Últimos 30 dias" e "Este mês". Datas digitadas fora de ordem são invertidas. Ao escolher um período, o calendário vai para o mês do início; os dias fora do período ficam esmaecidos.
+- **Calendário**: cada pedido aparece no dia em que foi realizado, com número, cliente e total. Em telas largas, dias cheios mostram 3 pedidos e "+N mais"; em telas pequenas cada pedido vira um ponto.
+- **Lista**: sem período, mostra o mês (com navegação entre meses); com período, mostra todos os pedidos do período, do mais antigo para o mais novo. Cada linha traz a previsão do ciclo semanal (reposição na segunda seguinte, produção no dia seguinte e entrega 7 dias depois da reposição).
+- **Dia selecionado**: clicar no número do dia abre a lista completa dos pedidos daquele dia (horário, cliente, status e total) e daí o detalhe do pedido.
+- **Filtros**: busca (número, cliente, e-mail, receita), status e período valem juntos.
 - **Detalhe do pedido** (`OrderDetailPanel`): cada receita aparece com a sua duração e o intervalo de dias no plano do pet, para a produção saber quanto preparar de cada uma.
-- **Código**: `features/production/cycle.ts` (regras e helpers puros), `components/PhaseFilter`, `ProductionCalendar`, `DayOrdersPanel`, `ProductionList` e `OrderDetailPanel`.
+- **Código**: `features/production/cycle.ts` (ciclo, período e agrupamento de pedidos — helpers puros), `components/DateRangeFilter`, `MonthHeader`, `ProductionCalendar`, `DayOrdersPanel`, `ProductionList` e `OrderDetailPanel`.
 
 ## Administração
 
